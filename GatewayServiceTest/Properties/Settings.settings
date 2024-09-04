@@ -1,0 +1,27 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="GatewayServiceTest.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="APP_ID" Type="System.String" Scope="User">
+      <Value Profile="(Default)">47ba-636899680566020891.apps.signserviceapi.com</Value>
+    </Setting>
+    <Setting Name="APP_SECRET" Type="System.String" Scope="User">
+      <Value Profile="(Default)">NTdkZmZhNTg-MTVmOC00N2Jh</Value>
+    </Setting>
+    <Setting Name="ENTERPRISE_ACC" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">sample.vnpt.enterprise@vnpt.vn</Value>
+    </Setting>
+    <Setting Name="USER_ACC" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">sample.vnpt.02@vnpt.vn</Value>
+    </Setting>
+    <Setting Name="USER_PASS" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">123456a@A</Value>
+    </Setting>
+    <Setting Name="SERVICE_URL" Type="System.String" Scope="User">
+      <Value Profile="(Default)">https://gateway.vnpt-ca.vn/signservice/v4/api_gateway</Value>
+    </Setting>
+    <Setting Name="SERVICE_GET_TOKENURL" Type="System.String" Scope="User">
+      <Value Profile="(Default)">https://gateway.vnpt-ca.vn/signservice/v4/oauth/token</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

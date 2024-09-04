@@ -1,0 +1,51 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34728.123
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GatewayServiceTest", "GatewayServiceTest\GatewayServiceTest.csproj", "{EC4206C2-68DF-4B03-8044-6606B62B1C05}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartCA769", "SmartCA769.csproj", "{8F30D5A4-67F3-456E-A7A5-10D93567DA33}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EBH_RemoteSigning_Service(ERS)", "EBH_RemoteSigning_Service(ERS)\EBH_RemoteSigning_Service(ERS).csproj", "{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug_woDrawing|Any CPU = Debug_woDrawing|Any CPU
+		Debug|Any CPU = Debug|Any CPU
+		Release_woDrawing|Any CPU = Release_woDrawing|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EC4206C2-68DF-4B03-8044-6606B62B1C05}.Debug_woDrawing|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC4206C2-68DF-4B03-8044-6606B62B1C05}.Debug_woDrawing|Any CPU.Build.0 = Debug|Any CPU
+		{EC4206C2-68DF-4B03-8044-6606B62B1C05}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC4206C2-68DF-4B03-8044-6606B62B1C05}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC4206C2-68DF-4B03-8044-6606B62B1C05}.Release_woDrawing|Any CPU.ActiveCfg = Release|Any CPU
+		{EC4206C2-68DF-4B03-8044-6606B62B1C05}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
+		{EC4206C2-68DF-4B03-8044-6606B62B1C05}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC4206C2-68DF-4B03-8044-6606B62B1C05}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8F30D5A4-67F3-456E-A7A5-10D93567DA33}.Debug_woDrawing|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F30D5A4-67F3-456E-A7A5-10D93567DA33}.Debug_woDrawing|Any CPU.Build.0 = Debug|Any CPU
+		{8F30D5A4-67F3-456E-A7A5-10D93567DA33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8F30D5A4-67F3-456E-A7A5-10D93567DA33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8F30D5A4-67F3-456E-A7A5-10D93567DA33}.Release_woDrawing|Any CPU.ActiveCfg = Release|Any CPU
+		{8F30D5A4-67F3-456E-A7A5-10D93567DA33}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
+		{8F30D5A4-67F3-456E-A7A5-10D93567DA33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8F30D5A4-67F3-456E-A7A5-10D93567DA33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Debug_woDrawing|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Debug_woDrawing|Any CPU.Build.0 = Debug|Any CPU
+		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Release_woDrawing|Any CPU.ActiveCfg = Release|Any CPU
+		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
+		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {33EED925-1C79-41CB-8162-2A37C5BDA719}
+	EndGlobalSection
+EndGlobal
