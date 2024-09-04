@@ -1,4 +1,5 @@
-﻿using EBH_RemoteSigning_Service_ERS_.Request;
+﻿using EBH_RemoteSigning_Service_ERS_.clsUtilities;
+using EBH_RemoteSigning_Service_ERS_.Request;
 using EBH_RemoteSigning_Service_ERS_.Response;
 using Newtonsoft.Json;
 using System;
@@ -9,17 +10,25 @@ using System.Web;
 
 namespace EBH_RemoteSigning_Service_ERS_.SmartCAService
 {
-    public class SmartCAService
+    public class SmartCAService : ISmartCAService
     {
-        public static UserCertificate GetAccountCert(String uri)
+        private ConfigRequest _configRequest;
+
+        public SmartCAService()
         {
-            var response = Query(new ReqGetCert
+            _configRequest = new ConfigRequest();   
+        }
+
+
+        public UserCertificate GetAccountCert(String uri, string serialNumber)
+        {
+            var response = MethodLibrary.Query(new ReqGetCert
             {
-                sp_id = client_id,
-                sp_password = client_secret,
-                user_id = uid,
+                sp_id = _configRequest.sp_id,
+                sp_password = _configRequest.sp_password,
+                user_id = _configRequest.uid,
                 serial_number = "",
-                transaction_id = "321"
+                transaction_id = Guid.NewGuid().ToString(),
             }, uri);
             if (response != null)
             {
@@ -67,7 +76,35 @@ namespace EBH_RemoteSigning_Service_ERS_.SmartCAService
 
         }
 
-        public static DataSign Sign(String uri, string data_to_be_signed, String serialNumber)
+        public List<UserCertificate> GetListAccountCert(String uri)
+        {
+            var response = MethodLibrary.Query(new ReqGetCert
+            {
+                sp_id = _configRequest.sp_id,
+                sp_password = _configRequest.sp_password,
+                user_id = _configRequest.uid,
+                serial_number = "",
+                transaction_id = Guid.NewGuid().ToString(),
+            }, uri);
+            if (response != null)
+            {
+                ResGetCert res = JsonConvert.DeserializeObject<ResGetCert>(response);
+
+                if (res.data.user_certificates.Count() >= 1)
+                {
+                    return res.data.user_certificates;
+                }
+                else
+                {
+                    return null;
+                }
+
+            }
+            return null;
+
+        }
+
+        public DataSign Sign(String uri, string data_to_be_signed, String serialNumber)
         {
 
 
@@ -97,7 +134,7 @@ namespace EBH_RemoteSigning_Service_ERS_.SmartCAService
             return null;
         }
 
-        public static DataTransaction _getStatus(String uri)
+        public DataTransaction GetStatus(String uri)
         {
             var response = Query(new Object
             {

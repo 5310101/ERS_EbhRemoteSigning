@@ -177,7 +177,7 @@ namespace SmartCA769
             string tempFolder = Path.GetTempPath();
             File.AppendAllText(tempFolder + data_to_be_sign + ".txt", profileJson);
 
-            DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.user_certificates[0].serial_number);
+            DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
 
             Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
             //Console.ReadKey();

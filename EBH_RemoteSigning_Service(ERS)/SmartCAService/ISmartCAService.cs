@@ -9,7 +9,8 @@ namespace EBH_RemoteSigning_Service_ERS_.SmartCAService
 {
     public interface ISmartCAService
     {
-        UserCertificate GetAccountCert(String uri);
+        List<UserCertificate> GetListAccountCert(String uri);
+        UserCertificate GetAccountCert(String uri, string serialNumber);
         DataSign Sign(String uri, string data_to_be_signed, String serialNumber);
         DataTransaction GetStatus(String uri);
 

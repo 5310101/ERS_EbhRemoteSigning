@@ -10,7 +10,7 @@ using System.Web.Services.Protocols;
 
 namespace EBH_RemoteSigning_Service_ERS_
 {
-    public class Authorize : SoapHeader 
+    public class Authorize : SoapHeader
     {
         public int SecretKey { get; set; }
     }
@@ -44,7 +44,7 @@ namespace EBH_RemoteSigning_Service_ERS_
                     Utilities.logger.ErrorLog("SecretKey is invalid", "Authorization failed");
                     return false;
                 }
-                DataTable dtAuth = Utilities.dbService.GetDataTable("SELECT PASS FROM DOANH_NGHIEP WHERE MA_SO_THUE = @MST AND TRANG_THAI=1 AND IS_XAC_THUC=1 AND IS_KHOA=0",""
+                DataTable dtAuth = Utilities.dbService.GetDataTable("SELECT PASS FROM DOANH_NGHIEP WHERE MA_SO_THUE = @MST AND TRANG_THAI=1 AND IS_XAC_THUC=1 AND IS_KHOA=0","",
                     new SqlParameter[]
                     {
                         new SqlParameter("MST",userName)
@@ -55,7 +55,7 @@ namespace EBH_RemoteSigning_Service_ERS_
                     Utilities.logger.ErrorLog("Username is incorrect", "Authorization failed");
                     return false;
                 }
-                isAuthed = dtAuth.AsEnumerable().Any(r => r["PASS"].SafeString() == Md5Password); 
+                isAuthed = dtAuth.AsEnumerable().Any(r => r["PASS"].SafeString() == Md5Password);
                 return isAuthed;
             }
             catch (Exception ex)

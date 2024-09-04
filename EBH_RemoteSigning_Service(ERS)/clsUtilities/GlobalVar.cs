@@ -20,6 +20,26 @@ namespace EBH_RemoteSigning_Service_ERS_.clsUtilities
 				return _secretKey; 
 			}
 		}
-
 	}
+
+	public class ConfigRequest
+	{
+		public string sp_id;
+		public string sp_password;
+		public string uid;
+		public string serial_number;
+
+        public ConfigRequest()
+        {
+			InitValue();
+        }
+
+		private void InitValue()
+		{
+			sp_id = ConfigurationManager.AppSettings["SP_ID"].ToString();
+			sp_password = ConfigurationManager.AppSettings["SP_ID"].ToString();
+            uid = ConfigurationManager.AppSettings["SP_ID"].ToString();
+            serial_number = ConfigurationManager.AppSettings["SP_ID"]?.ToString();
+        }
+    }
 }
