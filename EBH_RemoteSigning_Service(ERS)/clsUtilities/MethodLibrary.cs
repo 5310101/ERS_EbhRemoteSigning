@@ -9,7 +9,7 @@ using System.Text;
 using System.Web;
 using RestSharp;
 
-namespace EBH_RemoteSigning_Service_ERS_.clsUtilities
+namespace EBH_RemoteSigning_Service_ERS.clsUtilities
 {
     public static class MethodLibrary
     {

@@ -20,7 +20,7 @@ namespace EBH_RemoteSigning_Service_ERS_.SmartCAService
         }
 
 
-        public UserCertificate GetAccountCert(String uri, string serialNumber)
+        public UserCertificate GetAccountCert(String uri, string serialNumber = "")
         {
             var response = MethodLibrary.Query(new ReqGetCert
             {
@@ -34,37 +34,18 @@ namespace EBH_RemoteSigning_Service_ERS_.SmartCAService
             {
                 ResGetCert res = JsonConvert.DeserializeObject<ResGetCert>(response);
 
-                if (res.data.user_certificates.Count() == 1)
+                if (res.data.user_certificates.Count() == 1 || serialNumber == "")
                 {
                     return res.data.user_certificates[0];
                 }
                 else if (res.data.user_certificates.Count() > 1)
                 {
-                    for (int i = 0; i < res.data.user_certificates.Count(); i++)
+                    var returnCert = res.data.user_certificates.First((c) => c.serial_number == serialNumber);
+                    if(returnCert != null)
                     {
-                        Console.WriteLine("--------------");
-                        Console.WriteLine("Certificate index : " + i);
-                        Console.WriteLine("service_type : " + res.data.user_certificates[i].service_type);
-                        Console.WriteLine("service_name : " + res.data.user_certificates[i].service_name);
-                        Console.WriteLine("serial_number : " + res.data.user_certificates[i].serial_number);
-                        Console.WriteLine("cert_subject : " + res.data.user_certificates[i].cert_subject);
-                        Console.WriteLine("cert_valid_from : " + res.data.user_certificates[i].cert_valid_from);
-                        Console.WriteLine("cert_valid_to : " + res.data.user_certificates[i].cert_valid_to);
+                        return returnCert;
                     }
-                    Console.WriteLine("Choose Certificate index :");
-                    String certIndex = Console.ReadLine();
-                    int certIn;
-                    bool isNumber = int.TryParse(certIndex, out certIn);
-                    if (!isNumber)
-                    {
-                        return null; ;
-                    }
-                    if (certIn < 0 || certIn >= res.data.user_certificates.Count())
-                    {
-                        return null;
-                    }
-                    return res.data.user_certificates[certIn];
-
+                    return  res.data.user_certificates[0];
                 }
                 else
                 {

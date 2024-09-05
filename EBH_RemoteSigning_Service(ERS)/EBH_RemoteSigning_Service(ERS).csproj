@@ -84,6 +84,7 @@
     <Compile Include="clsUtilities\DbService.cs" />
     <Compile Include="clsUtilities\GlobalVar.cs" />
     <Compile Include="clsUtilities\MethodLibrary.cs" />
+    <Compile Include="ERS_Response.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RemoteSigningService.asmx.cs">
       <DependentUpon>RemoteSigningService.asmx</DependentUpon>

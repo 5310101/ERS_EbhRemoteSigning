@@ -4,7 +4,7 @@ using System.Configuration;
 using System.Linq;
 using System.Web;
 
-namespace EBH_RemoteSigning_Service_ERS_.clsUtilities
+namespace EBH_RemoteSigning_Service_ERS.clsUtilities
 {
     public class GlobalVar
     {

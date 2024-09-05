@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EBH_RemoteSigning_Service_ERS_.SmartCAService
+namespace EBH_RemoteSigning_Service_ERS.SmartCAService
 {
     public interface ISmartCAService
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace EBH_RemoteSigning_Service_ERS_.Request
+namespace EBH_RemoteSigning_Service_ERS.Request
 {
     public class ReqGetCert
     {

@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Web;
 
-namespace EBH_RemoteSigning_Service_ERS_.clsUtilities
+namespace EBH_RemoteSigning_Service_ERS.clsUtilities
 {
     public class PathProvider
     {

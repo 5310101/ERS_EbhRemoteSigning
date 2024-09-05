@@ -1,10 +1,10 @@
-﻿using EBH_RemoteSigning_Service_ERS_.clsUtilities;
+﻿using EBH_RemoteSigning_Service_ERS.clsUtilities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace EBH_RemoteSigning_Service_ERS_
+namespace EBH_RemoteSigning_Service_ERS
 {
     public static class Utilities
     {
