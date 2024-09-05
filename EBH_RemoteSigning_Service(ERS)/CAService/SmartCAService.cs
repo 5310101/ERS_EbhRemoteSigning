@@ -1,6 +1,7 @@
-﻿using EBH_RemoteSigning_Service_ERS_.clsUtilities;
-using EBH_RemoteSigning_Service_ERS_.Request;
-using EBH_RemoteSigning_Service_ERS_.Response;
+﻿using EBH_RemoteSigning_Service_ERS.clsUtilities;
+using EBH_RemoteSigning_Service_ERS.Request;
+using EBH_RemoteSigning_Service_ERS.Response;
+using EBH_RemoteSigning_Service_ERS_.Model;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -8,15 +9,15 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Web;
 
-namespace EBH_RemoteSigning_Service_ERS_.SmartCAService
+namespace EBH_RemoteSigning_Service_ERS.CAService
 {
     public class SmartCAService : ISmartCAService
     {
         private ConfigRequest _configRequest;
 
-        public SmartCAService()
+        public SmartCAService(ConfigRequest configRequest)
         {
-            _configRequest = new ConfigRequest();   
+            _configRequest = configRequest;   
         }
 
 
@@ -85,24 +86,15 @@ namespace EBH_RemoteSigning_Service_ERS_.SmartCAService
 
         }
 
-        public DataSign Sign(String uri, string data_to_be_signed, String serialNumber)
+        public DataSign Sign(String uri, List<SignFile> sign_files, String serialNumber)
         {
-
-
-            var sign_files = new List<SignFile>();
-            var sign_file = new SignFile();
-            sign_file.data_to_be_signed = data_to_be_signed;
-            sign_file.doc_id = data_to_be_signed;
-            sign_file.file_type = "pdf";
-            sign_file.sign_type = "hash";
-            sign_files.Add(sign_file);
-            var response = Query(new ReqSign
+            var response = MethodLibrary.Query(new ReqSign
             {
-                sp_id = client_id,
-                sp_password = client_secret,
-                user_id = uid,
+                sp_id = _configRequest.sp_id,
+                sp_password = _configRequest.sp_password,
+                user_id = _configRequest.uid,
                 transaction_id = Guid.NewGuid().ToString(),
-                transaction_desc = "Ký Test từ NgoQuangDat",
+                transaction_desc = "Sign request from eBH",
                 sign_files = sign_files,
                 serial_number = serialNumber,
 

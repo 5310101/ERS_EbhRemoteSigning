@@ -84,15 +84,16 @@
     <Compile Include="clsUtilities\DbService.cs" />
     <Compile Include="clsUtilities\GlobalVar.cs" />
     <Compile Include="clsUtilities\MethodLibrary.cs" />
-    <Compile Include="ERS_Response.cs" />
+    <Compile Include="Model\SignFileInfo.cs" />
+    <Compile Include="Response\ERS_Response.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RemoteSigningService.asmx.cs">
       <DependentUpon>RemoteSigningService.asmx</DependentUpon>
     </Compile>
     <Compile Include="Request\SmartCARequest.cs" />
     <Compile Include="Response\SmartCAResponse.cs" />
-    <Compile Include="SmartCAService\ISmartCAService.cs" />
-    <Compile Include="SmartCAService\SmartCAService.cs" />
+    <Compile Include="CAService\ISmartCAService.cs" />
+    <Compile Include="CAService\SmartCAService.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="clsUtilities\Logger.cs" />
     <Compile Include="clsUtilities\PathProvider.cs" />

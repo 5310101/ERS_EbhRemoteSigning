@@ -42,4 +42,15 @@ namespace EBH_RemoteSigning_Service_ERS.clsUtilities
             serial_number = ConfigurationManager.AppSettings["SP_ID"]?.ToString();
         }
     }
+
+	public static class VNPT_URI
+	{
+        public static string uriGetCert = @"https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate";
+        public static string uriSign = @"https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate";
+        public static string uriGetStatus = @"https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate";
+
+        public static string uriGetCert_test = @"https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate";
+        public static string uriSign_test = @"https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate";
+        public static string uriGetStatus_test = @"https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate";
+    }
 }

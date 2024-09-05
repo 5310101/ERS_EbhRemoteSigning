@@ -6,11 +6,11 @@ using System.Web;
 
 namespace EBH_RemoteSigning_Service_ERS
 {
-    public static class Utilities
+    public class Utilities
     {
        public static PathProvider globalPath = new PathProvider();  
        public static Logger logger = new Logger();
        public static GlobalVar glbVar = new GlobalVar();  
-       public static DbService dbService = new DbService();
+       public DbService dbService = new DbService();
     }
 }

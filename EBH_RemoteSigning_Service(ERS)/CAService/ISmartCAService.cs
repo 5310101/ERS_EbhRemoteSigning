@@ -1,11 +1,11 @@
-﻿using EBH_RemoteSigning_Service_ERS_.Response;
+﻿using EBH_RemoteSigning_Service_ERS.Response;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EBH_RemoteSigning_Service_ERS.SmartCAService
+namespace EBH_RemoteSigning_Service_ERS.CAService
 {
     public interface ISmartCAService
     {
