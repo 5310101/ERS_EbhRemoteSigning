@@ -11,6 +11,7 @@ using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Web;
 using System.Web.Services;
 using System.Web.Services.Protocols;
@@ -41,6 +42,8 @@ namespace EBH_RemoteSigning_Service_ERS
             _dbService = new DbService();   
         }
 
+        [WebMethod]
+        [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response Authorize(string userName, string Md5Password)
         {
             bool isAuthed = false;
@@ -83,14 +86,18 @@ namespace EBH_RemoteSigning_Service_ERS
 
         [WebMethod]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
-        public ERS_Response GetCertificate_VNPT(string user, string password)
+        public ERS_Response GetCertificate_VNPT(string serialNumber = "")
         {
             try
             {
-                ERS_Response authStatus = Authorize(user, password);
-                if (!authStatus.success)
+                if(serialNumber != "")
                 {
-                    return authStatus;
+                    UserCertificate cert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert_test, serialNumber);
+                    if (cert != null) 
+                    {
+                        return new ERS_Response("Success", true, cert);
+                    }
+                    return new ERS_Response("Certificate not found", false);
                 }
                 List<UserCertificate> listCerts = _smartCAService.GetListAccountCert(VNPT_URI.uriGetCert_test);
                 if (listCerts.Count > 0)
@@ -108,63 +115,21 @@ namespace EBH_RemoteSigning_Service_ERS
 
         [WebMethod]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
-        public ERS_Response SendFileToSign_VNPT(string user, string password, List<SignFileInfo> files ,string serialNumber = "") 
+        public ERS_Response SendFileToSign_VNPT(List<SignFile> sign_files, string serialNumber = "") 
         {
             try
             {
-                ERS_Response auth = Authorize(user, password);
-                if (!auth.success)
+                ResSign res = _smartCAService.Sign(VNPT_URI.uriSign_test, sign_files, serialNumber);
+                if (res.status_code != 200 && res.data == null)
                 {
-                    return auth;
+                    return new ERS_Response("Cannot send file to vnpt server", false);
                 }
-                //neu co nhieu chu ky so dang ky thi phai gui serialnumber len, neu ko mac dinh chon cert dau tien
-                UserCertificate UserCert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert_test, serialNumber);
-                if(UserCert == null)
-                {
-                    return new ERS_Response("Certificate not found", false);
-                }
-                string certBase64 = UserCert.cert_data;
-
-                List<SignFile> sign_files = new List<SignFile>();
-                foreach (SignFileInfo sfi in files)
-                {
-                    bool isSignedHash = false;
-                    string data_to_be_sign = "" ;
-                    switch (sfi.type)
-                    {
-                        case FileType.PDF:
-                            isSignedHash = SignHash_PDF(sfi, certBase64, ref data_to_be_sign);
-                            break;
-                        case FileType.XML:
-
-                            break;
-                        case FileType.OFFICE:
-
-                            break;
-                        default:
-                            return new ERS_Response("FileType is not supported", false);
-                    }
-                    if (!isSignedHash)
-                    {
-                        return new ERS_Response("Error occured when sign file", false);
-                    }
-                    if(data_to_be_sign != "")
-                    {
-                        var sign_file = new SignFile();
-                        sign_file.data_to_be_signed = data_to_be_sign;
-                        sign_file.doc_id = sfi.FileName;
-                        sign_file.file_type = sfi.type.ToString().ToLower();
-                        sign_file.sign_type = "hash";
-                        sign_files.Add(sign_file);
-                    }
-                    
-
-                }
+                return new ERS_Response("Send file successfully, waiting user to sign on app", true, res.data);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                throw;
+                Utilities.logger.ErrorLog(ex, "SendFileToSign_VNPT");
+                return new ERS_Response($"Server error: {ex.Message}", false);
             }
         }
 

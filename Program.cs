@@ -666,7 +666,7 @@ namespace SmartCA769
             if (response != null)
             {
                 ResSign req = JsonConvert.DeserializeObject<ResSign>(response);
-                return req.data;
+                return req;
             }
             return null;
         }

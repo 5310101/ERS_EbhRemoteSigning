@@ -1,9 +1,7 @@
-﻿using EBH_RemoteSigning_Service_ERS.Response;
+﻿using EBH_RemoteSigning_Service_ERS.Request;
+using EBH_RemoteSigning_Service_ERS.Response;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EBH_RemoteSigning_Service_ERS.CAService
 {
@@ -11,7 +9,7 @@ namespace EBH_RemoteSigning_Service_ERS.CAService
     {
         List<UserCertificate> GetListAccountCert(String uri);
         UserCertificate GetAccountCert(String uri, string serialNumber);
-        DataSign Sign(String uri, string data_to_be_signed, String serialNumber);
+        ResSign Sign(String uri, List<SignFile> sign_files, String serialNumber);
         DataTransaction GetStatus(String uri);
 
     }

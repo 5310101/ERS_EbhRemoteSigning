@@ -86,7 +86,7 @@ namespace EBH_RemoteSigning_Service_ERS.CAService
 
         }
 
-        public DataSign Sign(String uri, List<SignFile> sign_files, String serialNumber)
+        public ResSign Sign(String uri, List<SignFile> sign_files, String serialNumber)
         {
             var response = MethodLibrary.Query(new ReqSign
             {
@@ -102,7 +102,7 @@ namespace EBH_RemoteSigning_Service_ERS.CAService
             if (response != null)
             {
                 ResSign req = JsonConvert.DeserializeObject<ResSign>(response);
-                return req.data;
+                return req;
             }
             return null;
         }
