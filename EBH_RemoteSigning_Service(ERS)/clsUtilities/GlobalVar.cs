@@ -15,7 +15,7 @@ namespace EBH_RemoteSigning_Service_ERS.clsUtilities
 			{
 				if (string.IsNullOrEmpty(_secretKey))
 				{
-					_secretKey = ConfigurationManager.AppSettings["SECRETKEY"].ToString();
+					_secretKey = ConfigurationManager.AppSettings["SECRETKEY"];
 				}
 				return _secretKey; 
 			}
@@ -26,8 +26,6 @@ namespace EBH_RemoteSigning_Service_ERS.clsUtilities
 	{
 		public string sp_id;
 		public string sp_password;
-		public string uid;
-		public string serial_number;
 
         public ConfigRequest()
         {
@@ -36,21 +34,17 @@ namespace EBH_RemoteSigning_Service_ERS.clsUtilities
 
 		private void InitValue()
 		{
-			sp_id = ConfigurationManager.AppSettings["SP_ID"].ToString();
-			sp_password = ConfigurationManager.AppSettings["SP_ID"].ToString();
-            uid = ConfigurationManager.AppSettings["SP_ID"].ToString();
-            serial_number = ConfigurationManager.AppSettings["SP_ID"]?.ToString();
+			sp_id = ConfigurationManager.AppSettings["SP_ID"];
+			sp_password = ConfigurationManager.AppSettings["SP_PASSWORD"];
         }
     }
 
 	public static class VNPT_URI
 	{
-        public static string uriGetCert = @"https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate";
-        public static string uriSign = @"https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate";
-        public static string uriGetStatus = @"https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate";
-
-        public static string uriGetCert_test = @"https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate";
-        public static string uriSign_test = @"https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate";
-        public static string uriGetStatus_test = @"https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate";
+        public static string uriGetCert = "https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate";
+        public static string uriSign = "https://gwsca.vnptit.vn/sca/sp769/v1/signatures/sign";
+        
+        public static string uriGetCert_test = "https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate";
+        public static string uriSign_test = "https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign";
     }
 }

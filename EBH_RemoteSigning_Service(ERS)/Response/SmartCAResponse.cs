@@ -16,6 +16,8 @@ namespace EBH_RemoteSigning_Service_ERS.Response
     {
         public List<UserCertificate> user_certificates { get; set; }
     }
+
+    [Serializable]
     public class UserCertificate
     {
         public string service_type { get; set; }
@@ -70,5 +72,10 @@ namespace EBH_RemoteSigning_Service_ERS.Response
         public string doc_id { get; set; }
         public string signature_value { get; set; }
         public object timestamp_signature { get; set; }
+    }
+
+    public class WrapObject
+    {
+        public object dataInside { get; set; }
     }
 }

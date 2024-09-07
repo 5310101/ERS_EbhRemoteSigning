@@ -1,13 +1,10 @@
 ﻿using EBH_RemoteSigning_Service_ERS.clsUtilities;
 using EBH_RemoteSigning_Service_ERS.Request;
 using EBH_RemoteSigning_Service_ERS.Response;
-using EBH_RemoteSigning_Service_ERS_.Model;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Web;
 
 namespace EBH_RemoteSigning_Service_ERS.CAService
 {
@@ -21,13 +18,13 @@ namespace EBH_RemoteSigning_Service_ERS.CAService
         }
 
 
-        public UserCertificate GetAccountCert(String uri, string serialNumber = "")
+        public UserCertificate GetAccountCert(String uri,string uid ,string serialNumber = "")
         {
             var response = MethodLibrary.Query(new ReqGetCert
             {
                 sp_id = _configRequest.sp_id,
                 sp_password = _configRequest.sp_password,
-                user_id = _configRequest.uid,
+                user_id = uid,
                 serial_number = "",
                 transaction_id = Guid.NewGuid().ToString(),
             }, uri);
@@ -58,13 +55,13 @@ namespace EBH_RemoteSigning_Service_ERS.CAService
 
         }
 
-        public List<UserCertificate> GetListAccountCert(String uri)
+        public UserCertificate[] GetListAccountCert(String uri, string uid)
         {
             var response = MethodLibrary.Query(new ReqGetCert
             {
                 sp_id = _configRequest.sp_id,
                 sp_password = _configRequest.sp_password,
-                user_id = _configRequest.uid,
+                user_id = uid,
                 serial_number = "",
                 transaction_id = Guid.NewGuid().ToString(),
             }, uri);
@@ -74,7 +71,7 @@ namespace EBH_RemoteSigning_Service_ERS.CAService
 
                 if (res.data.user_certificates.Count() >= 1)
                 {
-                    return res.data.user_certificates;
+                    return res.data.user_certificates.ToArray();
                 }
                 else
                 {
@@ -86,13 +83,13 @@ namespace EBH_RemoteSigning_Service_ERS.CAService
 
         }
 
-        public ResSign Sign(String uri, List<SignFile> sign_files, String serialNumber)
+        public ResSign Sign(String uri, List<SignFile> sign_files,string uid, String serialNumber)
         {
             var response = MethodLibrary.Query(new ReqSign
             {
                 sp_id = _configRequest.sp_id,
                 sp_password = _configRequest.sp_password,
-                user_id = _configRequest.uid,
+                user_id = uid,
                 transaction_id = Guid.NewGuid().ToString(),
                 transaction_desc = "Sign request from eBH",
                 sign_files = sign_files,
@@ -101,21 +98,19 @@ namespace EBH_RemoteSigning_Service_ERS.CAService
             }, uri);
             if (response != null)
             {
-                ResSign req = JsonConvert.DeserializeObject<ResSign>(response);
-                return req;
+                return JsonConvert.DeserializeObject<ResSign>(response);
             }
             return null;
         }
 
-        public DataTransaction GetStatus(String uri)
+        public ResStatus GetStatus(String uri)
         {
-            var response = Query(new Object
+            var response = MethodLibrary.Query(new Object
             {
             }, uri);
             if (response != null)
             {
-                ResStatus res = JsonConvert.DeserializeObject<ResStatus>(response);
-                return res.data;
+              return JsonConvert.DeserializeObject<ResStatus>(response);
             }
             return null;
         }

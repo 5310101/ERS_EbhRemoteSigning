@@ -29,7 +29,7 @@ namespace EBH_RemoteSigning_Service_ERS.clsUtilities
 			{
 				if (string.IsNullOrEmpty(_logPath))
 				{
-					string logFolder = ConfigurationManager.AppSettings["LOGFOLDER"].ToString();
+					string logFolder = ConfigurationManager.AppSettings["LOGFOLDER"];
 					_logPath = Path.Combine(AppPath,logFolder);
 				}
 				return _logPath; 

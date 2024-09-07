@@ -19,7 +19,7 @@ namespace EBH_RemoteSigning_Service_ERS.clsUtilities
 			{
 				if (string.IsNullOrEmpty(_connStr))
 				{
-					_connStr = ConfigurationManager.AppSettings["CONNECTION_STRING"].ToString();
+					_connStr = ConfigurationManager.ConnectionStrings["CONNECTION_STRING"].ConnectionString;
 				}
 				return _connStr; 
 			}

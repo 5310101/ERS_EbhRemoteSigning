@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 
-namespace EBH_RemoteSigning_Service_ERS_.Model
+namespace EBH_RemoteSigning_Service_ERS.Model
 {
     public enum FileType
     {

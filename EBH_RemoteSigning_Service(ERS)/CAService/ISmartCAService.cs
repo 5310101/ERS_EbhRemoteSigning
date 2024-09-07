@@ -7,10 +7,10 @@ namespace EBH_RemoteSigning_Service_ERS.CAService
 {
     public interface ISmartCAService
     {
-        List<UserCertificate> GetListAccountCert(String uri);
-        UserCertificate GetAccountCert(String uri, string serialNumber);
-        ResSign Sign(String uri, List<SignFile> sign_files, String serialNumber);
-        DataTransaction GetStatus(String uri);
+        UserCertificate[] GetListAccountCert(String uri, string uid);
+        UserCertificate GetAccountCert(String uri, string uid, string serialNumber = "");
+        ResSign Sign(String uri, List<SignFile> sign_files, string uid, String serialNumber);
+        ResStatus GetStatus(String uri);
 
     }
 }
