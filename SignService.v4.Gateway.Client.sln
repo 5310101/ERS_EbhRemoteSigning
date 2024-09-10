@@ -9,6 +9,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SmartCA769", "SmartCA769.cs
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EBH_RemoteSigning_Service(ERS)", "EBH_RemoteSigning_Service(ERS)\EBH_RemoteSigning_Service(ERS).csproj", "{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRemoteSigning", "C:\Users\quanna\source\repos\TestRemoteSigning\TestRemoteSigning.csproj", "{322EDEC2-6BF9-4EFC-8AAE-500431DF9D1B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ESignLibrary", "ESignLibrary\ESignLibrary.csproj", "{E0169F4C-0FC1-466E-9843-79972CBE100D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_woDrawing|Any CPU = Debug_woDrawing|Any CPU
@@ -41,6 +45,22 @@ Global
 		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
 		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8DE2CB25-412A-4E36-90A4-03A71BF9DD19}.Release|Any CPU.Build.0 = Release|Any CPU
+		{322EDEC2-6BF9-4EFC-8AAE-500431DF9D1B}.Debug_woDrawing|Any CPU.ActiveCfg = Debug|Any CPU
+		{322EDEC2-6BF9-4EFC-8AAE-500431DF9D1B}.Debug_woDrawing|Any CPU.Build.0 = Debug|Any CPU
+		{322EDEC2-6BF9-4EFC-8AAE-500431DF9D1B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{322EDEC2-6BF9-4EFC-8AAE-500431DF9D1B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{322EDEC2-6BF9-4EFC-8AAE-500431DF9D1B}.Release_woDrawing|Any CPU.ActiveCfg = Release|Any CPU
+		{322EDEC2-6BF9-4EFC-8AAE-500431DF9D1B}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
+		{322EDEC2-6BF9-4EFC-8AAE-500431DF9D1B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{322EDEC2-6BF9-4EFC-8AAE-500431DF9D1B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0169F4C-0FC1-466E-9843-79972CBE100D}.Debug_woDrawing|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0169F4C-0FC1-466E-9843-79972CBE100D}.Debug_woDrawing|Any CPU.Build.0 = Debug|Any CPU
+		{E0169F4C-0FC1-466E-9843-79972CBE100D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0169F4C-0FC1-466E-9843-79972CBE100D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0169F4C-0FC1-466E-9843-79972CBE100D}.Release_woDrawing|Any CPU.ActiveCfg = Release|Any CPU
+		{E0169F4C-0FC1-466E-9843-79972CBE100D}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
+		{E0169F4C-0FC1-466E-9843-79972CBE100D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0169F4C-0FC1-466E-9843-79972CBE100D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

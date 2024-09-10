@@ -165,7 +165,7 @@ namespace EBH_RemoteSigning_Service_ERS
                 }
                 if (res.message == "SUCCESS")
                 {
-                    return new ERS_Response("File is pending to confirm on SmartCA app", true,  res.data );
+                    return new ERS_Response("File is confirmed", true,  res.data );
                 }
                 return new ERS_Response(res.message, false );
             }

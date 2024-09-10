@@ -17,6 +17,7 @@ using VnptHashSignatures.Xml;
 using System.Security.Cryptography.X509Certificates;
 using System.Diagnostics;
 using Org.BouncyCastle.Ocsp;
+using System.Runtime.InteropServices;
 
 namespace SmartCA769
 {
@@ -25,14 +26,14 @@ namespace SmartCA769
 
         private static string client_id = "4184-637127995547330633.apps.signserviceapi.com";
         private static string client_secret = "NGNhMzdmOGE-OGM2Mi00MTg0";
-        private static string uid = "036092008610";        
+        private static string uid = "0101300842";        
         
 
-        private static string _pdfInput = @"C:\Users\accca\Desktop\test.pdf";
-        private static string _pdfSignedPath = @"C:\Users\accca\Desktop\test_signed.pdf";
+        private static string _pdfInput = @"C:\Users\quanna\Desktop\testapi_smartca\test.pdf";
+        private static string _pdfSignedPath = @"C:\Users\quanna\Desktop\test_signed.pdf";
 
-        private static string _xmlInput = @"C:\Users\accca\Desktop\test.xml";
-        private static string _xmlSignedPath = @"C:\Users\accca\Desktop\test_signed.xml";
+        private static string _xmlInput = @"C:\Users\quanna\Desktop\testapi_smartca\test.xml";
+        private static string _xmlSignedPath = @"C:\Users\quanna\Desktop\test_signed.xml";
 
         private static string _officeInput = @"C:\Users\accca\Desktop\test.docx";
         private static string _officeSignedPath = @"C:\Users\accca\Desktop\test_signed.docx";
@@ -43,10 +44,17 @@ namespace SmartCA769
         static void Main(string[] args)
         {
 
-            _signSmartCAPDF();
-            //_signSmartCAXML();
+            //_signSmartCAPDF();
+            _signSmartCAXML();
             //_signSmartCAOFFICE();            
             Console.ReadKey();
+        }
+
+        private static string genRandom(int length)
+        {
+            Random random = new Random();   
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            return new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         private static void _signSmartCAPDF()
@@ -88,7 +96,7 @@ namespace SmartCA769
             // Kiểu hiển thị chữ ký (OPTIONAL/DEFAULT=TEXT_WITH_BACKGROUND)
             ((PdfHashSigner)signer).SetRenderingMode(PdfHashSigner.RenderMode.TEXT_ONLY);
             // Nội dung text trên chữ ký (OPTIONAL)
-            ((PdfHashSigner)signer).SetLayer2Text("Ngày ký: 15/03/2022 \n Người ký: Ngô Quang Đạt \n Nơi ký: VNPT-IT");
+            ((PdfHashSigner)signer).SetLayer2Text($"Ngày ký: {DateTime.Now.Date} \n Người ký: QuanNa \n Nơi ký: EBH");
             // Fontsize cho text trên chữ ký (OPTIONAL/DEFAULT = 10)
             ((PdfHashSigner)signer).SetFontSize(10);
             //((PdfHashSigner)signer).SetLayer2Text("yahooooooooooooooooooooooooooo");
@@ -443,6 +451,7 @@ namespace SmartCA769
             signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
             //Set ID cho thẻ ssignature
+            //((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
             ((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
 
             //Set reference đến id
@@ -452,7 +461,7 @@ namespace SmartCA769
             ((XmlHashSigner)signer).SetSigningTime(DateTime.Now, "SigningTime-" + Guid.NewGuid().ToString());
 
             //đường dẫn dẫn đến thẻ chứa chữ ký 
-            ((XmlHashSigner)signer).SetParentNodePath("/TDiep/DLieu/HDon/DSCKS/NBan");
+            ((XmlHashSigner)signer).SetParentNodePath("/Hoso/CKy_Dvi");
 
 
             var hashValue = signer.GetSecondHashAsBase64();
@@ -482,7 +491,7 @@ namespace SmartCA769
                     count = count + 1;
                     Console.WriteLine(string.Format("Wait for user confirm count : {0}", count));
                     Thread.Sleep(10000);
-                }
+                 }
             }
             if (!isConfirm)
             {
@@ -593,7 +602,7 @@ namespace SmartCA769
                 sp_password = client_secret,
                 user_id = uid,
                 serial_number = "",
-                transaction_id = "321"
+                transaction_id = genRandom(5)
             }, uri);
             if (response != null)
             {

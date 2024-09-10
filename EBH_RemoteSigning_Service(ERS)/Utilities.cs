@@ -11,6 +11,5 @@ namespace EBH_RemoteSigning_Service_ERS
        public static PathProvider globalPath = new PathProvider();  
        public static Logger logger = new Logger();
        public static GlobalVar glbVar = new GlobalVar();  
-       public DbService dbService = new DbService();
     }
 }
