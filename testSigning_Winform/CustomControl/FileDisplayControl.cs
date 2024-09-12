@@ -32,9 +32,11 @@ namespace testSigning_Winform.CustomControl
         }
 
 
-        public FileDisplayControl()
+        public FileDisplayControl(string FileName)
         {
             InitializeComponent();
+            SetFileName(FileName);
+            SetStatusText("Added");
             IntializeTimer();
         }
 
@@ -43,6 +45,7 @@ namespace testSigning_Winform.CustomControl
             _timer = new Timer();  
             _timer.Interval = 1000;
             _timer.Tick += Timer_Tick;
+            lblFileTime.Text = "Time limit";
         }
 
 
@@ -76,9 +79,15 @@ namespace testSigning_Winform.CustomControl
             lblTrangThai.Text = "Confirmed";
         }
 
+        public void SetNameControl(string name)
+        {
+            this.Name = name;   
+        }
+
         public void SetFileName(string name)
         {
-            lblFileTime.Text = name;    
+            txtFileName.Text = name;
+            txtFileName.ReadOnly = true;
         }
 
         //private void FileDisplayControl_Load(object sender, EventArgs e)
@@ -92,7 +101,7 @@ namespace testSigning_Winform.CustomControl
             {
                 color = Color.Chartreuse;
             }
-            if (string.IsNullOrEmpty(text))
+            if (!string.IsNullOrEmpty(text))
             {
                 lblTrangThai.Text = text;
             }

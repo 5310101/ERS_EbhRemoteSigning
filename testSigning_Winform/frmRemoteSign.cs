@@ -21,7 +21,8 @@ namespace testSigning_Winform
                 dialog.ShowNewFolderButton = true;
                 if(dialog.ShowDialog() == DialogResult.OK)
                 {
-                    txtFolder.Text = dialog.SelectedPath;   
+                    txtFolder.Text = dialog.SelectedPath;
+                    objFrm.LoadToKhai(txtFolder.Text);
                 }
             }
         }
