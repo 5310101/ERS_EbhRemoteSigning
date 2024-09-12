@@ -72,6 +72,7 @@
             this.btnKyToKhai.TabIndex = 12;
             this.btnKyToKhai.Text = "Ký tờ khai";
             this.btnKyToKhai.UseVisualStyleBackColor = true;
+            this.btnKyToKhai.Click += new System.EventHandler(this.btnKyToKhai_Click);
             // 
             // button2
             // 
@@ -255,7 +256,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(720, 361);
+            this.ClientSize = new System.Drawing.Size(720, 373);
             this.Controls.Add(this.label4);
             this.Controls.Add(this.panel2);
             this.Controls.Add(this.panel1);

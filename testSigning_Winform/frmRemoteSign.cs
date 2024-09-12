@@ -26,5 +26,10 @@ namespace testSigning_Winform
                 }
             }
         }
+
+        private void btnKyToKhai_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }

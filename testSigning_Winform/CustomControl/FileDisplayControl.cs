@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -15,6 +16,15 @@ namespace testSigning_Winform.CustomControl
         private Timer _timer;
 
         private int _counter = 300;
+        private FileInfo _fileDetail;
+
+        public FileInfo FileDetail 
+        {
+            get
+            {
+                return _fileDetail;
+            }
+        }
 
         public int Counter 
         {
@@ -32,10 +42,11 @@ namespace testSigning_Winform.CustomControl
         }
 
 
-        public FileDisplayControl(string FileName)
+        public FileDisplayControl(FileInfo File)
         {
             InitializeComponent();
-            SetFileName(FileName);
+            SetFileName(File.Name);
+            _fileDetail = File; 
             SetStatusText("Added");
             IntializeTimer();
         }
@@ -48,6 +59,7 @@ namespace testSigning_Winform.CustomControl
             lblFileTime.Text = "Time limit";
         }
 
+        
 
         private void Timer_Tick(object sender, EventArgs e)
         {
