@@ -8,6 +8,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using testSigning_Winform.Response;
+using VnptHashSignatures.Interface;
 
 namespace testSigning_Winform.CustomControl
 {
@@ -17,6 +19,10 @@ namespace testSigning_Winform.CustomControl
 
         private int _counter = 300;
         private FileInfo _fileDetail;
+        public readonly int index;
+        public IHashSigner signer;
+        public DataSign dataSign;
+        public bool isSigned =false;
 
         public FileInfo FileDetail 
         {
@@ -42,16 +48,17 @@ namespace testSigning_Winform.CustomControl
         }
 
 
-        public FileDisplayControl(FileInfo File)
+        public FileDisplayControl(FileInfo File, int index)
         {
             InitializeComponent();
             SetFileName(File.Name);
             _fileDetail = File; 
+            this.index = index;
             SetStatusText("Added");
-            IntializeTimer();
+            InitializeTimer();
         }
 
-        private void IntializeTimer()
+        private void InitializeTimer()
         {
             _timer = new Timer();  
             _timer.Interval = 1000;
@@ -88,6 +95,7 @@ namespace testSigning_Winform.CustomControl
             _timer.Stop();
             _timer.Dispose();
             lblFileTime.Text = "00";
+            isSigned = true;
             lblTrangThai.Text = "Confirmed";
         }
 
@@ -107,6 +115,16 @@ namespace testSigning_Winform.CustomControl
 
         //}
 
+        public void SetSigner(IHashSigner signer)
+        {
+            this.signer = signer;   
+        }
+
+        public void SetDataSign(DataSign dataSign)
+        {
+            this.dataSign = dataSign;
+        }
+
         public void SetStatusText(string text, Color color = default)
         {
             if (color == default)
@@ -120,5 +138,13 @@ namespace testSigning_Winform.CustomControl
             lblTrangThai.BackColor = color;
         }
 
+        public bool CheckTime()
+        {
+            if(_counter > 0)
+            {
+                return true;
+            }
+            return false;
+        }
     }
 }
