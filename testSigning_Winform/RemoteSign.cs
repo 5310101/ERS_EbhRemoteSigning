@@ -22,12 +22,15 @@ using System.Drawing;
 using testSigning_Winform.Model;
 using System.Xml.Serialization;
 using System.Xml;
+using RestSharp.Serializers;
+using XmlSerializer = System.Xml.Serialization.XmlSerializer;
 
 namespace testSigning_Winform
 {
     public class RemoteSign
     {
-        public string SignedFolderPath = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
+        public string SignedFolderPath = @"C:\Users\nguye\OneDrive\Desktop\testapi_smartca\TestResult";
+        //public string SignedFolderPath = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
         public string uid { get; set; }
 
         private string client_id;
@@ -691,13 +694,11 @@ namespace testSigning_Winform
                 };
 
                 string xmlString = "";
-                using (StringWriter writer = new StringWriter())
-                using (XmlWriter xmlWriter = XmlWriter.Create(writer, settings))
+                using (var stream = new MemoryStream())
+                using (var writer = XmlWriter.Create(stream, settings))
                 {
-                    xmlWriter.WriteStartDocument();
-                    serializer.Serialize(xmlWriter, hoso);
-                    xmlWriter.WriteEndDocument();
-                    xmlString = writer.ToString();
+                    serializer.Serialize(writer, hoso);
+                    xmlString = Encoding.UTF8.GetString(stream.ToArray());
                 }
                 string pathBHXHDT = Path.Combine(pathFolderHoSo,"BHXHDienTu.xml");
                 File.WriteAllText(pathBHXHDT, xmlString);

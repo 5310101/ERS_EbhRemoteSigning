@@ -94,6 +94,8 @@ namespace testSigning_Winform
                 _dataSign = null;
                 lblTrangThai.Text = "Signed";
                 lblTrangThai.BackColor = Color.Chartreuse;
+                MessageBox.Show("Signed successfully","Notification");
+                lblTimeLeft.Text = "00";
             }
             catch (Exception ex)
             {
@@ -123,7 +125,7 @@ namespace testSigning_Winform
                 //FAIL
                 if (listbool.Contains(false))
                 {
-                    bool cntLeft = controls.Any(r => r.CheckTime() == true);
+                    bool cntLeft = controls.Any(r => r.CheckTime());
                     if (!cntLeft)
                     {
                         _timer.Stop();
@@ -178,7 +180,7 @@ namespace testSigning_Winform
                 var listbool = controls.Select(c => c.isSigned);
                 if (!listbool.Contains(false))
                 {
-                    MessageBox.Show("All Document has been signed");
+                    MessageBox.Show("All document has been signed");
                 }
             }
             catch (Exception ex)
@@ -210,41 +212,50 @@ namespace testSigning_Winform
 
         private void button2_Click(object sender, EventArgs e)
         {
-            //check tung to khai da ky chua
-            //bool isCheck = CheckStatusFile();
-            //if (!isCheck) { return; }
-            string GuidHS = "f10a83ca-ef78-414b-bf93-7bf0df265cca";
-            objFrm.GuidHS = GuidHS;
-            lblGuidHS.Text = GuidHS;
-            bool isSuccess = objFrm.CreateBHXHDienTu(GuidHS);
-            //bool isSuccess = objFrm.CreateBHXHDienTu(objFrm.GuidHS);
-            if (!isSuccess) 
+            try
             {
-                MessageBox.Show("Cannot create file BHXHDienTu.xml");
+                //check tung to khai da ky chua
+                bool isCheck = CheckStatusFile();
+                if (!isCheck) { return; }
+                //string GuidHS = "f10a83ca-ef78-414b-bf93-7bf0df265cca";
+                //objFrm.GuidHS = GuidHS;
+                //lblGuidHS.Text = GuidHS;
+                bool isSuccess = objFrm.CreateBHXHDienTu(objFrm.GuidHS);
+                //bool isSuccess = objFrm.CreateBHXHDienTu(objFrm.GuidHS);
+                if (!isSuccess)
+                {
+                    MessageBox.Show("Cannot create file BHXHDienTu.xml");
+                    return;
+                }
+
+                //XmlDocument doc = new XmlDocument();
+                //string pathBHXH = Path.Combine(objFrm.SignedFolderPath, objFrm.GuidHS, "BHXHDienTu.xml");
+                //doc.Load(pathBHXH);
+                //XmlNode node = doc.SelectSingleNode("//CKy_Dvi");
+                //if (node == null)
+                //{
+                //    MessageBox.Show("Cannot find sign node");
+                //}
+
+                //Tien hanh ky file BHXHDienTu
+                IHashSigner signer;
+                DataSign result = objFrm.SignFileBHXH(out signer);
+                if (result == null || signer == null)
+                {
+                    MessageBox.Show("Cannot sign file");
+                    return;
+                }
+                _timerCountDown.Start();
+                _timerGetResult.Start();
+                _signer = signer;
+                _dataSign = result;
+            }
+            catch (Exception ex)
+            {
+                //log
                 return;
             }
-
-            XmlDocument doc = new XmlDocument();
-            string pathBHXH = Path.Combine(objFrm.SignedFolderPath, GuidHS, "BHXHDienTu.xml");
-            doc.Load(pathBHXH);
-            XmlNode node =  doc.SelectSingleNode("//CKy_Dvi");
-            if (node == null)
-            {
-                MessageBox.Show("Cannot fine sign node");
-            }
-
-            //Tien hanh ky file BHXHDienTu
-            IHashSigner signer;
-            DataSign result = objFrm.SignFileBHXH(out signer);
-            if(result == null || signer == null)
-            {
-                MessageBox.Show("Cannot sign file");
-                return;
-            }
-            _timerCountDown.Start();
-            _timerGetResult.Start();
-            _signer = signer;
-            _dataSign = result;
+            
         }
 
         private void btnLayKetQua_Click(object sender, EventArgs e)
