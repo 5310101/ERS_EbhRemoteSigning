@@ -72,6 +72,7 @@
     <Compile Include="frmRemoteSign.Designer.cs">
       <DependentUpon>frmRemoteSign.cs</DependentUpon>
     </Compile>
+    <Compile Include="Model\BHXHDienTu.cs" />
     <Compile Include="Model\SignFileInfo.cs" />
     <Compile Include="Model\SmartCARequest.cs" />
     <Compile Include="Model\SmartCAResponse.cs" />

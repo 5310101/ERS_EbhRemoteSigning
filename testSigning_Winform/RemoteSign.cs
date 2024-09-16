@@ -19,13 +19,15 @@ using RestSharp;
 using System.Windows.Forms.VisualStyles;
 using System.Windows.Forms;
 using System.Drawing;
+using testSigning_Winform.Model;
+using System.Xml.Serialization;
+using System.Xml;
 
 namespace testSigning_Winform
 {
     public class RemoteSign
     {
-        private string SignedFolderPath = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
-
+        public string SignedFolderPath = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
         public string uid { get; set; }
 
         private string client_id;
@@ -54,17 +56,20 @@ namespace testSigning_Winform
                 return client_password;
             }
         }
-        public readonly string GuidHS;
+        public string GuidHS;
 
         private frmRemoteSign frm;
         public RemoteSign(frmRemoteSign frm)
         {
             this.frm = frm;
-            GuidHS = Guid.NewGuid().ToString();
         }
 
         public void LoadToKhai(string folderPath)
         {
+            if (frm.panelToKhai.Controls.Count > 0)
+            {
+                frm.panelToKhai.Controls.Clear();
+            }
             string[] fileExtensions = { "*.pdf", "*.xml", "*.docx", "*.xlsx" };
             DirectoryInfo di = new DirectoryInfo(folderPath);
             List<FileInfo> listFiles = new List<FileInfo>();
@@ -76,6 +81,12 @@ namespace testSigning_Winform
                     listFiles.AddRange(fi);
                 }
             }
+            if (listFiles.Count() == 0)
+            {
+                return;
+            }
+            GuidHS = Guid.NewGuid().ToString();
+            frm.lblGuidHS.Text = GuidHS;
             int count = 0;
             foreach (FileInfo fi in listFiles)
             {
@@ -90,7 +101,7 @@ namespace testSigning_Winform
         {
             //lay cert
             UserCertificate userCert = GetCertificate();
-            if(userCert == null)
+            if (userCert == null)
             {
                 MessageBox.Show("User not found", "Error", MessageBoxButtons.OK);
                 return;
@@ -99,13 +110,13 @@ namespace testSigning_Winform
             {
                 DataSign result = null;
                 IHashSigner signer = null;
-                switch(control.FileDetail.Extension)
+                switch (control.FileDetail.Extension)
                 {
                     case ".pdf":
-                        result = _signSmartCAPDF(userCert,control.FileDetail.FullName);
+                        result = SignSmartCAPDF(userCert, control.FileDetail.FullName);
                         break;
                     case ".xml":
-                        result = _signSmartCAXML(userCert,control.FileDetail.FullName, out signer);
+                        result = SignSmartCAXML(userCert, control.FileDetail.FullName, out signer);
 
                         break;
                     case ".xlsx":
@@ -119,20 +130,22 @@ namespace testSigning_Winform
                 {
                     // log "Error send file to server VNPT"
                     control.SetStatusText("Failed", Color.Red);
+                    return;
                 }
                 //co the thay doi thoi gian countdown dua vao data tra ve tu sever, default la 300
-                if(signer != null)
+                if (signer != null)
                 {
                     control.SetSigner(signer);
                 }
-                control.SetDataSign(result);    
+                control.SetDataSign(result);
+                control.SetStatusText("Waiting", Color.Yellow);
                 control.StartCountDown(300);
             }
         }
 
         public void GetResult_ToKhai(FileDisplayControl[] fileControls, string GuidHS)
         {
-            string PathHoso = Path.Combine(SignedFolderPath,GuidHS);
+            string PathHoso = Path.Combine(SignedFolderPath, GuidHS);
             if (!Directory.Exists(PathHoso))
             {
                 Directory.CreateDirectory(PathHoso);
@@ -141,33 +154,38 @@ namespace testSigning_Winform
             foreach (FileDisplayControl control in fileControls)
             {
                 bool result = false;
+                string pathSavedFile = Path.Combine(PathHoso, control.FileDetail.Name);
                 switch (control.FileDetail.Extension)
                 {
-                    case "pdf":
-                        result = GetResult_PDF(control.dataSign, PathHoso);
+                    case ".pdf":
+                        result = GetResult_PDF(control.dataSign, pathSavedFile);
                         break;
-                    case "xml":
-                        result = GetResult_Xml(control.signer,control.dataSign,PathHoso);
+                    case ".xml":
+                        result = GetResult_Xml(control.signer, control.dataSign, pathSavedFile);
                         break;
-                    case "xlsx":
-                    case "docx":
+                    case ".xlsx":
+                    case ".docx":
 
                         break;
                     default:
                         return;
                 }
-                if (!result) 
+                if (!result)
                 {
                     if (control.CheckTime())
                     {
-                        control.SetStatusText("Pending", Color.Yellow);
-                        continue;
+                        control.SetStatusText("Waiting", Color.Yellow);
                     }
-                    //log ko lay dc ket qua
-                    control.SetStatusText("Failed", Color.Red);
+                    else
+                    {
+                        //log ko lay dc ket qua
+                        control.SetStatusText("Failed", Color.Red);
+                    }
+                    continue;
                 }
                 control.SetSuccess();
             }
+
         }
 
         private static string genRandom(int length)
@@ -179,7 +197,7 @@ namespace testSigning_Winform
 
         private UserCertificate GetCertificate()
         {
-            var userCert = _getAccountCert("https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate");
+            var userCert = GetAccountCert("https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate");
             //var userCert = _getAccountCert("https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate");
             if (userCert == null)
             {
@@ -190,7 +208,7 @@ namespace testSigning_Winform
             {
                 return userCert[0];
             }
-            if(userCert.Count() > 1)
+            if (userCert.Count() > 1)
             {
                 //tao 1 form de load cks va chon o day
             }
@@ -198,7 +216,7 @@ namespace testSigning_Winform
             return userCert[0];
         }
 
-        private DataSign _signSmartCAPDF(UserCertificate userCert, string pdfInput)
+        private DataSign SignSmartCAPDF(UserCertificate userCert, string pdfInput)
         {
             try
             {
@@ -253,7 +271,7 @@ namespace testSigning_Winform
                 string tempFolder = Path.GetTempPath();
                 File.AppendAllText(tempFolder + data_to_be_sign + ".txt", profileJson);
 
-                DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
+                DataSign dataSign = Sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
 
                 return dataSign;
             }
@@ -270,8 +288,8 @@ namespace testSigning_Winform
             var datasigned = "";
             var mapping = "";
             DataTransaction transactionStatus;
-            string tempFolder = Path.GetTempPath();    
-            transactionStatus = _getStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
+            string tempFolder = Path.GetTempPath();
+            transactionStatus = GetStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
             if (transactionStatus.signatures != null)
             {
                 datasigned = transactionStatus.signatures[0].signature_value;
@@ -308,13 +326,19 @@ namespace testSigning_Winform
 
             // 3. Package external signature to signed file
             byte[] signed = signer1.Sign(signerProfileNew, datasigned);
-
-            File.WriteAllBytes(PDFSignedPath, signed);
+            try
+            {
+                File.WriteAllBytes(PDFSignedPath, signed);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                //log
+                return false;
+            }
             return true;
         }
 
-
-        private DataSign _signSmartCAXML(UserCertificate userCert ,string xmlInput, out IHashSigner signer)
+        private DataSign SignSmartCAXML(UserCertificate userCert, string xmlInput, out IHashSigner signer, string nodeKy = "")
         {
             try
             {
@@ -327,7 +351,7 @@ namespace testSigning_Winform
                 catch (Exception ex)
                 {
                     //_log.Error(ex);
-                    signer = null; 
+                    signer = null;
                     return null;
                 }
                 signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.XML);
@@ -344,14 +368,21 @@ namespace testSigning_Winform
                 ((XmlHashSigner)signer).SetSigningTime(DateTime.Now, "SigningTime-" + Guid.NewGuid().ToString());
 
                 //đường dẫn dẫn đến thẻ chứa chữ ký 
-                ((XmlHashSigner)signer).SetParentNodePath("/Hoso/CKy_Dvi");
-
+                if (nodeKy != "")
+                {
+                    ((XmlHashSigner)signer).SetParentNodePath(nodeKy);
+                }
+                else
+                {
+                    ((XmlHashSigner)signer).SetParentNodePath("//Cky");
+                }
+                
 
                 var hashValue = signer.GetSecondHashAsBase64();
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-                DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
+                DataSign dataSign = Sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
 
                 //Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
                 //Console.ReadKey();
@@ -363,17 +394,17 @@ namespace testSigning_Winform
                 //log ex
                 signer = null;
                 return null;
-            }  
+            }
         }
 
-        private bool GetResult_Xml(IHashSigner signer, DataSign dataSign, string xmlSignedPath)
+        internal bool GetResult_Xml(IHashSigner signer, DataSign dataSign, string xmlSignedPath)
         {
             var isConfirm = false;
             var datasigned = "";
             DataTransaction transactionStatus;
 
 
-            transactionStatus = _getStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
+            transactionStatus = GetStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
             if (transactionStatus.signatures != null)
             {
                 datasigned = transactionStatus.signatures[0].signature_value;
@@ -381,7 +412,7 @@ namespace testSigning_Winform
             }
             else
             {
-                
+
             }
 
             if (!isConfirm)
@@ -431,12 +462,12 @@ namespace testSigning_Winform
 
             var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-            DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
+            DataSign dataSign = Sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
 
             Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
             //Console.ReadKey();
 
-            
+
         }
 
         private bool GetResult_Office(IHashSigner signer, DataSign dataSign, string officeSignedPath)
@@ -445,17 +476,17 @@ namespace testSigning_Winform
             var datasigned = "";
             DataTransaction transactionStatus;
 
-            
-                transactionStatus = _getStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
-                if (transactionStatus.signatures != null)
-                {
-                    datasigned = transactionStatus.signatures[0].signature_value;
-                    isConfirm = true;
-                }
-                else
-                {
-                   
-                }
+
+            transactionStatus = GetStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
+            if (transactionStatus.signatures != null)
+            {
+                datasigned = transactionStatus.signatures[0].signature_value;
+                isConfirm = true;
+            }
+            else
+            {
+
+            }
             if (!isConfirm)
             {
                 //log Console.WriteLine(string.Format("Signer not confirm from App"));
@@ -466,7 +497,7 @@ namespace testSigning_Winform
             {
                 //log Console.WriteLine("Sign error");
                 return false;
-                }
+            }
 
             // ------------------------------------------------------------------------------------------
 
@@ -476,7 +507,7 @@ namespace testSigning_Winform
             return true;
         }
 
-        private UserCertificate[] _getAccountCert(String uri, string serialNumber = "")
+        private UserCertificate[] GetAccountCert(String uri, string serialNumber = "")
         {
             try
             {
@@ -510,7 +541,7 @@ namespace testSigning_Winform
             }
         }
 
-        private DataSign _sign(String uri, string data_to_be_signed, String serialNumber)
+        private DataSign Sign(String uri, string data_to_be_signed, String serialNumber)
         {
 
 
@@ -577,7 +608,7 @@ namespace testSigning_Winform
             return response.Content;
         }
 
-        private DataTransaction _getStatus(String uri)
+        private DataTransaction GetStatus(String uri)
         {
             var response = Query(new Object
             {
@@ -588,6 +619,130 @@ namespace testSigning_Winform
                 return res.data;
             }
             return null;
+        }
+
+        public bool CreateBHXHDienTu(string GuidHS)
+        {
+            try
+            {
+                string pathFolderHoSo = Path.Combine(SignedFolderPath, GuidHS);
+                DirectoryInfo di = new DirectoryInfo(pathFolderHoSo);
+                FileInfo[] files = di.GetFiles();
+
+                Hoso hoso = new Hoso();
+
+                NoiDung noiDung = new NoiDung();
+                hoso.NoiDung = noiDung;
+                //Tao node NoiDung
+                //Thongtinivan
+                ThongTinIVAN thongTinIVAN = new ThongTinIVAN();
+                thongTinIVAN.MaIVAN = "0101300842";
+                thongTinIVAN.TenIVAN = "Công ty Thái Sơn";
+                noiDung.ThongTinIVAN = thongTinIVAN;
+
+                ThongTinDonVi thongTinDonVi = new ThongTinDonVi()
+                {
+                    TenDoiTuong = "Công ty Thái Sơn",
+                    MaSoBHXH = "TS12345",
+                    LoaiDoiTuong = 1,
+                    MaSoThue = "0101300842",
+                    NguoiKy = "Test NAQ",
+                    DienThoai = "0910129011",
+                    CoQuanQuanLy = "01903"
+                };
+                noiDung.ThongTinDonVi = thongTinDonVi;
+
+                ThongTinHoSo thongTinHoSo = new ThongTinHoSo()
+                {
+                    TenThuTuc = "Test Ky BHXH",
+                    MaThuTuc = "000",
+                    KyKeKhai = DateTime.Now.ToString("MM/yyyy"),
+                    NgayLap = DateTime.Now.ToString("dd/MM/yyyy"),
+                    SoLuongFile = files.Count()
+                };
+                noiDung.ThongTinHoSo = thongTinHoSo;
+
+                ToKhais toKhais = new ToKhais();
+                List<FileToKhai> listFiles = new List<FileToKhai>();
+                foreach (FileInfo fi in files)
+                {
+                    byte[] data = File.ReadAllBytes(fi.FullName);
+                    string base64Data = Convert.ToBase64String(data);
+                    var fileLength = base64Data.Length;
+                    FileToKhai fileTK = new FileToKhai()
+                    {
+                        MaToKhai = Path.GetFileNameWithoutExtension(fi.Name),
+                        MoTaToKhai = "Tờ khai test BHXH",
+                        TenFile = fi.Name,
+                        LoaiFile = fi.Extension,
+                        DoDaiFile = fileLength,
+                        NoiDungFile = base64Data
+                    };
+                    listFiles.Add(fileTK);
+                }
+                toKhais.FileToKhai = listFiles.ToArray();
+                thongTinHoSo.ToKhais = toKhais;
+
+                XmlSerializer serializer = new XmlSerializer(typeof(Hoso));
+                XmlWriterSettings settings = new XmlWriterSettings()
+                {
+                    Encoding = new UTF8Encoding(true),
+                    Indent = true
+                };
+
+                string xmlString = "";
+                using (StringWriter writer = new StringWriter())
+                using (XmlWriter xmlWriter = XmlWriter.Create(writer, settings))
+                {
+                    xmlWriter.WriteStartDocument();
+                    serializer.Serialize(xmlWriter, hoso);
+                    xmlWriter.WriteEndDocument();
+                    xmlString = writer.ToString();
+                }
+                string pathBHXHDT = Path.Combine(pathFolderHoSo,"BHXHDienTu.xml");
+                File.WriteAllText(pathBHXHDT, xmlString);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                //log
+                return false;
+            } 
+        }
+
+        public DataSign SignFileBHXH(out IHashSigner signer)
+        {
+            signer = null;  
+            try
+            {
+                //lay cert
+                UserCertificate userCert = GetCertificate();
+                if (userCert == null)
+                {
+                    MessageBox.Show("User not found", "Error", MessageBoxButtons.OK);
+                    return null; 
+                }
+                string pathBHXHDt = Path.Combine(SignedFolderPath, GuidHS, "BHXHDienTu.xml");
+                DataSign result = SignSmartCAXML(userCert, pathBHXHDt, out signer, "/Hoso/CKy_Dvi");
+
+                if (result == null)
+                {
+                    // log "Error send file to server VNPT"
+                    frm.lblTrangThai.Text = "Send File Error";
+                    frm.lblTrangThai.BackColor = Color.Red;
+                    return null;
+                }
+                //co the thay doi thoi gian countdown dua vao data tra ve tu sever, default la 300
+                frm.lblTrangThai.Text = "Wait to confirm";
+                frm.lblTrangThai.BackColor = Color.Yellow;
+                return result;
+            }
+            
+            catch (Exception ex)
+            {
+                //log
+                return null;   
+            }
         }
     }
 }

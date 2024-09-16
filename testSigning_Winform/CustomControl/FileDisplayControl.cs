@@ -74,11 +74,11 @@ namespace testSigning_Winform.CustomControl
             if(_counter <= 0)
             {
                 lblFileTime.BackColor = Color.Red;
-                lblFileTime.Text = "Timeup";
+                lblFileTime.Text = "Failed";
+                _timer.Stop();
             }
             else
             {
-                lblTrangThai.Text = "Wait";
                 lblFileTime.Text = _counter.ToString();
             }
         }
@@ -93,10 +93,10 @@ namespace testSigning_Winform.CustomControl
         public void SetSuccess()
         {
             _timer.Stop();
-            _timer.Dispose();
             lblFileTime.Text = "00";
             isSigned = true;
             lblTrangThai.Text = "Confirmed";
+            lblTrangThai.BackColor = Color.Chartreuse;
         }
 
         public void SetNameControl(string name)
