@@ -29,8 +29,19 @@ namespace testSigning_Winform
 {
     public class RemoteSign
     {
-        public string SignedFolderPath = @"C:\Users\nguye\OneDrive\Desktop\testapi_smartca\TestResult";
-        //public string SignedFolderPath = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
+        //public string SignedFolderPath = @"C:\Users\nguye\OneDrive\Desktop\testapi_smartca\TestResult";
+        private string _signFolderPath;
+        public string SignedFolderPath
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_signFolderPath))
+                {
+                    _signFolderPath = ConfigurationManager.AppSettings["SAVEFOLDERPATH"];
+                }
+                return _signFolderPath;
+            }
+        }
         public string uid { get; set; }
 
         private string client_id;
@@ -124,7 +135,7 @@ namespace testSigning_Winform
                         break;
                     case ".xlsx":
                     case ".docx":
-
+                        result = SignSmartCAOFFICE(userCert, control.FileDetail.FullName, out signer);
                         break;
                     default:
                         return;
@@ -168,7 +179,7 @@ namespace testSigning_Winform
                         break;
                     case ".xlsx":
                     case ".docx":
-
+                        result = GetResult_Office(control.signer,control.dataSign, pathSavedFile);
                         break;
                     default:
                         return;
@@ -444,9 +455,10 @@ namespace testSigning_Winform
             return true;
         }
 
-        private void _signSmartCAOFFICE(UserCertificate userCert, string officeInput)
+        private DataSign SignSmartCAOFFICE(UserCertificate userCert, string officeInput, out IHashSigner signer)
         {
             String certBase64 = userCert.cert_data;
+            signer = null;
             byte[] unsignData = null;
             try
             {
@@ -455,9 +467,9 @@ namespace testSigning_Winform
             catch (Exception ex)
             {
                 //_log.Error(ex);
-                return;
+                return null;
             }
-            IHashSigner signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.OFFICE);
+            signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.OFFICE);
             signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
 
@@ -467,10 +479,7 @@ namespace testSigning_Winform
 
             DataSign dataSign = Sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
 
-            Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
-            //Console.ReadKey();
-
-
+            return dataSign;    
         }
 
         private bool GetResult_Office(IHashSigner signer, DataSign dataSign, string officeSignedPath)

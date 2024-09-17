@@ -221,7 +221,6 @@ namespace testSigning_Winform
                 //objFrm.GuidHS = GuidHS;
                 //lblGuidHS.Text = GuidHS;
                 bool isSuccess = objFrm.CreateBHXHDienTu(objFrm.GuidHS);
-                //bool isSuccess = objFrm.CreateBHXHDienTu(objFrm.GuidHS);
                 if (!isSuccess)
                 {
                     MessageBox.Show("Cannot create file BHXHDienTu.xml");
