@@ -4,25 +4,20 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using testSigning_Winform.CustomControl;
 using VnptHashSignatures.Interface;
 using VnptHashSignatures.Common;
 using VnptHashSignatures.Pdf;
 using Newtonsoft.Json;
-using System.Threading;
 using VnptHashSignatures.Xml;
 using testSigning_Winform.Request;
 using System.Configuration;
 using System.Net;
 using RestSharp;
-using System.Windows.Forms.VisualStyles;
 using System.Windows.Forms;
 using System.Drawing;
 using testSigning_Winform.Model;
-using System.Xml.Serialization;
 using System.Xml;
-using RestSharp.Serializers;
 using XmlSerializer = System.Xml.Serialization.XmlSerializer;
 
 namespace testSigning_Winform
