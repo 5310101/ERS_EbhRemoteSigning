@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -6,9 +7,11 @@ using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Windows.Forms;
 using System.Xml;
+using System.Xml.Serialization;
 using testSigning_Winform.CustomControl;
 using testSigning_Winform.Response;
 using VnptHashSignatures.Interface;
+using VnptHashSignatures.Xml;
 
 namespace testSigning_Winform
 {
@@ -191,10 +194,19 @@ namespace testSigning_Winform
 
         private void btnTestFolder_Click(object sender, EventArgs e)
         {
-            string path = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
-            DirectoryInfo di = new DirectoryInfo(path);
-            DirectorySecurity ds = di.GetAccessControl();
-            AuthorizationRuleCollection rules = ds.GetAccessRules(true, true, typeof(NTAccount));
+            //string path = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
+            //DirectoryInfo di = new DirectoryInfo(path);
+            //DirectorySecurity ds = di.GetAccessControl();
+            //AuthorizationRuleCollection rules = ds.GetAccessRules(true, true, typeof(NTAccount));
+            var control = panelToKhai.Controls.OfType<FileDisplayControl>().First();
+            //string json = JsonConvert.SerializeObject(control.signer);
+            //File.WriteAllText("C:\\Users\\quanna\\Desktop\\testapi_smartca\\SerializeObject\\Signer.txt", json);
+
+            XmlSerializer serializer = new XmlSerializer(typeof(XmlHashSigner));
+            using (var writer = new StreamWriter("C:\\Users\\quanna\\Desktop\\testapi_smartca\\SerializeObject\\Signer.xml"))
+            {
+                serializer.Serialize(writer, control.signer);  
+            }
         }
 
         private bool CheckStatusFile()

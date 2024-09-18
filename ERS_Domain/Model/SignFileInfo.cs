@@ -1,0 +1,83 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.UI.WebControls;
+
+namespace ERS_Domain.Model
+{
+    public enum FileType
+    {
+        PDF = 1,
+        XML = 2,
+        OFFICE = 3,
+    }
+
+    public enum TrangThaiFile
+    {
+        DaKyHash = 1,
+        DaKy = 2,
+    }
+
+    public enum RemoteSigningProvider
+    {
+        VNPT =1,
+        VietTel =2,
+    }
+
+    public class RectanglePosition
+    {
+        public float rx;
+        public float ry;    
+        public float lx;
+        public float ly;
+
+        public RectanglePosition(float rx, float ry, float lx, float ly)
+        {
+            this.rx = rx;
+            this.ry = ry;
+            this.lx = lx;
+            this.ly = ly;
+        }
+    }
+
+
+    public class ToKhaiInfo
+    {
+        public string MaToKhai { get; set; }
+        public string TenToKhai { get; set; }
+        public string TenFile { get; set; }
+        public FileType type { get; set; }
+        public byte[] Data { get; set; }
+        
+    }
+
+    public class ThongTinDonVi
+    {
+        public string TenDonVi { get; set; }
+        public string MaSoThue { get; set; }
+        public string MaDonVi { get; set; }
+        public string CoQuanBHXH { get; set; }
+        public string NguoiKy { get; set; }
+        public string DienThoai { get; set; }
+        public int LoaiDoiTuong { get; set; }
+    }
+
+    public class HoSoInfo
+    {
+        public string GuidHS { get; set; }
+        public string MaHoSo { get; set; }
+        public string TenThuTuc { get; set; }
+        public DateTime NgayLap {  get; set; }  
+        public ThongTinDonVi DonVi { get; set; }
+        public List<ToKhaiInfo> ToKhais { get; set; }
+    }
+
+    public class SignerInfo
+    {
+        public string SignerCert { get; set; }
+        public string SecondHash { get; set; }
+        public byte[] UnsignData { get; set; }
+
+    }
+}
