@@ -20,6 +20,10 @@ using testSigning_Winform.Model;
 using System.Xml;
 using XmlSerializer = System.Xml.Serialization.XmlSerializer;
 
+using testSigning_Winform.localhost;
+using UserCertificate = testSigning_Winform.Response.UserCertificate;
+using ThongTinDonVi = testSigning_Winform.Model.ThongTinDonVi;
+
 namespace testSigning_Winform
 {
     public class RemoteSign
@@ -748,6 +752,81 @@ namespace testSigning_Winform
                 //log
                 return null;   
             }
+        }
+
+        public void SignToKhai_Service(FileDisplayControl[] controls)
+        {
+            try
+            {
+                RemoteSigningService_v2 service_V2 = new RemoteSigningService_v2()
+                {
+                    Url = "https://localhost:44359/RemoteSigningService_v2.asmx",
+                    AuthorizeValue = new Authorize()
+                    {
+                        SecretKey = "Tsd@3bh3rs2024"
+                    }
+                };
+                HoSoInfo hoso = CreateHoSoTest(controls);
+                var result = service_V2.SendFileSign(RemoteSigningProvider.VNPT, uid, "1", "c4ca4238a0b923820dcc509a6f75849b", hoso, "");
+                MessageBox.Show("Signed hash, wait to confirm", "success");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Signed hash failed", "error");
+            }            
+        }
+
+        private localhost.FileType CheckFileType(string input)
+        {
+            switch (input)
+            {
+                case ".xml":
+                    return localhost.FileType.XML;
+                case ".pdf":
+                    return localhost.FileType.PDF;
+                case "xlsx":
+                case "docx":
+                    return localhost.FileType.OFFICE;
+                default:
+                    return 0;
+            }
+        }
+
+        private HoSoInfo CreateHoSoTest(FileDisplayControl[] controls)
+        {
+            List<ToKhaiInfo> toKhais = new List<ToKhaiInfo>();
+            foreach (var control in controls)
+            {
+                ToKhaiInfo tokhai = new ToKhaiInfo()
+                {
+                    //test
+                    MaToKhai = control.FileDetail.Name,
+                    TenFile = control.FileDetail.Name,
+                    TenToKhai = "To khai xml ky test",
+                    Type = CheckFileType(Path.GetExtension(control.FileDetail.Name)),
+                    Data = File.ReadAllBytes(control.FileDetail.FullName),
+                };
+                toKhais.Add(tokhai);
+            }
+            HoSoInfo hoso = new HoSoInfo()
+            {
+                TenThuTuc = "KyTest",
+                MaHoSo = "000",
+                NgayLap = DateTime.Now,
+                GuidHS = frm.lblGuidHS.Text,
+                DonVi = new localhost.ThongTinDonVi()
+                {
+                    TenDonVi = "ThaiSonEBH",
+                    MaSoThue = "012345842",
+                    MaDonVi = "TS12345",
+                    NguoiKy = "QuanNguyenA",
+                    CoQuanBHXH = "903",
+                    DienThoai = "0909019211",
+                    LoaiDoiTuong = 1,
+                },
+                ToKhais = toKhais.ToArray()
+            };
+            return hoso;
         }
     }
 }

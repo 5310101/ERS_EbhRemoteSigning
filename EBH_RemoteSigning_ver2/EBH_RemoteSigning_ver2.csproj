@@ -82,7 +82,6 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RemoteSigningService_v2.asmx.cs">
       <DependentUpon>RemoteSigningService_v2.asmx</DependentUpon>
-      <SubType>Component</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>

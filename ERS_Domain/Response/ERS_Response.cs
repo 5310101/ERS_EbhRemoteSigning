@@ -1,13 +1,8 @@
-﻿using EBH_RemoteSigning_ver2.Response;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Web;
+﻿using ERS_Domain.Response;
 
 namespace ERS_Domain
 {
-    
+
 
     public class ERS_Response
     {
@@ -30,8 +25,14 @@ namespace ERS_Domain
             this.data = data;
         }
 
+        public ERS_Response(string message, bool success, UserCertificate[] certificates) : this(message, success)
+        {
+            this.certificates = certificates;
+        }
+
         public string message { get; set; } 
         public bool success { get; set; }
+        public UserCertificate[] certificates { get; set; }
         public string data {  get; set; }   
     }
 }

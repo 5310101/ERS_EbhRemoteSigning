@@ -7,8 +7,8 @@ namespace ERS_Domain.CAService
 {
     public interface IRemoteSignService
     {
-        UserCertificate[] GetListAccountCert(String uri, string uid);
-        UserCertificate GetAccountCert(String uri, string uid, string serialNumber = "");
+        UserCertificate[] GetListAccountCert(String uri);
+        UserCertificate GetAccountCert(String uri, string serialNumber = "");
         DataSign Sign(String uri, string data_to_be_signed, String serialNumber);
         ResStatus GetStatus(String uri);
 

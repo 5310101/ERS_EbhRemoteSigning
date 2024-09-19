@@ -23,97 +23,124 @@ namespace ERS_Domain.CAService
         }
 
 
-        public UserCertificate GetAccountCert(String uri,string uid ,string serialNumber = "")
+        public UserCertificate GetAccountCert(String uri,string serialNumber = "")
         {
-            var response = MethodLibrary.Query(new ReqGetCert
+            try
             {
-                sp_id = _configRequest.sp_id,
-                sp_password = _configRequest.sp_password,
-                user_id = uid,
-                serial_number = "",
-                transaction_id = Guid.NewGuid().ToString(),
-            }, uri);
-            if (response != null)
-            {
-                ResGetCert res = JsonConvert.DeserializeObject<ResGetCert>(response);
+                var response = MethodLibrary.Query(new ReqGetCert
+                {
+                    sp_id = _configRequest.sp_id,
+                    sp_password = _configRequest.sp_password,
+                    user_id = _uid,
+                    serial_number = "",
+                    transaction_id = Guid.NewGuid().ToString(),
+                }, uri);
+                if (response != null)
+                {
+                    ResGetCert res = JsonConvert.DeserializeObject<ResGetCert>(response);
 
-                if (res.data.user_certificates.Count() == 1 || serialNumber == "")
-                {
-                    return res.data.user_certificates[0];
-                }
-                else if (res.data.user_certificates.Count() > 1)
-                {
-                    var returnCert = res.data.user_certificates.First((c) => c.serial_number == serialNumber);
-                    if(returnCert != null)
+                    if (res.data.user_certificates.Count() == 1 || serialNumber == "")
                     {
-                        return returnCert;
+                        return res.data.user_certificates[0];
                     }
-                    return  res.data.user_certificates[0];
+                    else if (res.data.user_certificates.Count() > 1)
+                    {
+                        var returnCert = res.data.user_certificates.First((c) => c.serial_number == serialNumber);
+                        if (returnCert != null)
+                        {
+                            return returnCert;
+                        }
+                        return res.data.user_certificates[0];
+                    }
+                    else
+                    {
+                        return null;
+                    }
+
                 }
-                else
-                {
-                    return null;
-                }
+                return null;
 
             }
-            return null;
-
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "GetAccountCert", _uid);
+                return null;
+            }
+            
         }
 
-        public UserCertificate[] GetListAccountCert(String uri, string uid)
+        public UserCertificate[] GetListAccountCert(String uri)
         {
-            var response = MethodLibrary.Query(new ReqGetCert
+            try
             {
-                sp_id = _configRequest.sp_id,
-                sp_password = _configRequest.sp_password,
-                user_id = uid,
-                serial_number = "",
-                transaction_id = Guid.NewGuid().ToString(),
-            }, uri);
-            if (response != null)
-            {
-                ResGetCert res = JsonConvert.DeserializeObject<ResGetCert>(response);
+                var response = MethodLibrary.Query(new ReqGetCert
+                {
+                    sp_id = _configRequest.sp_id,
+                    sp_password = _configRequest.sp_password,
+                    user_id = _uid,
+                    serial_number = "",
+                    transaction_id = Guid.NewGuid().ToString(),
+                }, uri);
+                if (response != null)
+                {
+                    ResGetCert res = JsonConvert.DeserializeObject<ResGetCert>(response);
 
-                if (res.data.user_certificates.Count() >= 1)
-                {
-                    return res.data.user_certificates.ToArray();
+                    if (res.data.user_certificates.Count() >= 1)
+                    {
+                        return res.data.user_certificates.ToArray();
+                    }
+                    else
+                    {
+                        return null;
+                    }
+
                 }
-                else
-                {
-                    return null;
-                }
+                return null;
 
             }
-            return null;
-
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "GetListAccountCert", _uid);
+                return null;
+            }
+            
         }
 
         public DataSign Sign(String uri, string data_to_be_signed, String serialNumber)
         {
-            var sign_files = new List<SignFile>();
-            var sign_file = new SignFile();
-            sign_file.data_to_be_signed = data_to_be_signed;
-            sign_file.doc_id = data_to_be_signed;
-            sign_file.file_type = "pdf";
-            sign_file.sign_type = "hash";
-            sign_files.Add(sign_file);
-            var response = Query(new ReqSign
+            try
             {
-                sp_id = _configRequest.sp_id,
-                sp_password = _configRequest.sp_password,
-                user_id = _uid,
-                transaction_id = Guid.NewGuid().ToString(),
-                transaction_desc = "Ký Test từ QuanNguyenAnh",
-                sign_files = sign_files,
-                serial_number = serialNumber,
+                var sign_files = new List<SignFile>();
+                var sign_file = new SignFile();
+                sign_file.data_to_be_signed = data_to_be_signed;
+                sign_file.doc_id = data_to_be_signed;
+                sign_file.file_type = "pdf";
+                sign_file.sign_type = "hash";
+                sign_files.Add(sign_file);
+                var response = Query(new ReqSign
+                {
+                    sp_id = _configRequest.sp_id,
+                    sp_password = _configRequest.sp_password,
+                    user_id = _uid,
+                    transaction_id = Guid.NewGuid().ToString(),
+                    transaction_desc = "Ký Test từ QuanNguyenAnh",
+                    sign_files = sign_files,
+                    serial_number = serialNumber,
 
-            }, uri);
-            if (response != null)
-            {
-                ResSign req = JsonConvert.DeserializeObject<ResSign>(response);
-                return req.data;
+                }, uri);
+                if (response != null)
+                {
+                    ResSign req = JsonConvert.DeserializeObject<ResSign>(response);
+                    return req.data;
+                }
+                return null;
             }
-            return null;
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "Sign", _uid);
+                return null;
+            }
+            
         }
 
         private String Query(object req, string serviceUri)
@@ -135,18 +162,18 @@ namespace ERS_Domain.CAService
             }
             catch (Exception ex)
             {
-                //_log.Error($"Connect gateway error: {ex.Message}", ex);
+                Utilities.logger.ErrorLog(ex, $"Connect gateway error: {ex.Message}");
                 return null;
             }
 
             if (response == null || response.ErrorException != null)
             {
-                //_log.Error("Service return null response");
+                Utilities.logger.ErrorLog("Service return null response", "Server error");
                 return null;
             }
             if (response.StatusCode != HttpStatusCode.OK)
             {
-                //_log.Error($"Status code={response.StatusCode}. Status content: {response.Content}");
+                Utilities.logger.ErrorLog($"Status code={response.StatusCode}. Status content: {response.Content}", "Server error");
                 return null;
             }
 

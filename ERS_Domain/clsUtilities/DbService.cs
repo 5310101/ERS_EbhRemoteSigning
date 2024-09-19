@@ -36,6 +36,7 @@ namespace ERS_Domain.clsUtilities
             }
             return conn;
         }
+
         public DataTable GetDataTable(string TSQL, string connectionString, SqlParameter[] sqlParams = null)
         {
             try

@@ -35,5 +35,19 @@ namespace ERS_Domain.clsUtilities
 				return _logPath; 
 			}
 		}
-	}
+
+        private string _signedTempFolder;
+        public string SignedTempFolder
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_signedTempFolder))
+                {
+                    string TempFolderName = ConfigurationManager.AppSettings["SIGNEDTEMPFOLDER"];
+                    _signedTempFolder = Path.Combine(AppPath, TempFolderName);
+                }
+                return _signedTempFolder;
+            }
+        }
+    }
 }

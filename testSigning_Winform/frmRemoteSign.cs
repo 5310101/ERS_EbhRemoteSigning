@@ -17,6 +17,7 @@ namespace testSigning_Winform
 {
     public partial class frmRemoteSign : Form
     {
+        public bool isSignedByService;
         private RemoteSign objFrm;
         private Timer _timer;
         private Timer _timerGetResult;
@@ -164,11 +165,19 @@ namespace testSigning_Winform
         private void btnKyToKhai_Click(object sender, EventArgs e)
         {
             FileDisplayControl[] controls = this.panelToKhai.Controls.OfType<FileDisplayControl>().ToArray();
-            if (controls != null)
+
+            if (chkTestKyService.Checked)
             {
-                objFrm.SignToKhai(controls);
-                _timer.Start();
+                objFrm.SignToKhai_Service(controls);
             }
+            else
+            {
+                if (controls != null)
+                {
+                    objFrm.SignToKhai(controls);
+                    _timer.Start();
+                }
+            } 
         }
 
         private void btnLayKQTK_Click(object sender, EventArgs e)
@@ -297,6 +306,13 @@ namespace testSigning_Winform
                 objFrm.GuidHS = null;
                 panelToKhai.Controls.Clear();
             }
+        }
+
+        private void chkTestKyService_CheckedChanged(object sender, EventArgs e)
+        {
+            if(chkTestKyService.Checked == true)
+                isSignedByService = true;   
+            else isSignedByService = false;
         }
     }
 }

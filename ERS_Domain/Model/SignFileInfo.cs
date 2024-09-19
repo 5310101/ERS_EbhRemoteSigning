@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ERS_Domain.Response;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Web;
@@ -47,7 +48,7 @@ namespace ERS_Domain.Model
         public string MaToKhai { get; set; }
         public string TenToKhai { get; set; }
         public string TenFile { get; set; }
-        public FileType type { get; set; }
+        public FileType Type { get; set; }
         public byte[] Data { get; set; }
         
     }
@@ -73,11 +74,20 @@ namespace ERS_Domain.Model
         public List<ToKhaiInfo> ToKhais { get; set; }
     }
 
-    public class SignerInfo
+    [Serializable]
+    public class SignerInfo 
     {
         public string SignerCert { get; set; }
-        public string SecondHash { get; set; }
         public byte[] UnsignData { get; set; }
+
+    }
+
+    public class SignedHashInfo
+    {
+        public ToKhaiInfo ToKhai { get; set; }
+        public SignerInfo Signer { get; set; }
+        public DataSign SignData { get; set; }
+        public string PathSigner { get; set; } = "";
 
     }
 }

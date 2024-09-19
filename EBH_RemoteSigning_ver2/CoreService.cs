@@ -14,53 +14,94 @@ using VnptHashSignatures.Common;
 using VnptHashSignatures.Interface;
 using VnptHashSignatures.Pdf;
 using VnptHashSignatures.Xml;
+using System.Data.SqlClient;
+using Microsoft.Win32.SafeHandles;
+using System.Security.Cryptography;
 
 namespace EBH_RemoteSigning_ver2
 {
     public class CoreService
     {
         private IRemoteSignService _signService;
+        private DbService _dbService;
 
-        public CoreService(IRemoteSignService signService)
+        public CoreService(IRemoteSignService signService, DbService dbService)
         {
             _signService = signService;
+            _dbService = dbService;
         }
 
-        public bool SignToKhai_VNPT(ToKhaiInfo tokhai, string uid, string serialNumber)
+        public bool SignToKhai_VNPT(List<ToKhaiInfo> tokhais, string GuidHS, string uid, string serialNumber)
         {
             try
             {
-                DataSign dataSign = null;
-                IHashSigner signer = null;
-                //var cert = _s ignService.GetAccountCert(VNPT_URI.uriGetCert, uid, serialNumber);
-                UserCertificate cert = _signService.GetAccountCert(VNPT_URI.uriGetCert_test, uid, serialNumber);
-                switch (tokhai.type)
+                //var cert = _signService.GetAccountCert(VNPT_URI.uriGetCert, uid, serialNumber);
+                UserCertificate cert = _signService.GetAccountCert(VNPT_URI.uriGetCert_test, serialNumber);
+                List<SignedHashInfo> listSignedDTO = new List<SignedHashInfo>();
+                foreach (ToKhaiInfo tokhai in tokhais)
                 {
-                    case FileType.PDF:
-                        dataSign = SignSmartCAPDF(cert, tokhai.Data);
-                        break;
-                    case FileType.XML:
-                        dataSign = SignSmartCAXML(cert, tokhai.Data, out signer);
-                        break;
-                    case FileType.OFFICE:
-                        
-                        break;
-                    default:
-                        return false;
-                }
-                if (dataSign == null)
-                {
-                    return false;
-                }
-                if(signer != null)
-                {
-                    bool isExported =  ExportSigner();
-                    if (!isExported)
+                    DataSign dataSign = null;
+                    SignerInfo signerInfo = null;
+                    SignedHashInfo signedHashInfo = new SignedHashInfo();
+                    signedHashInfo.ToKhai = tokhai;
+                    switch (tokhai.Type)
+                    {
+                        case FileType.PDF:
+                            dataSign = SignSmartCAPDF(cert, tokhai.Data);
+                            break;
+                        case FileType.XML:
+                            dataSign = SignSmartCAXML(cert, tokhai.Data, out signerInfo);
+                            break;
+                        case FileType.OFFICE:
+                            dataSign = SignSmartCAOFFICE(cert, tokhai.Data, out signerInfo);
+                            break;
+                        default:
+                            return false;
+                    }
+                    //1 file ky loi thi return luon
+                    if (dataSign == null)
                     {
                         return false;
                     }
+                    signedHashInfo.SignData = dataSign;
+                    if (signerInfo == null)
+                    {
+                        continue;
+                    }
+                    signedHashInfo.Signer = signerInfo;
+                    listSignedDTO.Add(signedHashInfo);
                 }
-                return true;
+
+                //Khi da co datasign thi se tao thu muc chua ho so ky
+                string pathTempHS = Path.Combine(Utilities.globalPath.SignedTempFolder, $"{GuidHS}");
+                if (!Directory.Exists(pathTempHS))
+                {
+                    Directory.CreateDirectory(pathTempHS);
+                }
+
+                string pathSigner = "";
+                foreach (var signedHash in listSignedDTO)
+                {
+                    if (signedHash.Signer != null)
+                    {
+                        pathSigner = ExportSigner(signedHash.Signer, pathTempHS, signedHash.SignData.transaction_id);
+                        if (pathSigner == "")
+                        {
+                            return false;
+                        }
+                        signedHash.PathSigner = pathSigner;
+                    }
+                }
+
+                //luu cac to khai vao database
+                //bool isInserted =  InsertDatabase_ToKhai(tokhai, GuidHS, dataSign, pathSigner);
+                bool isInserted = InsertDatabase_ToKhai(listSignedDTO, GuidHS);
+                //neu insert loi delete thu muc temp cua ho so
+                if (!isInserted)
+                {
+                    Directory.Delete(pathTempHS, true);
+                } 
+                return isInserted;
             }
             catch (Exception ex)
             {
@@ -69,24 +110,96 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        private bool ExportSigner()
+        private bool InsertDatabase_ToKhai(List<SignedHashInfo> signedHashs, string GuidHS)
         {
-            //xu ly export signer o day
-            return true;
-        } 
+            List<string> listTranId_Error = new List<string>();
+            using (SqlConnection conn = new SqlConnection(_dbService.ConnStr))
+            {
+                conn.Open();
+                SqlTransaction trans  = conn.BeginTransaction();
+                try
+                {
+                    foreach (SignedHashInfo shi in signedHashs)
+                    {
+                        string TSQL = "INSERT INTO ToKhai (GuidHS,TenToKhai,LoaiFile,MoTa,NgayGui,TrangThai,SignerPath,transaction_id,tran_code) VALUES (@GuidHS,@TenToKhai,@LoaiFile,@Mota,@NgayGui,@TrangThai,@SignerPath,@transaction_id,@tran_code)";
+                        var listParams = new SqlParameter[]
+                        {
+                            new SqlParameter("@GuidHS",GuidHS),
+                            new SqlParameter("@TenToKhai",shi.ToKhai.TenFile),
+                            new SqlParameter("@LoaiFile", (int)shi.ToKhai.Type),
+                            new SqlParameter("@MoTa",shi.ToKhai.TenToKhai),
+                            new SqlParameter("@NgayGui",DateTime.Now),
+                            new SqlParameter("@TrangThai", (int)TrangThaiFile.DaKyHash),
+                            new SqlParameter("@SignerPath", shi.PathSigner),
+                            new SqlParameter("@transaction_id",shi.SignData.transaction_id),
+                            new SqlParameter("@tran_code", shi.SignData.tran_code)
+                        };
+                        using (SqlCommand command = new SqlCommand(TSQL, conn, trans))
+                        {
+                            command.Parameters.AddRange(listParams);
+                            command.CommandType = System.Data.CommandType.Text;
+                            command.CommandTimeout = 60;
+                            var result = command.ExecuteNonQuery();
+                            if(result <= 0)
+                            {
+                                listTranId_Error.Add(shi.SignData.transaction_id);
+                                throw new Exception("Insert Failed");
+                            }
+                        }
+                    }
+                    trans.Commit();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    trans.Rollback();   
+                    Utilities.logger.ErrorLog(ex, "InsertDatabase_ToKhai",GuidHS,string.Join(", ",listTranId_Error));
+                    return false;
+                }
+            }
 
+        }
+
+        //luu tru thong tin signer de sau khi lay ket qua tao signer moi
+        private string ExportSigner(SignerInfo signer, string pathTempHS, string transaction_id)
+        {
+            try
+            {
+                string json = JsonConvert.SerializeObject(signer);
+                if (string.IsNullOrEmpty(json))
+                {
+                    return "";
+                }
+                File.WriteAllText(pathTempHS, json);
+                return pathTempHS;
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "ExportSigner");
+                return "";
+            }
+        }
+        //import lai thong tin signer da luu tru
+        private SignerInfo ImportSigner(string filePath)
+        {
+            string json = File.ReadAllText(filePath);
+            SignerInfo output = JsonConvert.DeserializeObject<SignerInfo>(json);
+            return output;
+        }
+
+        #region cac ham ky remote
         private DataSign SignSmartCAPDF(UserCertificate userCert, byte[] pdfUnsign)
         {
             try
             {
-                if(pdfUnsign == null) { return null; }  
+                if (pdfUnsign == null) { return null; }
                 IHashSigner signer = HashSignerFactory.GenerateSigner(pdfUnsign, userCert.cert_data, null, HashSignerFactory.PDF);
                 signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
                 #region Optional -----------------------------------
                 // Property: Lý do ký số
                 ((PdfHashSigner)signer).SetReason("Xác nhận tài liệu");
-                // Kiểu hiển thị chữ ký (OPTIONAL/DEFAULT=TEXT_WITH_BACKGROUND)
+                // Kiểu hiển thị chữ ký (OPTIONAL/DEFAULT=TEXT_WITH_BACKGROUND) 
                 ((PdfHashSigner)signer).SetRenderingMode(PdfHashSigner.RenderMode.TEXT_ONLY);
                 // Nội dung text trên chữ ký (OPTIONAL)
                 ((PdfHashSigner)signer).SetLayer2Text($"Ngày ký: {DateTime.Now.Date} \n Người ký: QuanNa \n Nơi ký: EBH");
@@ -127,23 +240,28 @@ namespace EBH_RemoteSigning_ver2
             }
             catch (Exception ex)
             {
-                Utilities.logger.ErrorLog(ex, "SignSmartCAPDF");
+                Utilities.logger.ErrorLog(ex, "SignSmartCAPDF", userCert.cert_subject);
                 return null;
             }
         }
 
-        private DataSign SignSmartCAXML(UserCertificate userCert, byte[] xmlUnsign, out IHashSigner signer, string nodeKy = "")
+        private DataSign SignSmartCAXML(UserCertificate userCert, byte[] xmlUnsign, out SignerInfo signerInfo, string nodeKy = "")
         {
+            IHashSigner signer = null;
+            signerInfo = new SignerInfo();
             try
             {
                 String certBase64 = userCert.cert_data;
+                signerInfo.SignerCert = certBase64;
+                signerInfo.UnsignData = xmlUnsign;
                 signer = HashSignerFactory.GenerateSigner(xmlUnsign, certBase64, null, HashSignerFactory.XML);
                 signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
+
                 //Set ID cho thẻ ssignature
                 //((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
-                ((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
-
+                string SignId = Guid.NewGuid().ToString();
+                ((XmlHashSigner)signer).SetSignatureID(SignId);
                 //Set reference đến id
                 //((XmlHashSigner)signers).SetReferenceId("#SigningData");
 
@@ -151,15 +269,11 @@ namespace EBH_RemoteSigning_ver2
                 ((XmlHashSigner)signer).SetSigningTime(DateTime.Now, "SigningTime-" + Guid.NewGuid().ToString());
 
                 //đường dẫn dẫn đến thẻ chứa chữ ký 
-                if (nodeKy != "")
+                if (nodeKy == "")
                 {
-                    ((XmlHashSigner)signer).SetParentNodePath(nodeKy);
+                    nodeKy = "//Cky";
                 }
-                else
-                {
-                    ((XmlHashSigner)signer).SetParentNodePath("//Cky");
-                }
-
+                ((XmlHashSigner)signer).SetParentNodePath(nodeKy);
 
                 var hashValue = signer.GetSecondHashAsBase64();
 
@@ -174,42 +288,46 @@ namespace EBH_RemoteSigning_ver2
             }
             catch (Exception ex)
             {
-                //log ex
-                signer = null;
+                Utilities.logger.ErrorLog(ex, "SignSmartCAXML", userCert.cert_subject);
+                signerInfo = null;
                 return null;
             }
         }
 
-        private DataSign SignSmartCAOFFICE(UserCertificate userCert, string officeInput, out IHashSigner signer)
+        private DataSign SignSmartCAOFFICE(UserCertificate userCert, byte[] officeUnsign, out SignerInfo signerInfo)
         {
-            String certBase64 = userCert.cert_data;
-            signer = null;
-            byte[] unsignData = null;
             try
             {
-                unsignData = File.ReadAllBytes(officeInput);
+                IHashSigner signer = null;
+                signerInfo = new SignerInfo();
+
+                String certBase64 = userCert.cert_data;
+                signerInfo.SignerCert = certBase64;
+                signerInfo.UnsignData = officeUnsign;
+                signer = HashSignerFactory.GenerateSigner(officeUnsign, certBase64, null, HashSignerFactory.OFFICE);
+                signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
+
+                var hashValue = signer.GetSecondHashAsBase64();
+
+                var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
+
+                DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number);
+
+                return dataSign;
             }
             catch (Exception ex)
             {
-                //_log.Error(ex);
-                return null;
+                Utilities.logger.ErrorLog(ex, "SignSmartCAOFFICE", userCert.cert_subject);
+                throw;
             }
-            signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.OFFICE);
-            signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
-
-
-            var hashValue = signer.GetSecondHashAsBase64();
-
-            var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
-
-            DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number);
-
-            return dataSign;
         }
+        #endregion
 
-        public async Task GetResultToKhai()
+        //neu nguoi dung co tu 2 cks tro len se dung ham nay de lay 
+        public UserCertificate[] GetListUserCertificateVNPT()
         {
-
+            UserCertificate[] certs = _signService.GetListAccountCert(VNPT_URI.uriGetCert_test);
+            return certs;
         }
     }
 }
