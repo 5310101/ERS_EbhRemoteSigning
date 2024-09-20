@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using RestSharp;
 using System;
+using System.CodeDom;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
@@ -31,6 +32,14 @@ namespace ERS_Domain.clsUtilities
                 return string.Empty;
             }
             return input.ToString();
+        }
+        public static T SafeNumber<T>(this object input) where T : struct, IConvertible 
+        {
+            if (input == null || input is DBNull)
+            {
+                return default;
+            }
+            return (T)Convert.ChangeType(input, typeof(T)); 
         }
 
         public static String Query(object req, string serviceUri)

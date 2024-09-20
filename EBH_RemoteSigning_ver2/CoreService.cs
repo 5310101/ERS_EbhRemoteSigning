@@ -33,10 +33,11 @@ namespace EBH_RemoteSigning_ver2
 
         public bool SignToKhai_VNPT(List<ToKhaiInfo> tokhais, string GuidHS, string uid, string serialNumber)
         {
+            string pathTempHS = "";
             try
             {
                 //var cert = _signService.GetAccountCert(VNPT_URI.uriGetCert, uid, serialNumber);
-                UserCertificate cert = _signService.GetAccountCert(VNPT_URI.uriGetCert_test, serialNumber);
+                UserCertificate cert = _signService.GetAccountCert(VNPT_URI.uriGetCert_test,uid ,serialNumber);
                 List<SignedHashInfo> listSignedDTO = new List<SignedHashInfo>();
                 foreach (ToKhaiInfo tokhai in tokhais)
                 {
@@ -47,13 +48,13 @@ namespace EBH_RemoteSigning_ver2
                     switch (tokhai.Type)
                     {
                         case FileType.PDF:
-                            dataSign = SignSmartCAPDF(cert, tokhai.Data);
+                            dataSign = SignSmartCAPDF(cert, tokhai.Data, uid);
                             break;
                         case FileType.XML:
-                            dataSign = SignSmartCAXML(cert, tokhai.Data, out signerInfo);
+                            dataSign = SignSmartCAXML(cert, tokhai.Data, uid ,out signerInfo);
                             break;
                         case FileType.OFFICE:
-                            dataSign = SignSmartCAOFFICE(cert, tokhai.Data, out signerInfo);
+                            dataSign = SignSmartCAOFFICE(cert, tokhai.Data, uid , out signerInfo);
                             break;
                         default:
                             return false;
@@ -64,16 +65,15 @@ namespace EBH_RemoteSigning_ver2
                         return false;
                     }
                     signedHashInfo.SignData = dataSign;
-                    if (signerInfo == null)
+                    if (signerInfo != null)
                     {
-                        continue;
+                        signedHashInfo.Signer = signerInfo;
                     }
-                    signedHashInfo.Signer = signerInfo;
                     listSignedDTO.Add(signedHashInfo);
                 }
 
                 //Khi da co datasign thi se tao thu muc chua ho so ky
-                string pathTempHS = Path.Combine(Utilities.globalPath.SignedTempFolder, $"{GuidHS}");
+                pathTempHS = Path.Combine(Utilities.globalPath.SignedTempFolder, $"{GuidHS}");
                 if (!Directory.Exists(pathTempHS))
                 {
                     Directory.CreateDirectory(pathTempHS);
@@ -105,6 +105,11 @@ namespace EBH_RemoteSigning_ver2
             }
             catch (Exception ex)
             {
+                //Xoa thu muc chua temp file cua hoso neu loi
+                if (pathTempHS != "" || Directory.Exists(pathTempHS))
+                {
+                    Directory.Delete(pathTempHS, true);
+                }
                 Utilities.logger.ErrorLog(ex, "SignToKhai_VNPT");
                 return false;
             }
@@ -121,7 +126,7 @@ namespace EBH_RemoteSigning_ver2
                 {
                     foreach (SignedHashInfo shi in signedHashs)
                     {
-                        string TSQL = "INSERT INTO ToKhai (GuidHS,TenToKhai,LoaiFile,MoTa,NgayGui,TrangThai,SignerPath,transaction_id,tran_code) VALUES (@GuidHS,@TenToKhai,@LoaiFile,@Mota,@NgayGui,@TrangThai,@SignerPath,@transaction_id,@tran_code)";
+                        string TSQL = "INSERT INTO ToKhai_VNPT (GuidHS,TenToKhai,LoaiFile,MoTa,NgayGui,TrangThai,SignerPath,transaction_id,tran_code) VALUES (@GuidHS,@TenToKhai,@LoaiFile,@Mota,@NgayGui,@TrangThai,@SignerPath,@transaction_id,@tran_code)";
                         var listParams = new SqlParameter[]
                         {
                             new SqlParameter("@GuidHS",GuidHS),
@@ -170,8 +175,9 @@ namespace EBH_RemoteSigning_ver2
                 {
                     return "";
                 }
-                File.WriteAllText(pathTempHS, json);
-                return pathTempHS;
+                string pathSigner = Path.Combine(pathTempHS,$"{transaction_id}.json");
+                File.WriteAllText(pathSigner, json);
+                return pathSigner;
             }
             catch (Exception ex)
             {
@@ -188,7 +194,7 @@ namespace EBH_RemoteSigning_ver2
         }
 
         #region cac ham ky remote
-        private DataSign SignSmartCAPDF(UserCertificate userCert, byte[] pdfUnsign)
+        private DataSign SignSmartCAPDF(UserCertificate userCert, byte[] pdfUnsign, string uid)
         {
             try
             {
@@ -234,7 +240,7 @@ namespace EBH_RemoteSigning_ver2
                 string tempFolder = Path.GetTempPath();
                 File.AppendAllText(tempFolder + data_to_be_sign + ".txt", profileJson);
 
-                DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number);
+                DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
 
                 return dataSign;
             }
@@ -245,7 +251,7 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        private DataSign SignSmartCAXML(UserCertificate userCert, byte[] xmlUnsign, out SignerInfo signerInfo, string nodeKy = "")
+        private DataSign SignSmartCAXML(UserCertificate userCert, byte[] xmlUnsign, string uid , out SignerInfo signerInfo, string nodeKy = "")
         {
             IHashSigner signer = null;
             signerInfo = new SignerInfo();
@@ -279,7 +285,7 @@ namespace EBH_RemoteSigning_ver2
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-                DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number);
+                DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
 
                 //Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
                 //Console.ReadKey();
@@ -294,7 +300,7 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        private DataSign SignSmartCAOFFICE(UserCertificate userCert, byte[] officeUnsign, out SignerInfo signerInfo)
+        private DataSign SignSmartCAOFFICE(UserCertificate userCert, byte[] officeUnsign, string uid, out SignerInfo signerInfo)
         {
             try
             {
@@ -311,7 +317,7 @@ namespace EBH_RemoteSigning_ver2
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-                DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number);
+                DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
 
                 return dataSign;
             }
@@ -324,10 +330,37 @@ namespace EBH_RemoteSigning_ver2
         #endregion
 
         //neu nguoi dung co tu 2 cks tro len se dung ham nay de lay 
-        public UserCertificate[] GetListUserCertificateVNPT()
+        public UserCertificate[] GetListUserCertificateVNPT(string uid)
         {
-            UserCertificate[] certs = _signService.GetListAccountCert(VNPT_URI.uriGetCert_test);
+            UserCertificate[] certs = _signService.GetListAccountCert(VNPT_URI.uriGetCert_test,uid);
             return certs;
+        }
+        
+        //Cac ham lien quan den tao lap hoso
+        public bool InsertHoSoNew_VNPT(HoSoInfo hoso)
+        {
+            try
+            {
+                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,FromMST,FromMDV,MaCQBH,TrangThai) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@FromMST,@FromMDV,@MaCQBH,@TrangThai)";
+                SqlParameter[] listParams = new SqlParameter[] {
+                        new SqlParameter("@Guid",hoso.GuidHS),
+                        new SqlParameter("@TenHS",hoso.TenThuTuc),
+                        new SqlParameter("@MaNV",hoso.MaHoSo),
+                        new SqlParameter("@NgayGui",DateTime.Now),
+                        new SqlParameter("@FromMST",hoso.DonVi.MaSoThue),
+                        new SqlParameter("@FromMDV",hoso.DonVi.MaDonVi),
+                        new SqlParameter("@MaCQBH",hoso.GuidHS),
+                        new SqlParameter("@TrangThai",(int)TrangThaiHoso.ChuaTaoFile),
+                };
+                bool isSuccess = _dbService.ExecQuery_Tran(TSQL,"", listParams);
+                return isSuccess;   
+                
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "InsertHoSoNew_VNPT");
+                return false;
+            }
         }
     }
 }

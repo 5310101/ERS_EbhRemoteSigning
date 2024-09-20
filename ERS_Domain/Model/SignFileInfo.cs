@@ -16,9 +16,22 @@ namespace ERS_Domain.Model
 
     public enum TrangThaiFile
     {
+        KyLoi = 0,
         DaKyHash = 1,
         DaKy = 2,
+        HetHan = 3,
     }
+
+    public enum TrangThaiHoso
+    {
+        ChuaTaoFile =1,
+        DaKyHash = 2,
+        DaKy = 3,
+        HetHan = 4,
+        DaLayKetQua = 5,
+        KyLoi = 0,
+    }
+
 
     public enum RemoteSigningProvider
     {

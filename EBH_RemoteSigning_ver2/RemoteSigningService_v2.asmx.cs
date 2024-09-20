@@ -92,9 +92,9 @@ namespace EBH_RemoteSigning_ver2
                 {
                     return auth;
                 }
-                SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest, uid);
+                SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
                 _coreService = new CoreService(smartCAService, _dbService);
-                UserCertificate[] certs = _coreService.GetListUserCertificateVNPT();
+                UserCertificate[] certs = _coreService.GetListUserCertificateVNPT(uid);
                 if (certs == null) return new ERS_Response("Không tìm thấy chữ ký số", false);
                 return new ERS_Response("Thành công", true, certs);
             }
@@ -121,13 +121,20 @@ namespace EBH_RemoteSigning_ver2
                 //chon nha cung cap dich vu
                 if (signProvider == RemoteSigningProvider.VNPT)
                 {
-                    SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest, uid);
+                    SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
                     _coreService = new CoreService(smartCAService, _dbService);
                     List<Task<bool>> tasks = new List<Task<bool>>();
                     bool isSignedHash = _coreService.SignToKhai_VNPT(hoso.ToKhais, hoso.GuidHS, uid, serialNumber);
                     if (!isSignedHash)
                     {
                         return new ERS_Response("Không ký thành công", false);
+                    }
+                    //Tao moi hoso va insert vao database
+                    bool isSuccess = _coreService.InsertHoSoNew_VNPT(hoso);
+                    if (!isSuccess)
+                    {
+                        Utilities.logger.ErrorLog($"Hồ sơ lưu vào lỗi vào database: {hoso.GuidHS}","Hồ sơ lưu lỗi");
+                        return new ERS_Response("Có lỗi khi lưu dữ liệu hồ sơ trên server", false);
                     }
                     return new ERS_Response("Chờ xác thực trên app ký của VNPT", true);
                 }

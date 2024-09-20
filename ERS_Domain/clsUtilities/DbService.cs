@@ -37,7 +37,7 @@ namespace ERS_Domain.clsUtilities
             return conn;
         }
 
-        public DataTable GetDataTable(string TSQL, string connectionString, SqlParameter[] sqlParams = null)
+        public DataTable GetDataTable(string TSQL, string connectionString = "", SqlParameter[] sqlParams = null)
         {
             try
             {
@@ -69,7 +69,7 @@ namespace ERS_Domain.clsUtilities
                 return null;
             }
         }
-        public bool ExecQuery(string TSQL, string connectionString, SqlParameter[] sqlParams = null)
+        public bool ExecQuery(string TSQL, string connectionString = "", SqlParameter[] sqlParams = null)
         {
             bool isExecuted = false;
             try
@@ -103,7 +103,7 @@ namespace ERS_Domain.clsUtilities
                 return false;
             }
         }
-        public bool ExecQuery_Tran(string TSQL, string connectionString, SqlParameter[] sqlParams = null)
+        public bool ExecQuery_Tran(string TSQL, string connectionString = "", SqlParameter[] sqlParams = null)
         {
             bool isExecuted = false;
             try
@@ -158,7 +158,7 @@ namespace ERS_Domain.clsUtilities
 			}
 			return conn;
 		}
-        public async Task<DataTable> GetDataTableAsync(string TSQL, string connectionString, SqlParameter[] sqlParams = null)
+        public async Task<DataTable> GetDataTableAsync(string TSQL, string connectionString = "", SqlParameter[] sqlParams = null)
         {
             try
             {
@@ -190,7 +190,7 @@ namespace ERS_Domain.clsUtilities
                 return null;
             }
         }
-        public async Task<bool> ExecQueryAsync(string TSQL, string connectionString, SqlParameter[] sqlParams = null)
+        public async Task<bool> ExecQueryAsync(string TSQL, string connectionString = "", SqlParameter[] sqlParams = null)
         {
             bool isExecuted = false;
             try
@@ -224,7 +224,7 @@ namespace ERS_Domain.clsUtilities
                 return false;
             }
         }
-        public async Task<bool> ExecQuery_TranAsync(string TSQL, string connectionString, SqlParameter[] sqlParams = null)
+        public async Task<bool> ExecQuery_TranAsync(string TSQL, string connectionString = "", SqlParameter[] sqlParams = null)
         {
             bool isExecuted = false;
             try

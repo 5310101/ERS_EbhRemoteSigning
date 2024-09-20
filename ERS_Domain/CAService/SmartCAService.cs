@@ -14,16 +14,14 @@ namespace ERS_Domain.CAService
     public class SmartCAService : IRemoteSignService
     {
         private ConfigRequest _configRequest;
-        private string _uid;
 
-        public SmartCAService(ConfigRequest configRequest, string uid)
+        public SmartCAService(ConfigRequest configRequest)
         {
             _configRequest = configRequest;   
-            _uid = uid;
         }
 
 
-        public UserCertificate GetAccountCert(String uri,string serialNumber = "")
+        public UserCertificate GetAccountCert(string uri, string uid, string serialNumber = "")
         {
             try
             {
@@ -31,7 +29,7 @@ namespace ERS_Domain.CAService
                 {
                     sp_id = _configRequest.sp_id,
                     sp_password = _configRequest.sp_password,
-                    user_id = _uid,
+                    user_id = uid,
                     serial_number = "",
                     transaction_id = Guid.NewGuid().ToString(),
                 }, uri);
@@ -63,13 +61,13 @@ namespace ERS_Domain.CAService
             }
             catch (Exception ex)
             {
-                Utilities.logger.ErrorLog(ex, "GetAccountCert", _uid);
+                Utilities.logger.ErrorLog(ex, "GetAccountCert", uid);
                 return null;
             }
             
         }
 
-        public UserCertificate[] GetListAccountCert(String uri)
+        public UserCertificate[] GetListAccountCert(string uri, string uid)
         {
             try
             {
@@ -77,7 +75,7 @@ namespace ERS_Domain.CAService
                 {
                     sp_id = _configRequest.sp_id,
                     sp_password = _configRequest.sp_password,
-                    user_id = _uid,
+                    user_id = uid,
                     serial_number = "",
                     transaction_id = Guid.NewGuid().ToString(),
                 }, uri);
@@ -100,13 +98,13 @@ namespace ERS_Domain.CAService
             }
             catch (Exception ex)
             {
-                Utilities.logger.ErrorLog(ex, "GetListAccountCert", _uid);
+                Utilities.logger.ErrorLog(ex, "GetListAccountCert", uid);
                 return null;
             }
             
         }
 
-        public DataSign Sign(String uri, string data_to_be_signed, String serialNumber)
+        public DataSign Sign(string uri, string data_to_be_signed, string serialNumber, string uid)
         {
             try
             {
@@ -121,7 +119,7 @@ namespace ERS_Domain.CAService
                 {
                     sp_id = _configRequest.sp_id,
                     sp_password = _configRequest.sp_password,
-                    user_id = _uid,
+                    user_id = uid,
                     transaction_id = Guid.NewGuid().ToString(),
                     transaction_desc = "Ký Test từ QuanNguyenAnh",
                     sign_files = sign_files,
@@ -137,7 +135,7 @@ namespace ERS_Domain.CAService
             }
             catch (Exception ex)
             {
-                Utilities.logger.ErrorLog(ex, "Sign", _uid);
+                Utilities.logger.ErrorLog(ex, "Sign", uid);
                 return null;
             }
             
@@ -180,7 +178,7 @@ namespace ERS_Domain.CAService
             return response.Content;
         }
 
-        public ResStatus GetStatus(String uri)
+        public ResStatus GetStatus(string uri)
         {
             var response = MethodLibrary.Query(new Object
             {

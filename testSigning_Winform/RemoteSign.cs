@@ -768,11 +768,11 @@ namespace testSigning_Winform
                 };
                 HoSoInfo hoso = CreateHoSoTest(controls);
                 var result = service_V2.SendFileSign(RemoteSigningProvider.VNPT, uid, "1", "c4ca4238a0b923820dcc509a6f75849b", hoso, "");
-                MessageBox.Show("Signed hash, wait to confirm", "success");
+                MessageBox.Show(result.message,"notification");
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Signed hash failed", "error");
+                MessageBox.Show($"Signed hash failed: {ex.Message}", "error");
             }            
         }
 
@@ -784,11 +784,11 @@ namespace testSigning_Winform
                     return localhost.FileType.XML;
                 case ".pdf":
                     return localhost.FileType.PDF;
-                case "xlsx":
-                case "docx":
+                case ".xlsx":
+                case ".docx":
                     return localhost.FileType.OFFICE;
                 default:
-                    return 0;
+                    throw new Exception($"Kiểu file không hỗ trợ {input}");
             }
         }
 
