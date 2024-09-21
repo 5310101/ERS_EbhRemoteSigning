@@ -16,7 +16,14 @@ namespace ERS_Domain.clsUtilities
 			{
 				if (string.IsNullOrEmpty(_appPath))
 				{
-					_appPath = HttpContext.Current.Server.MapPath("~"); ;
+					if(System.Web.HttpContext.Current != null)
+					{
+                        _appPath = HttpContext.Current.Server.MapPath("~"); ;
+                    }
+					else
+					{
+						_appPath = AppDomain.CurrentDomain.BaseDirectory;
+					}
 				}
 				return _appPath; 
 			}

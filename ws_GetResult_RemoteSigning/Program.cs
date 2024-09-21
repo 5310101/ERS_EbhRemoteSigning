@@ -12,14 +12,32 @@ namespace ws_GetResult_RemoteSigning
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
-        static void Main()
+        static void Main(string[] args)
         {
+        #if DEBUG
+           
+            if (Environment.UserInteractive)
+            {
+                ServiceGetResult_VNPT service = new ServiceGetResult_VNPT();
+                service.SetStart(args);
+                Console.WriteLine("Press any key to stop the service...");
+                Console.ReadKey();
+                service.SetStop();
+            }
+            else
+            {
+                ServiceBase[] ServicesToRun;
+                ServicesToRun = new ServiceBase[] { new ServiceGetResult_VNPT() };
+                ServiceBase.Run(ServicesToRun);
+            }
+#else
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
             {
                 new ServiceGetResult_VNPT()
             };
             ServiceBase.Run(ServicesToRun);
+#endif
         }
     }
 }

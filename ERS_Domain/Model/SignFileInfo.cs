@@ -24,10 +24,10 @@ namespace ERS_Domain.Model
 
     public enum TrangThaiHoso
     {
-        ChuaTaoFile =1,
-        DaKyHash = 2,
-        DaKy = 3,
-        HetHan = 4,
+        ChuaTaoFile =4,
+        DaKyHash = 1,
+        DaKy = 2,
+        HetHan = 3,
         DaLayKetQua = 5,
         KyLoi = 0,
     }
@@ -66,7 +66,7 @@ namespace ERS_Domain.Model
         
     }
 
-    public class ThongTinDonVi
+    public class DonViInfo
     {
         public string TenDonVi { get; set; }
         public string MaSoThue { get; set; }
@@ -83,7 +83,7 @@ namespace ERS_Domain.Model
         public string MaHoSo { get; set; }
         public string TenThuTuc { get; set; }
         public DateTime NgayLap {  get; set; }  
-        public ThongTinDonVi DonVi { get; set; }
+        public DonViInfo DonVi { get; set; }
         public List<ToKhaiInfo> ToKhais { get; set; }
     }
 

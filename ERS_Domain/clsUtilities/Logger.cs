@@ -27,12 +27,12 @@ namespace ERS_Domain.clsUtilities
         {
 			try
 			{
-                string fileName = $"ERS_errlog_{DateTime.Now.ToString("ddMMyyyy")}.txt";
+                string fileName = $"ERS_errlog_{DateTime.Now:ddMMyyyy}.txt";
                 string filePath = Path.Combine(Utilities.globalPath.LogPath, fileName);
                 CheckFilePath(filePath);
                 StringBuilder sb = new StringBuilder(); 
                 sb.AppendLine($"Title: {title}");
-                sb.AppendLine($"Time: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm;ss")}");
+                sb.AppendLine($"Time: {DateTime.Now:dd/MM/yyyy : HH:mm;ss}");
                 sb.AppendLine($"Message: {ex.Message}");
                 sb.AppendLine($"StackTrace: {ex.StackTrace}");
                 if(ex.InnerException != null)
@@ -47,6 +47,7 @@ namespace ERS_Domain.clsUtilities
                         sb.AppendLine(info);
                     }
                 }
+                sb.AppendLine(EnvBreak);
                 File.AppendAllText(filePath, sb.ToString());
 			}
 			catch 
@@ -58,12 +59,12 @@ namespace ERS_Domain.clsUtilities
         {
             try
             {
-                string fileName = $"ERS_errlog_{DateTime.Now.ToString("ddMMyyyy")}.txt";
+                string fileName = $"ERS_errlog_{DateTime.Now:ddMMyyyy}.txt";
                 string filePath = Path.Combine(Utilities.globalPath.LogPath, fileName);
                 CheckFilePath(filePath);
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine($"Title: {title}");
-                sb.AppendLine($"Time: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm;ss")}");
+                sb.AppendLine($"Time: {DateTime.Now:dd/MM/yyyy : HH:mm:ss}");
                 sb.AppendLine($"Message: {exMessage}");
                 if (moreInfos != null)
                 {
@@ -73,6 +74,7 @@ namespace ERS_Domain.clsUtilities
                         sb.AppendLine(info);
                     }
                 }
+                sb.AppendLine(EnvBreak);
                 File.AppendAllText(filePath, sb.ToString());
             }
             catch
@@ -84,12 +86,12 @@ namespace ERS_Domain.clsUtilities
         {
             try
             {
-                string fileName = $"ERS_inflog_{DateTime.Now.ToString("ddMMyyyy")}.txt";
+                string fileName = $"ERS_inflog_{DateTime.Now:ddMMyyyy}.txt";
                 string filePath = Path.Combine(Utilities.globalPath.LogPath, fileName);
                 CheckFilePath(filePath);
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine($"Title: {title}");
-                sb.AppendLine($"Time: {DateTime.Now.ToString("dd/MM/yyyy : HH:mm;ss")}");
+                sb.AppendLine($"Time: {DateTime.Now:dd/MM/yyyy : HH:mm:ss}");
                 sb.AppendLine($"Info: {Info}");
                 if (moreInfos != null)
                 {
@@ -99,6 +101,7 @@ namespace ERS_Domain.clsUtilities
                         sb.AppendLine(info);
                     }
                 }
+                sb.AppendLine(EnvBreak);
                 File.AppendAllText(filePath, sb.ToString());
             }
             catch

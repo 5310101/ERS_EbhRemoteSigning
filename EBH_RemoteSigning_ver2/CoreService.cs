@@ -126,7 +126,7 @@ namespace EBH_RemoteSigning_ver2
                 {
                     foreach (SignedHashInfo shi in signedHashs)
                     {
-                        string TSQL = "INSERT INTO ToKhai_VNPT (GuidHS,TenToKhai,LoaiFile,MoTa,NgayGui,TrangThai,SignerPath,transaction_id,tran_code) VALUES (@GuidHS,@TenToKhai,@LoaiFile,@Mota,@NgayGui,@TrangThai,@SignerPath,@transaction_id,@tran_code)";
+                        string TSQL = "INSERT INTO ToKhai_VNPT (GuidHS,TenToKhai,LoaiFile,MoTa,NgayGui,TrangThai,SignerPath,transaction_id,tran_code,LastGet) VALUES (@GuidHS,@TenToKhai,@LoaiFile,@Mota,@NgayGui,@TrangThai,@SignerPath,@transaction_id,@tran_code,@LastGet)";
                         var listParams = new SqlParameter[]
                         {
                             new SqlParameter("@GuidHS",GuidHS),
@@ -137,7 +137,8 @@ namespace EBH_RemoteSigning_ver2
                             new SqlParameter("@TrangThai", (int)TrangThaiFile.DaKyHash),
                             new SqlParameter("@SignerPath", shi.PathSigner),
                             new SqlParameter("@transaction_id",shi.SignData.transaction_id),
-                            new SqlParameter("@tran_code", shi.SignData.tran_code)
+                            new SqlParameter("@tran_code", shi.SignData.tran_code),
+                            new SqlParameter("@LastGet", DateTime.Now),
                         };
                         using (SqlCommand command = new SqlCommand(TSQL, conn, trans))
                         {
@@ -341,16 +342,21 @@ namespace EBH_RemoteSigning_ver2
         {
             try
             {
-                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,FromMST,FromMDV,MaCQBH,TrangThai) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@FromMST,@FromMDV,@MaCQBH,@TrangThai)";
+                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet)";
                 SqlParameter[] listParams = new SqlParameter[] {
                         new SqlParameter("@Guid",hoso.GuidHS),
                         new SqlParameter("@TenHS",hoso.TenThuTuc),
                         new SqlParameter("@MaNV",hoso.MaHoSo),
                         new SqlParameter("@NgayGui",DateTime.Now),
+                        new SqlParameter("@TenDonVi",hoso.DonVi.TenDonVi),
                         new SqlParameter("@FromMST",hoso.DonVi.MaSoThue),
                         new SqlParameter("@FromMDV",hoso.DonVi.MaDonVi),
-                        new SqlParameter("@MaCQBH",hoso.GuidHS),
+                        new SqlParameter("@LoaiDoiTuong",hoso.DonVi.LoaiDoiTuong),
+                        new SqlParameter("@MaCQBH",hoso.DonVi.CoQuanBHXH),
+                        new SqlParameter("@NguoiKy",hoso.DonVi.NguoiKy),
+                        new SqlParameter("@DienThoai",hoso.DonVi.DienThoai),
                         new SqlParameter("@TrangThai",(int)TrangThaiHoso.ChuaTaoFile),
+                        new SqlParameter("@LastGet",DateTime.Now),
                 };
                 bool isSuccess = _dbService.ExecQuery_Tran(TSQL,"", listParams);
                 return isSuccess;   

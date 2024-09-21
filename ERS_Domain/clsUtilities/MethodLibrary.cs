@@ -2,7 +2,9 @@
 using RestSharp;
 using System;
 using System.CodeDom;
+using System.Globalization;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -40,6 +42,23 @@ namespace ERS_Domain.clsUtilities
                 return default;
             }
             return (T)Convert.ChangeType(input, typeof(T)); 
+        }
+
+        public static DateTime SafeDateTime(this object input, string DateType = "MM/dd/yyyy") 
+        {
+            try
+            {
+                if (input == null || input is DBNull) 
+                {
+                    return default;
+                }
+                if (DateType == "MM/dd/yyyy") return DateTime.Parse(input.ToString());
+                return DateTime.ParseExact(input.ToString(), DateType, DateTimeFormatInfo.InvariantInfo);
+            }
+            catch (Exception)
+            {
+                return default;
+            }
         }
 
         public static String Query(object req, string serviceUri)

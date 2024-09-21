@@ -49,7 +49,7 @@ namespace ERS_Domain.clsUtilities
                 {
                     using (SqlDataAdapter adapter = new SqlDataAdapter(TSQL, conn))
                     {
-                        if (sqlParams != null || sqlParams.Length > 0)
+                        if (sqlParams != null && sqlParams?.Length > 0)
                         {
                             adapter.SelectCommand.Parameters.AddRange(sqlParams);
                         }
@@ -82,7 +82,7 @@ namespace ERS_Domain.clsUtilities
                 {
                     using (SqlCommand command = new SqlCommand(TSQL, conn))
                     {
-                        if (sqlParams != null || sqlParams.Length > 0)
+                        if (sqlParams != null && sqlParams?.Length > 0)
                         {
                             command.Parameters.AddRange(sqlParams);
                         }
@@ -117,7 +117,7 @@ namespace ERS_Domain.clsUtilities
                     using (SqlTransaction trans = conn.BeginTransaction())
                     using (SqlCommand command = new SqlCommand(TSQL, conn))
                     {
-                        if (sqlParams != null || sqlParams.Length > 0)
+                        if (sqlParams != null && sqlParams?.Length > 0)
                         {
                             command.Parameters.AddRange(sqlParams);
                         }
@@ -170,7 +170,7 @@ namespace ERS_Domain.clsUtilities
                 {
                     using (SqlDataAdapter adapter = new SqlDataAdapter(TSQL, conn))
                     {
-                        if (sqlParams != null || sqlParams.Length > 0)
+                        if (sqlParams != null && sqlParams?.Length > 0)
                         {
                             adapter.SelectCommand.Parameters.AddRange(sqlParams);
                         }
@@ -203,7 +203,7 @@ namespace ERS_Domain.clsUtilities
                 {
                     using (SqlCommand command = new SqlCommand(TSQL, conn))
                     {
-                        if (sqlParams != null || sqlParams.Length > 0)
+                        if (sqlParams != null && sqlParams?.Length > 0)
                         {
                             command.Parameters.AddRange(sqlParams);
                         }
@@ -238,7 +238,7 @@ namespace ERS_Domain.clsUtilities
                     using (SqlTransaction trans = conn.BeginTransaction())
                     using (SqlCommand command = new SqlCommand(TSQL, conn))
                     {
-                        if (sqlParams != null || sqlParams.Length > 0)
+                        if (sqlParams != null && sqlParams?.Length > 0)
                         {
                             command.Parameters.AddRange(sqlParams);
                         }
