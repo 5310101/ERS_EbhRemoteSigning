@@ -7,7 +7,7 @@
     <ProjectGuid>{E0169F4C-0FC1-466E-9843-79972CBE100D}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AssemblyName>ESignLibrary</AssemblyName>
-    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <FileUpgradeFlags>
     </FileUpgradeFlags>

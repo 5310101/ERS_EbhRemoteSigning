@@ -212,6 +212,7 @@ namespace testSigning_Winform
 
         private void button2_Click(object sender, EventArgs e)
         {
+            
             try
             {
                 //check tung to khai da ky chua
