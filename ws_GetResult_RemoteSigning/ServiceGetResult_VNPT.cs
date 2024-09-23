@@ -30,21 +30,31 @@ namespace ws_GetResult_RemoteSigning
         private SmartCAService _smartCAService;
 
         #region Timer Lay ket qua to khai
-        private Timer _GetResultTKTimer;
+        private Timer _getResultTKTimer;
         //thoi gian chay tu dong cua timer co the dieu chinh, mac dinh la 0.1s
         private int _tkTimeInterval = int.Parse(ConfigurationManager.AppSettings["TK_TIME_INTERVAL"]);
         //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu file mặc định là 10
         private int FileCount = int.Parse(ConfigurationManager.AppSettings["FILE_COUNT"]);
         #endregion
 
+        #region Timer ky hash file BHXHDienTu.xml
+        private Timer _signHSTimer;
+        //thoi gian chay tu dong cua timer co the dieu chinh, mac dinh la 0.1s
+        private int _signHSTimeInterval = int.Parse(ConfigurationManager.AppSettings["SIGNHS_TIME_INTERVAL"]);
+        //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu file mặc định là 3
+        private int HSSignCount = int.Parse(ConfigurationManager.AppSettings["SIGNHS_COUNT"]);
+        #endregion
+
         #region timer lay ket qua ho so
-        private Timer _GetResultHSTimer;
+        private Timer _getResultHSTimer;
         //thoi gian chay tu dong cua timer co the dieu chinh, mac dinh la 0.1s
         private int _hsTimeInterval = int.Parse(ConfigurationManager.AppSettings["HS_TIME_INTERVAL"]);
-        //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu file mặc định là 3
+        //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu file mặc định là 10
         private int HoSoCount = int.Parse(ConfigurationManager.AppSettings["HOSO_COUNT"]);
 
         #endregion
+
+        private readonly string SignedTempFolder = ConfigurationManager.AppSettings["HOSO_TEMP_FOLDER"];
 
         public ServiceGetResult_VNPT()
         {
@@ -54,7 +64,7 @@ namespace ws_GetResult_RemoteSigning
 
         }
 
-        //test method
+        #region test method
         public void SetStart(string[] args)
         {
             this.OnStart(args);
@@ -62,25 +72,32 @@ namespace ws_GetResult_RemoteSigning
 
         public void SetStop()
         {
-            _GetResultTKTimer.Enabled = false;
+            _getResultTKTimer.Enabled = false;
             this.OnStop();
         }
+        #endregion
 
         protected override void OnStart(string[] args)
         {
             Utilities.logger.InfoLog("OnStart", "Service started");
             try
             {
-                _GetResultTKTimer = new Timer();
-                _GetResultTKTimer.Interval = _tkTimeInterval;
-                _GetResultTKTimer.AutoReset = true;
-                _GetResultTKTimer.Elapsed += TKTimer_Elapsed;
-                _GetResultTKTimer.Enabled = true;
+                _getResultTKTimer = new Timer();
+                _getResultTKTimer.Interval = _tkTimeInterval;
+                _getResultTKTimer.AutoReset = true;
+                _getResultTKTimer.Elapsed += TKTimer_Elapsed;
+                _getResultTKTimer.Enabled = true;
 
-                _GetResultHSTimer = new Timer();
-                _GetResultHSTimer.Interval = _hsTimeInterval;
-                _GetResultHSTimer.AutoReset = true;
-                _GetResultHSTimer.Elapsed += HSTimer_Elapsed;
+                _signHSTimer = new Timer();
+                _signHSTimer.Interval = _signHSTimeInterval;
+                _signHSTimer.AutoReset = true;
+                _signHSTimer.Elapsed += SignHSTimer_Elapsed;
+                _signHSTimer.Enabled = true;
+
+                _getResultHSTimer = new Timer();
+                _getResultHSTimer.Interval = _hsTimeInterval;
+                _getResultHSTimer.AutoReset = true;
+                _getResultHSTimer.Elapsed += HSTimer_Elapsed;
             }
             catch (Exception ex)
             {
@@ -96,10 +113,10 @@ namespace ws_GetResult_RemoteSigning
 
         private void TKTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            _GetResultTKTimer.Enabled = false;
+            _getResultTKTimer.Enabled = false;
             try
             {
-                getResultToKhai_VNPT();
+                GetResultToKhai_VNPT();
             }
             catch (Exception ex)
             {
@@ -107,13 +124,31 @@ namespace ws_GetResult_RemoteSigning
             }
             finally
             {
-                _GetResultTKTimer.Enabled = true;
+                _getResultTKTimer.Enabled = true;
             }
         }
 
+        private void SignHSTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            _signHSTimer.Enabled = false;
+            try
+            {
+                SignFileBHXHDienTu();
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "SignHSTimer_Elapsed");
+            }
+            finally
+            {
+                _signHSTimer.Enabled = true;
+            }
+        }
+
+
         private void HSTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            _GetResultHSTimer.Enabled = false;
+            _getResultHSTimer.Enabled = false;
             try
             {
                 GetResultHoSo_VNPT();
@@ -124,18 +159,18 @@ namespace ws_GetResult_RemoteSigning
             }
             finally
             {
-                _GetResultHSTimer.Enabled = true;
+                _getResultHSTimer.Enabled = true;
             }
         }
 
-        private void getResultToKhai_VNPT()
+        private void GetResultToKhai_VNPT()
         {
-            List<int> listToKhaiId = new List<int>();
+            List<int> listIdChuaCoKetQua = new List<int>();
+            //lay cac ban ghi to khai da ky hash
+            //sau khi lay ket qua thi 10s sau ms lay lai ket qua neu ko thanh cong
+            string TSQL = $"SELECT TOP {FileCount} * FROM ToKhai_VNPT WITH (NOLOCK) WHERE TrangThai=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
             try
             {
-                //lay cac ban ghi to khai da ky hash
-                //sau khi lay ket qua thi 10s sau ms lay lai ket qua neu ko thanh cong
-                string TSQL = $"SELECT TOP {FileCount} * FROM ToKhai_VNPT WITH (NOLOCK) WHERE TrangThai=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
                 DataTable dt = _dbService.GetDataTable(TSQL);
                 if (dt.Rows.Count == 0)
                 {
@@ -150,88 +185,87 @@ namespace ws_GetResult_RemoteSigning
                     string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
                     string signerPath = MethodLibrary.SafeString(dr["SignerPath"]);
                     string url = $"https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{tran_id}/status";
-
-                    //them vao listid de update solan lay ketqua
-                    listToKhaiId.Add(id);
-
-                    ResStatus res = _smartCAService.GetStatus(url);
-                    // neu ko tra ve res cho chay lay tiep cac ket qua khac
-                    if (res == null) continue;
-
-                    if (res.message == "EXPIRED")
+                    try
                     {
-                        //khi to khai da het han update trang thai
-                        UpdateStatusToKhai(id, TrangThaiFile.HetHan, "Tờ khai đã hết hạn để ký xác nhận");
+
+                        ResStatus res = _smartCAService.GetStatus(url);
+                        // neu ko tra ve res cho chay lay tiep cac ket qua khac
+                        if (res == null) continue;
+
+                        if (res.message == "EXPIRED")
+                        {
+                            //khi to khai da het han update trang thai
+                            UpdateStatusToKhai(id, TrangThaiFile.HetHan, "Tờ khai đã hết hạn để ký xác nhận");
+                            continue;
+                        }
+                        IHashSigner signer = null;
+                        bool isSigned = false;
+                        //thu muc duong dan save file to khai sau khi ky
+
+                        string pathSaved = Path.Combine(SignedTempFolder, GuidHS, tenToKhai);
+                        switch (Path.GetExtension(tenToKhai))
+                        {
+                            case ".pdf":
+                                isSigned = GetResult_PDF(res.data, pathSaved);
+                                break;
+                            case ".xml":
+                                signer = RestoreSignerXML(signerPath);
+                                if (signer == null)
+                                {
+                                    UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tạo được signer");
+                                    continue;
+                                }
+                                isSigned = GetResult_Xml(signer, res.data, pathSaved);
+                                break;
+                            case ".docx":
+                            case ".xlsx":
+                                //tao lai signer
+                                signer = RestoreSignerOffice(signerPath);
+                                if (signer == null)
+                                {
+                                    //update trang thai la ky loi
+                                    UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tạo được signer");
+                                    continue;
+                                }
+                                isSigned = GetResult_Office(signer, res.data, pathSaved);
+                                break;
+                            default:
+                                //khi tiep nhan file o webservice la da kiem tra kieu file
+                                throw new Exception("Không hỗ trợ kiểu file ký");
+                        }
+                        if (!isSigned)
+                        {
+                            //voi nhung truong hop ko loi ma chua lay dc ket qua thi se ko update trang thai ma chi update LastGet
+                            listIdChuaCoKetQua.Add(id);
+                            continue;
+                        }
+                        //update thanh trang thai da ky
+                        UpdateStatusToKhai(id, TrangThaiFile.DaKy, "", pathSaved);
+                    }
+                    catch (DatabaseInteractException ex)
+                    {
+                        Utilities.logger.ErrorLog(ex, "Lỗi tương tác database");
                         continue;
                     }
-                    IHashSigner signer = null;
-                    bool isSigned = false;
-                    string pathSaved = Path.Combine(Utilities.globalPath.SignedTempFolder, GuidHS, tenToKhai);
-                    switch (Path.GetExtension(tenToKhai))
+                    catch (Exception ex)
                     {
-                        case ".pdf":
-                            isSigned = GetResult_PDF(res.data, pathSaved);
-                            break;
-                        case ".xml":
-                            signer = RestoreSignerXML(signerPath);
-                            if (signer == null)
-                            {
-                                UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tạo được signer");
-                                continue;
-                            }
-                            isSigned = GetResult_Xml(signer, res.data, pathSaved);
-                            break;
-                        case ".docx":
-                        case ".xlsx":
-                            //tao lai signer
-                            signer = RestoreSignerOffice(signerPath);
-                            if (signer == null)
-                            {
-                                //update trang thai la ky loi
-                                UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tạo được signer");
-                                continue;
-                            }
-                            isSigned = GetResult_Office(signer, res.data, pathSaved);
-                            break;
-                        default:
-                            //khi tiep nhan file o webservice la da kiem tra kieu file
-                            throw new Exception("Không hỗ trợ kiểu file ký");
-                    }
-                    if (!isSigned)
-                    {
+                        Utilities.logger.ErrorLog(ex, $"Lỗi khi ký file {GuidHS}[{id}]");
                         continue;
                     }
-                    //update thanh trang thai da ky
-                    UpdateStatusToKhai(id, TrangThaiFile.DaKy,"", pathSaved);
                 }
-                //update so lan lay ket qua cua nhung ho so da goi lay ket qua, nhung id nay 10 s sau moi lay tiep ket qua
-                UpdateLastGetToKhai(listToKhaiId);
+                UpdateLastGetToKhai(listIdChuaCoKetQua);
             }
-            catch(DatabaseInteractException ex)
+            catch (DatabaseInteractException ex)
             {
-                //neu co loi database thi dung luon ham
-                Utilities.logger.ErrorLog(ex, "Lỗi tương tác database");
-                return;
+                Utilities.logger.ErrorLog(ex, "GetResultToKhai_VNPT");
             }
-            catch (Exception ex)
-            {
-                Utilities.logger.ErrorLog(ex, "GetResultVNPT");
-            }
-        }
-
-        //import lai thong tin signer da luu tru
-        private SignerInfo ImportSigner(string filePath)
-        {
-            string json = File.ReadAllText(filePath);
-            SignerInfo output = JsonConvert.DeserializeObject<SignerInfo>(json);
-            return output;
         }
 
         private IHashSigner RestoreSignerOffice(string signerPath)
         {
             try
             {
-                SignerInfo signerInfo = ImportSigner(signerPath);
+                SignerInfo signerInfo = MethodLibrary.ImportSigner(signerPath);
                 if (signerInfo == null)
                 {
                     return null;
@@ -254,7 +288,7 @@ namespace ws_GetResult_RemoteSigning
         {
             try
             {
-                SignerInfo signerInfo = ImportSigner(signerPath);
+                SignerInfo signerInfo = MethodLibrary.ImportSigner(signerPath);
                 if (signerInfo == null)
                 {
                     return null;
@@ -262,8 +296,8 @@ namespace ws_GetResult_RemoteSigning
                 IHashSigner signer = HashSignerFactory.GenerateSigner(signerInfo.UnsignData, signerInfo.SignerCert, null, HashSignerFactory.XML);
                 signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
-                ((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
-                ((XmlHashSigner)signer).SetSigningTime(DateTime.Now, "SigningTime-" + Guid.NewGuid().ToString());
+                ((XmlHashSigner)signer).SetSignatureID(signerInfo.SigId);
+                ((XmlHashSigner)signer).SetSigningTime(signerInfo.SigningTime, "SigningTime-" + signerInfo.SigningTimeId);
                 if (isTokhai)
                 {
                     ((XmlHashSigner)signer).SetParentNodePath("//Cky");
@@ -385,13 +419,16 @@ namespace ws_GetResult_RemoteSigning
             return true;
         }
 
+
+        #region database interact
         private void UpdateStatusToKhai(int id, TrangThaiFile TrangThai, string errMsg = "", string PathFile = "")
         {
-            bool result = _dbService.ExecQuery("UPDATE ToKhai_VNPT SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, FilePath=@FilePath WHERE id=@id", "", new SqlParameter[]
+            bool result = _dbService.ExecQuery("UPDATE ToKhai_VNPT SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, FilePath=@FilePath, LastGet=@LastGet WHERE id=@id", "", new SqlParameter[]
                 {
                 new SqlParameter("@TrangThai", (int)TrangThai),
                 new SqlParameter("@ErrMsg", errMsg),
                 new SqlParameter("@FilePath", PathFile),
+                new SqlParameter("@LastGet", DateTime.Now),
                 new SqlParameter("@id", id),
                 });
             if (!result)
@@ -417,30 +454,78 @@ namespace ws_GetResult_RemoteSigning
             }
         }
 
+        private void UpdateStatusHoSo(string GuidHS, TrangThaiHoso TrangThai, string errMsg = "", string signerPath = "", string PathFile = "")
+        {
+            bool result = _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, SignerPath=@SignerPath, FilePath=@FilePath, LastGet=@LastGet WHERE Guid=@Guid", "", new SqlParameter[]
+                {
+                new SqlParameter("@TrangThai", (int)TrangThai),
+                new SqlParameter("@ErrMsg", errMsg),
+                new SqlParameter("@SingerPath", signerPath),
+                new SqlParameter("@FilePath", PathFile),
+                new SqlParameter("@LastGet", DateTime.Now),
+                new SqlParameter("@Guid", GuidHS),
+                });
+            if (!result)
+            {
+                throw new DatabaseInteractException($"Có lỗi khi update trạng thái hồ sơ: {GuidHS}");
+            }
+        }
+
+        private void UpdateLastGetHoSo(List<int> ListIdHS)
+        {
+            string strListId = string.Join(",", ListIdHS);
+            string TSQL = $"UPDATE HoSo_VNPT SET LastGet=@LastGet WHERE id IN ({strListId})";
+            var result = _dbService.ExecQuery(TSQL, "", new SqlParameter[]
+            {
+                        new SqlParameter("@LastGet", DateTime.Now)
+            });
+            if (!result)
+            {
+                throw new DatabaseInteractException($"Có lỗi khi update các hồ sơ: {strListId}");
+            }
+
+        }
+        #endregion 
+
         #region HoSo region
-        private void SignFileBHXH()
+        private void SignFileBHXHDienTu()
         {
             try
             {
-                //select trong bang HoSo_VNPT
-                string TSQL = $"SELECT TOP {HoSoCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE GUID IN (SELECT GUID FROM HoSo_VNPT A JOIN ToKhai_VNPT B ON A.Guid = B.GuidHS GROUP BY A.Guid HAVING COUNT(*) = SUM(CASE WHEN B.TrangThai = 2 THEN 1 ELSE 0 END)) ORDER BY NgayGui";
+                //select trong bang HoSo_VNPT, chi select cac hoso ma tat ca to khai da dc ky(trang thai =2)
+                string TSQL = $"SELECT TOP {HSSignCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE GUID IN (SELECT GUID FROM HoSo_VNPT A JOIN ToKhai_VNPT B ON A.Guid = B.GuidHS GROUP BY A.Guid HAVING COUNT(*) = SUM(CASE WHEN B.TrangThai = 2 THEN 1 ELSE 0 END)) ORDER BY NgayGui";
                 DataTable dtHS = _dbService.GetDataTable(TSQL);
                 if (dtHS.Rows.Count == 0) return;
-                foreach(DataRow dr in dtHS.Rows)
+                foreach (DataRow dr in dtHS.Rows)
                 {
-                    string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
-                    string pathSaveHS = Path.Combine(Utilities.globalPath.SignedTempFolder, $"{GuidHS}");
-                    bool isCreated = CreateBHXHDienTu(dr,pathSaveHS);
-                    if (!isCreated)
+                    try
                     {
-                        //ko tao dc file thi continue lan sau tao lai
+                        string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
+                        string uid = MethodLibrary.SafeString(dr["uid"]);
+                        string serialNumber = MethodLibrary.SafeString(dr["SerialNumber"]);
+                        string pathSaveHS = Path.Combine(SignedTempFolder, $"{GuidHS}");
+                        bool isCreated = CreateBHXHDienTu(dr, pathSaveHS);
+                        if (!isCreated)
+                        {
+                            //ko tao dc file thi continue lan sau tao lai
+                            continue;
+                        }
+                        bool isSigned = SignHoSoBHXH(uid, GuidHS, serialNumber);
+                        if (!isSigned)
+                        {
+                            Utilities.logger.InfoLog($"Hồ sơ ký lỗi không lấy kết quả: {GuidHS}", "Hồ sơ ký lỗi");
+                        }
+                    }
+                    catch
+                    {
+                        continue;
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
-                throw;
+                Utilities.logger.ErrorLog(ex, "SignFileBHXH");
+                return;
             }
         }
 
@@ -463,7 +548,7 @@ namespace ws_GetResult_RemoteSigning
 
                     FileToKhai tk = new FileToKhai()
                     {
-                        MaToKhai = GetMaTK(tenFile),
+                        MaToKhai = MethodLibrary.GetMaTK(tenFile),
                         MoTaToKhai = MethodLibrary.SafeString(rowTK["MoTa"]),
                         TenFile = tenFile,
                         LoaiFile = Path.GetExtension(tenFile),
@@ -519,7 +604,7 @@ namespace ws_GetResult_RemoteSigning
                 XmlSerializer serializer = new XmlSerializer(typeof(Hoso));
                 XmlWriterSettings settings = new XmlWriterSettings()
                 {
-                    Encoding = new UTF8Encoding(true),
+                    Encoding = new UTF8Encoding(false),
                     Indent = true
                 };
 
@@ -536,35 +621,178 @@ namespace ws_GetResult_RemoteSigning
             }
             catch (Exception ex)
             {
-                Utilities.logger.ErrorLog(ex , "CreateBHXHDienTu");
+                Utilities.logger.ErrorLog(ex, "CreateBHXHDienTu");
                 return false;
             }
         }
 
-        private string GetMaTK(string tenFile)
+        private bool SignHoSoBHXH(string uid, string GuidHS, string serialNumber)
         {
-            string[] extensions = { ".pdf",".docx",".xlsx"};
-            if (extensions.Contains(Path.GetExtension(tenFile)))
+            try
             {
-                return "CT-DK";
+                //lay cert
+                UserCertificate userCert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert_test, uid, serialNumber);
+                if (userCert == null)
+                {
+                    Utilities.logger.ErrorLog("Không tìm thấy cert trên server VNPT để ký", "Lỗi khi ký", uid, serialNumber);
+                    return false;
+                }
+                string PathTempHoSo = Path.Combine(SignedTempFolder, GuidHS);
+                string pathBHXHDt = Path.Combine(PathTempHoSo, "BHXHDienTu.xml");
+                DataSign dataSign = SignSmartCAXML(userCert, pathBHXHDt, uid, out SignerInfo signer, "/Hoso/CKy_Dvi");
+
+                if (dataSign == null)
+                {
+                    //update trang thai ky loi
+                    UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Lỗi khi ký hash");
+                    return false;
+                }
+                //co the thay doi thoi gian countdown dua vao data tra ve tu sever, default la 300
+                if (signer == null)
+                {
+                    //update trang thai ky loi
+                    UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Không tạo được signer");
+                    return false;
+                }
+                string PathExportSigner = MethodLibrary.ExportSigner(signer, PathTempHoSo, dataSign.transaction_id);
+                if (PathExportSigner == "")
+                {
+                    //update trang thai ky loi
+                    UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Có lỗi khi lưu trữ signer");
+                    return false;
+                }
+                UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKyHash, "", PathExportSigner, "");
+                return true;
             }
-            else
+            catch (DatabaseInteractException ex)
             {
-                return Path.GetExtension(tenFile).Replace("-595", "");
+                Utilities.logger.ErrorLog(ex.Message, "Lỗi tương tác database");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "SignHoSoBHXH", GuidHS);
+                return false;
+            }
+        }
+
+        private DataSign SignSmartCAXML(UserCertificate userCert, string FileBHXHPath, string uid, out SignerInfo signerInfo, string nodeKy = "")
+        {
+            IHashSigner signer = null;
+            signerInfo = new SignerInfo();
+            try
+            {
+                byte[] xmlUnsign = File.ReadAllBytes(FileBHXHPath);
+                String certBase64 = userCert.cert_data;
+                signerInfo.SignerCert = certBase64;
+                signerInfo.UnsignData = xmlUnsign;
+                signer = HashSignerFactory.GenerateSigner(xmlUnsign, certBase64, null, HashSignerFactory.XML);
+                signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
+
+                string SignId = Guid.NewGuid().ToString();
+                ((XmlHashSigner)signer).SetSignatureID(SignId);
+                //Set reference đến id
+                //((XmlHashSigner)signers).SetReferenceId("#SigningData");
+
+                //Set thời gian ký
+                ((XmlHashSigner)signer).SetSigningTime(DateTime.Now, "SigningTime-" + Guid.NewGuid().ToString());
+
+                //đường dẫn dẫn đến thẻ chứa chữ ký 
+                if (nodeKy == "")
+                {
+                    nodeKy = "//Cky";
+                }
+                ((XmlHashSigner)signer).SetParentNodePath(nodeKy);
+
+                var hashValue = signer.GetSecondHashAsBase64();
+
+                var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
+
+                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
+
+                return dataSign;
+
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "SignSmartCAXML", userCert.cert_subject);
+                signerInfo = null;
+                return null;
             }
         }
 
         private void GetResultHoSo_VNPT()
         {
+            List<int> ListHSChuaCoKQ = new List<int>();
+            //lay cac ban ghi to khai da ky hash
+            //sau khi lay ket qua thi 10s sau ms lay lai ket qua neu ko thanh cong
+            string TSQL = $"SELECT TOP {HoSoCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE TrangThai=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
             try
             {
+                DataTable dt = _dbService.GetDataTable(TSQL);
+                if (dt.Rows.Count == 0)
+                {
+                    return;
+                }
+                foreach (DataRow dr in dt.Rows)
+                {
+                    string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
+                    int idHS = MethodLibrary.SafeNumber<int>(dr["id"]);
+                    DateTime LastGet = MethodLibrary.SafeDateTime(dr["LastGet"]);
+                    string tran_id = MethodLibrary.SafeString(dr["transaction_id"]);
+                    //string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
+                    string signerPath = MethodLibrary.SafeString(dr["SignerPath"]);
+                    string url = $"https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{tran_id}/status";
+                    try
+                    {
 
+                        ResStatus res = _smartCAService.GetStatus(url);
+                        // neu ko tra ve res cho chay lay tiep cac ket qua khac
+                        if (res == null) continue;
 
+                        if (res.message == "EXPIRED")
+                        {
+                            //khi to khai da het han update trang thai
+                            UpdateStatusHoSo(GuidHS, TrangThaiHoso.HetHan, "File [BHXHDienTu.xml] đã hết hạn để ký xác nhận");
+                            continue;
+                        }
+                        IHashSigner signer = null;
+                        bool isSigned = false;
+                        string pathSaved = Path.Combine(SignedTempFolder, GuidHS, "BHXHDienTu.xml");
+
+                        signer = RestoreSignerXML(signerPath);
+                        if (signer == null)
+                        {
+                            UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Không tạo được signer");
+                            continue;
+                        }
+                        isSigned = GetResult_Xml(signer, res.data, pathSaved);
+                        if (!isSigned)
+                        {
+                            //voi nhung truong hop ko loi ma chua lay dc ket qua thi se ko update trang thai ma chi update LastGet
+                            //voi nhung ban ghi ma tinh tu luc cuoi lay kq den hien tai ma chua dc 10s thi se bo qua
+                            ListHSChuaCoKQ.Add(idHS);
+                            continue;
+                        }
+                        //update thanh trang thai da ky
+                        UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKy, "", pathSaved);
+                    }
+                    catch (DatabaseInteractException ex)
+                    {
+                        Utilities.logger.ErrorLog(ex, "Lỗi tương tác database");
+                        continue;
+                    }
+                    catch (Exception ex)
+                    {
+                        Utilities.logger.ErrorLog(ex, $"Lỗi khi ký file BHXHDienTu.xml: {GuidHS}");
+                        continue;
+                    }
+                }
+                UpdateLastGetHoSo(ListHSChuaCoKQ);
             }
-            catch (Exception)
+            catch (DatabaseInteractException ex)
             {
-
-                throw;
+                Utilities.logger.ErrorLog(ex, "GetResultToKhai_VNPT");
             }
         }
         #endregion

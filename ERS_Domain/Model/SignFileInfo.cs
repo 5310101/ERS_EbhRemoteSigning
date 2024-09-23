@@ -92,6 +92,9 @@ namespace ERS_Domain.Model
     {
         public string SignerCert { get; set; }
         public byte[] UnsignData { get; set; }
+        public string SigId { get; set; } = "";
+        public string SigningTimeId { get; set; } = "";
+        public DateTime SigningTime {  get; set; }    
 
     }
 

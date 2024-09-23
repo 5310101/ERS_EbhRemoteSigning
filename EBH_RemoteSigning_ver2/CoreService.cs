@@ -84,7 +84,7 @@ namespace EBH_RemoteSigning_ver2
                 {
                     if (signedHash.Signer != null)
                     {
-                        pathSigner = ExportSigner(signedHash.Signer, pathTempHS, signedHash.SignData.transaction_id);
+                        pathSigner = MethodLibrary.ExportSigner(signedHash.Signer, pathTempHS, signedHash.SignData.transaction_id);
                         if (pathSigner == "")
                         {
                             return false;
@@ -166,33 +166,6 @@ namespace EBH_RemoteSigning_ver2
 
         }
 
-        //luu tru thong tin signer de sau khi lay ket qua tao signer moi
-        private string ExportSigner(SignerInfo signer, string pathTempHS, string transaction_id)
-        {
-            try
-            {
-                string json = JsonConvert.SerializeObject(signer);
-                if (string.IsNullOrEmpty(json))
-                {
-                    return "";
-                }
-                string pathSigner = Path.Combine(pathTempHS,$"{transaction_id}.json");
-                File.WriteAllText(pathSigner, json);
-                return pathSigner;
-            }
-            catch (Exception ex)
-            {
-                Utilities.logger.ErrorLog(ex, "ExportSigner");
-                return "";
-            }
-        }
-        //import lai thong tin signer da luu tru
-        private SignerInfo ImportSigner(string filePath)
-        {
-            string json = File.ReadAllText(filePath);
-            SignerInfo output = JsonConvert.DeserializeObject<SignerInfo>(json);
-            return output;
-        }
 
         #region cac ham ky remote
         private DataSign SignSmartCAPDF(UserCertificate userCert, byte[] pdfUnsign, string uid)
@@ -269,12 +242,16 @@ namespace EBH_RemoteSigning_ver2
                 //((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
                 string SignId = Guid.NewGuid().ToString();
                 ((XmlHashSigner)signer).SetSignatureID(SignId);
+                signerInfo.SigId = SignId;
                 //Set reference đến id
                 //((XmlHashSigner)signers).SetReferenceId("#SigningData");
 
                 //Set thời gian ký
-                ((XmlHashSigner)signer).SetSigningTime(DateTime.Now, "SigningTime-" + Guid.NewGuid().ToString());
-
+                string SignTimeId = Guid.NewGuid().ToString();
+                DateTime SignTime = DateTime.Now;
+                ((XmlHashSigner)signer).SetSigningTime(SignTime, "SigningTime-" + SignTimeId);
+                signerInfo.SigningTimeId = SignTimeId;
+                signerInfo.SigningTime = SignTime;
                 //đường dẫn dẫn đến thẻ chứa chữ ký 
                 if (nodeKy == "")
                 {
@@ -338,11 +315,11 @@ namespace EBH_RemoteSigning_ver2
         }
         
         //Cac ham lien quan den tao lap hoso
-        public bool InsertHoSoNew_VNPT(HoSoInfo hoso)
+        public bool InsertHoSoNew_VNPT(HoSoInfo hoso, string uid, string serialNumber)
         {
             try
             {
-                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet)";
+                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet,uid,SerialNumber) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet,@uid,@SerialNumber)";
                 SqlParameter[] listParams = new SqlParameter[] {
                         new SqlParameter("@Guid",hoso.GuidHS),
                         new SqlParameter("@TenHS",hoso.TenThuTuc),
@@ -357,6 +334,8 @@ namespace EBH_RemoteSigning_ver2
                         new SqlParameter("@DienThoai",hoso.DonVi.DienThoai),
                         new SqlParameter("@TrangThai",(int)TrangThaiHoso.ChuaTaoFile),
                         new SqlParameter("@LastGet",DateTime.Now),
+                        new SqlParameter("@uid",uid),
+                        new SqlParameter("@serialNumber",serialNumber),
                 };
                 bool isSuccess = _dbService.ExecQuery_Tran(TSQL,"", listParams);
                 return isSuccess;   

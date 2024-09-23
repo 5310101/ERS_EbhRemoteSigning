@@ -130,7 +130,7 @@ namespace EBH_RemoteSigning_ver2
                         return new ERS_Response("Không ký thành công", false);
                     }
                     //Tao moi hoso va insert vao database
-                    bool isSuccess = _coreService.InsertHoSoNew_VNPT(hoso);
+                    bool isSuccess = _coreService.InsertHoSoNew_VNPT(hoso,uid,serialNumber);
                     if (!isSuccess)
                     {
                         Utilities.logger.ErrorLog($"Hồ sơ lưu vào lỗi vào database: {hoso.GuidHS}","Hồ sơ lưu lỗi");

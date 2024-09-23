@@ -1,8 +1,11 @@
-﻿using Newtonsoft.Json;
+﻿using ERS_Domain.Model;
+using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.CodeDom;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -61,6 +64,19 @@ namespace ERS_Domain.clsUtilities
             }
         }
 
+        public static string GetMaTK(string tenFile)
+        {
+            string[] extensions = { ".pdf", ".docx", ".xlsx" };
+            if (extensions.Contains(Path.GetExtension(tenFile)))
+            {
+                return "CT-DK";
+            }
+            else
+            {
+                return Path.GetExtension(tenFile).Replace("-595", "");
+            }
+        }
+
         public static String Query(object req, string serviceUri)
         {
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
@@ -96,6 +112,34 @@ namespace ERS_Domain.clsUtilities
             }
 
             return response.Content;
+        }
+
+        //luu tru thong tin signer de sau khi lay ket qua tao signer moi
+        public static string ExportSigner(SignerInfo signer, string pathTempHS, string transaction_id)
+        {
+            try
+            {
+                string json = JsonConvert.SerializeObject(signer);
+                if (string.IsNullOrEmpty(json))
+                {
+                    return "";
+                }
+                string pathSigner = Path.Combine(pathTempHS, $"{transaction_id}.json");
+                File.WriteAllText(pathSigner, json);
+                return pathSigner;
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "ExportSigner");
+                return "";
+            }
+        }
+        //import lai thong tin signer da luu tru
+        public static SignerInfo ImportSigner(string filePath)
+        {
+            string json = File.ReadAllText(filePath);
+            SignerInfo output = JsonConvert.DeserializeObject<SignerInfo>(json);
+            return output;
         }
     }
 }

@@ -817,7 +817,7 @@ namespace testSigning_Winform
                 DonVi = new localhost.ThongTinDonVi()
                 {
                     TenDonVi = "ThaiSonEBH",
-                    MaSoThue = "012345842",
+                    MaSoThue = "0101300842",
                     MaDonVi = "TS12345",
                     NguoiKy = "QuanNguyenA",
                     CoQuanBHXH = "903",
