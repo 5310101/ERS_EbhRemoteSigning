@@ -51,7 +51,7 @@ namespace EBH_RemoteSigning_Service_ERS
                     Utilities.logger.ErrorLog("SecretKey is invalid", "Authorization failed");
                     return new ERS_Response("SecretKey is invalid", false);
                 }
-                DataTable dtAuth = _dbService.GetDataTable("SELECT PASS FROM DOANH_NGHIEP WHERE MA_SO_THUE = @MST AND TRANG_THAI=1 AND IS_XAC_THUC=1 AND IS_KHOA=0", "",
+                DataTable dtAuth = _dbService.GetDataTable("SELECT PASS FROM DOANH_NGHIEP WITH (NOLOCK) WHERE MA_SO_THUE = @MST AND TRANG_THAI=1 AND IS_XAC_THUC=1 AND IS_KHOA=0", "",
                     new SqlParameter[]
                     {
                         new SqlParameter("MST",userName)

@@ -4,33 +4,43 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using testSigning_Winform.CustomControl;
 using VnptHashSignatures.Interface;
 using VnptHashSignatures.Common;
 using VnptHashSignatures.Pdf;
 using Newtonsoft.Json;
-using System.Threading;
 using VnptHashSignatures.Xml;
 using testSigning_Winform.Request;
 using System.Configuration;
 using System.Net;
 using RestSharp;
-using System.Windows.Forms.VisualStyles;
 using System.Windows.Forms;
 using System.Drawing;
 using testSigning_Winform.Model;
-using System.Xml.Serialization;
 using System.Xml;
-using RestSharp.Serializers;
 using XmlSerializer = System.Xml.Serialization.XmlSerializer;
+
+using testSigning_Winform.localhost;
+using UserCertificate = testSigning_Winform.Response.UserCertificate;
+using ThongTinDonVi = testSigning_Winform.Model.ThongTinDonVi;
 
 namespace testSigning_Winform
 {
     public class RemoteSign
     {
-        public string SignedFolderPath = @"C:\Users\nguye\OneDrive\Desktop\testapi_smartca\TestResult";
-        //public string SignedFolderPath = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
+        //public string SignedFolderPath = @"C:\Users\nguye\OneDrive\Desktop\testapi_smartca\TestResult";
+        private string _signFolderPath;
+        public string SignedFolderPath
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_signFolderPath))
+                {
+                    _signFolderPath = ConfigurationManager.AppSettings["SAVEFOLDERPATH"];
+                }
+                return _signFolderPath;
+            }
+        }
         public string uid { get; set; }
 
         private string client_id;
@@ -124,7 +134,7 @@ namespace testSigning_Winform
                         break;
                     case ".xlsx":
                     case ".docx":
-
+                        result = SignSmartCAOFFICE(userCert, control.FileDetail.FullName, out signer);
                         break;
                     default:
                         return;
@@ -168,7 +178,7 @@ namespace testSigning_Winform
                         break;
                     case ".xlsx":
                     case ".docx":
-
+                        result = GetResult_Office(control.signer,control.dataSign, pathSavedFile);
                         break;
                     default:
                         return;
@@ -444,9 +454,10 @@ namespace testSigning_Winform
             return true;
         }
 
-        private void _signSmartCAOFFICE(UserCertificate userCert, string officeInput)
+        private DataSign SignSmartCAOFFICE(UserCertificate userCert, string officeInput, out IHashSigner signer)
         {
             String certBase64 = userCert.cert_data;
+            signer = null;
             byte[] unsignData = null;
             try
             {
@@ -455,9 +466,9 @@ namespace testSigning_Winform
             catch (Exception ex)
             {
                 //_log.Error(ex);
-                return;
+                return null;
             }
-            IHashSigner signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.OFFICE);
+            signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.OFFICE);
             signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
 
@@ -467,10 +478,7 @@ namespace testSigning_Winform
 
             DataSign dataSign = Sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
 
-            Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
-            //Console.ReadKey();
-
-
+            return dataSign;    
         }
 
         private bool GetResult_Office(IHashSigner signer, DataSign dataSign, string officeSignedPath)
@@ -744,6 +752,81 @@ namespace testSigning_Winform
                 //log
                 return null;   
             }
+        }
+
+        public void SignToKhai_Service(FileDisplayControl[] controls)
+        {
+            try
+            {
+                RemoteSigningService_v2 service_V2 = new RemoteSigningService_v2()
+                {
+                    Url = "https://localhost:44359/RemoteSigningService_v2.asmx",
+                    AuthorizeValue = new Authorize()
+                    {
+                        SecretKey = "Tsd@3bh3rs2024"
+                    }
+                };
+                HoSoInfo hoso = CreateHoSoTest(controls);
+                var result = service_V2.SendFileSign(RemoteSigningProvider.VNPT, uid, "1", "c4ca4238a0b923820dcc509a6f75849b", hoso, "");
+                MessageBox.Show(result.message,"notification");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Signed hash failed: {ex.Message}", "error");
+            }            
+        }
+
+        private localhost.FileType CheckFileType(string input)
+        {
+            switch (input)
+            {
+                case ".xml":
+                    return localhost.FileType.XML;
+                case ".pdf":
+                    return localhost.FileType.PDF;
+                case ".xlsx":
+                case ".docx":
+                    return localhost.FileType.OFFICE;
+                default:
+                    throw new Exception($"Kiểu file không hỗ trợ {input}");
+            }
+        }
+
+        private HoSoInfo CreateHoSoTest(FileDisplayControl[] controls)
+        {
+            List<ToKhaiInfo> toKhais = new List<ToKhaiInfo>();
+            foreach (var control in controls)
+            {
+                ToKhaiInfo tokhai = new ToKhaiInfo()
+                {
+                    //test
+                    MaToKhai = control.FileDetail.Name,
+                    TenFile = control.FileDetail.Name,
+                    TenToKhai = "To khai xml ky test",
+                    Type = CheckFileType(Path.GetExtension(control.FileDetail.Name)),
+                    Data = File.ReadAllBytes(control.FileDetail.FullName),
+                };
+                toKhais.Add(tokhai);
+            }
+            HoSoInfo hoso = new HoSoInfo()
+            {
+                TenThuTuc = "KyTest",
+                MaHoSo = "000",
+                NgayLap = DateTime.Now,
+                GuidHS = frm.lblGuidHS.Text,
+                DonVi = new localhost.ThongTinDonVi()
+                {
+                    TenDonVi = "ThaiSonEBH",
+                    MaSoThue = "0101300842",
+                    MaDonVi = "TS12345",
+                    NguoiKy = "QuanNguyenA",
+                    CoQuanBHXH = "903",
+                    DienThoai = "0909019211",
+                    LoaiDoiTuong = 1,
+                },
+                ToKhais = toKhais.ToArray()
+            };
+            return hoso;
         }
     }
 }

@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<wsdl:definitions xmlns:soap12="http://schemas.xmlsoap.org/wsdl/soap12/" xmlns:s="http://www.w3.org/2001/XMLSchema" xmlns:tm="http://microsoft.com/wsdl/mime/textMatching/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:http="http://schemas.xmlsoap.org/wsdl/http/" xmlns:tns="http://tempuri.org/" xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" targetNamespace="http://tempuri.org/" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/">
+  <wsdl:types>
+    <s:schema elementFormDefault="qualified" targetNamespace="http://tempuri.org/">
+      <s:element name="UserAuthorize">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="userName" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="Md5Password" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="UserAuthorizeResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="UserAuthorizeResult" type="tns:ERS_Response" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:complexType name="ERS_Response">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="message" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="success" type="s:boolean" />
+          <s:element minOccurs="0" maxOccurs="1" name="certificates" type="tns:ArrayOfUserCertificate" />
+          <s:element minOccurs="0" maxOccurs="1" name="data" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ArrayOfUserCertificate">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="UserCertificate" nillable="true" type="tns:UserCertificate" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="UserCertificate">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="service_type" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="service_name" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="cert_id" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="cert_status" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="serial_number" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="cert_subject" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="cert_valid_from" type="s:dateTime" />
+          <s:element minOccurs="1" maxOccurs="1" name="cert_valid_to" type="s:dateTime" />
+          <s:element minOccurs="0" maxOccurs="1" name="cert_data" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="chain_data" type="tns:ChainData" />
+          <s:element minOccurs="0" maxOccurs="1" name="transaction_id" type="s:string" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ChainData">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="ca_cert" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="root_cert" />
+        </s:sequence>
+      </s:complexType>
+      <s:element name="Authorize" type="tns:Authorize" />
+      <s:complexType name="Authorize">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="SecretKey" type="s:string" />
+        </s:sequence>
+        <s:anyAttribute />
+      </s:complexType>
+      <s:element name="GetCertificate_VNPT">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="userName" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="password" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="uid" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="serialNumber" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="GetCertificate_VNPTResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="GetCertificate_VNPTResult" type="tns:ERS_Response" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:element name="SendFileSign">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="1" maxOccurs="1" name="signProvider" type="tns:RemoteSigningProvider" />
+            <s:element minOccurs="0" maxOccurs="1" name="uid" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="username" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="password" type="s:string" />
+            <s:element minOccurs="0" maxOccurs="1" name="hoso" type="tns:HoSoInfo" />
+            <s:element minOccurs="0" maxOccurs="1" name="serialNumber" type="s:string" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+      <s:simpleType name="RemoteSigningProvider">
+        <s:restriction base="s:string">
+          <s:enumeration value="VNPT" />
+          <s:enumeration value="VietTel" />
+        </s:restriction>
+      </s:simpleType>
+      <s:complexType name="HoSoInfo">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="GuidHS" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="MaHoSo" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TenThuTuc" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="NgayLap" type="s:dateTime" />
+          <s:element minOccurs="0" maxOccurs="1" name="DonVi" type="tns:ThongTinDonVi" />
+          <s:element minOccurs="0" maxOccurs="1" name="ToKhais" type="tns:ArrayOfToKhaiInfo" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ThongTinDonVi">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="TenDonVi" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="MaSoThue" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="MaDonVi" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="CoQuanBHXH" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="NguoiKy" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="DienThoai" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="LoaiDoiTuong" type="s:int" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ArrayOfToKhaiInfo">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="unbounded" name="ToKhaiInfo" nillable="true" type="tns:ToKhaiInfo" />
+        </s:sequence>
+      </s:complexType>
+      <s:complexType name="ToKhaiInfo">
+        <s:sequence>
+          <s:element minOccurs="0" maxOccurs="1" name="MaToKhai" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TenToKhai" type="s:string" />
+          <s:element minOccurs="0" maxOccurs="1" name="TenFile" type="s:string" />
+          <s:element minOccurs="1" maxOccurs="1" name="Type" type="tns:FileType" />
+          <s:element minOccurs="0" maxOccurs="1" name="Data" type="s:base64Binary" />
+        </s:sequence>
+      </s:complexType>
+      <s:simpleType name="FileType">
+        <s:restriction base="s:string">
+          <s:enumeration value="PDF" />
+          <s:enumeration value="XML" />
+          <s:enumeration value="OFFICE" />
+        </s:restriction>
+      </s:simpleType>
+      <s:element name="SendFileSignResponse">
+        <s:complexType>
+          <s:sequence>
+            <s:element minOccurs="0" maxOccurs="1" name="SendFileSignResult" type="tns:ERS_Response" />
+          </s:sequence>
+        </s:complexType>
+      </s:element>
+    </s:schema>
+  </wsdl:types>
+  <wsdl:message name="UserAuthorizeSoapIn">
+    <wsdl:part name="parameters" element="tns:UserAuthorize" />
+  </wsdl:message>
+  <wsdl:message name="UserAuthorizeSoapOut">
+    <wsdl:part name="parameters" element="tns:UserAuthorizeResponse" />
+  </wsdl:message>
+  <wsdl:message name="UserAuthorizeAuthorize">
+    <wsdl:part name="Authorize" element="tns:Authorize" />
+  </wsdl:message>
+  <wsdl:message name="GetCertificate_VNPTSoapIn">
+    <wsdl:part name="parameters" element="tns:GetCertificate_VNPT" />
+  </wsdl:message>
+  <wsdl:message name="GetCertificate_VNPTSoapOut">
+    <wsdl:part name="parameters" element="tns:GetCertificate_VNPTResponse" />
+  </wsdl:message>
+  <wsdl:message name="GetCertificate_VNPTAuthorize">
+    <wsdl:part name="Authorize" element="tns:Authorize" />
+  </wsdl:message>
+  <wsdl:message name="SendFileSignSoapIn">
+    <wsdl:part name="parameters" element="tns:SendFileSign" />
+  </wsdl:message>
+  <wsdl:message name="SendFileSignSoapOut">
+    <wsdl:part name="parameters" element="tns:SendFileSignResponse" />
+  </wsdl:message>
+  <wsdl:message name="SendFileSignAuthorize">
+    <wsdl:part name="Authorize" element="tns:Authorize" />
+  </wsdl:message>
+  <wsdl:portType name="RemoteSigningService_v2Soap">
+    <wsdl:operation name="UserAuthorize">
+      <wsdl:input message="tns:UserAuthorizeSoapIn" />
+      <wsdl:output message="tns:UserAuthorizeSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="GetCertificate_VNPT">
+      <wsdl:input message="tns:GetCertificate_VNPTSoapIn" />
+      <wsdl:output message="tns:GetCertificate_VNPTSoapOut" />
+    </wsdl:operation>
+    <wsdl:operation name="SendFileSign">
+      <wsdl:input message="tns:SendFileSignSoapIn" />
+      <wsdl:output message="tns:SendFileSignSoapOut" />
+    </wsdl:operation>
+  </wsdl:portType>
+  <wsdl:binding name="RemoteSigningService_v2Soap" type="tns:RemoteSigningService_v2Soap">
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="UserAuthorize">
+      <soap:operation soapAction="http://tempuri.org/UserAuthorize" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+        <soap:header message="tns:UserAuthorizeAuthorize" part="Authorize" use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetCertificate_VNPT">
+      <soap:operation soapAction="http://tempuri.org/GetCertificate_VNPT" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+        <soap:header message="tns:GetCertificate_VNPTAuthorize" part="Authorize" use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="SendFileSign">
+      <soap:operation soapAction="http://tempuri.org/SendFileSign" style="document" />
+      <wsdl:input>
+        <soap:body use="literal" />
+        <soap:header message="tns:SendFileSignAuthorize" part="Authorize" use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:binding name="RemoteSigningService_v2Soap12" type="tns:RemoteSigningService_v2Soap">
+    <soap12:binding transport="http://schemas.xmlsoap.org/soap/http" />
+    <wsdl:operation name="UserAuthorize">
+      <soap12:operation soapAction="http://tempuri.org/UserAuthorize" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+        <soap12:header message="tns:UserAuthorizeAuthorize" part="Authorize" use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="GetCertificate_VNPT">
+      <soap12:operation soapAction="http://tempuri.org/GetCertificate_VNPT" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+        <soap12:header message="tns:GetCertificate_VNPTAuthorize" part="Authorize" use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+    <wsdl:operation name="SendFileSign">
+      <soap12:operation soapAction="http://tempuri.org/SendFileSign" style="document" />
+      <wsdl:input>
+        <soap12:body use="literal" />
+        <soap12:header message="tns:SendFileSignAuthorize" part="Authorize" use="literal" />
+      </wsdl:input>
+      <wsdl:output>
+        <soap12:body use="literal" />
+      </wsdl:output>
+    </wsdl:operation>
+  </wsdl:binding>
+  <wsdl:service name="RemoteSigningService_v2">
+    <wsdl:port name="RemoteSigningService_v2Soap" binding="tns:RemoteSigningService_v2Soap">
+      <soap:address location="https://localhost:44359/RemoteSigningService_v2.asmx" />
+    </wsdl:port>
+    <wsdl:port name="RemoteSigningService_v2Soap12" binding="tns:RemoteSigningService_v2Soap12">
+      <soap12:address location="https://localhost:44359/RemoteSigningService_v2.asmx" />
+    </wsdl:port>
+  </wsdl:service>
+</wsdl:definitions>
