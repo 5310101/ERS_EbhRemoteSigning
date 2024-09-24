@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.UI.WebControls;
+using VnptHashSignatures.Interface;
 
 namespace ERS_Domain.Model
 {
@@ -101,7 +102,7 @@ namespace ERS_Domain.Model
     public class SignedHashInfo
     {
         public ToKhaiInfo ToKhai { get; set; }
-        public SignerInfo Signer { get; set; }
+        public SignerProfile Signer { get; set; }
         public DataSign SignData { get; set; }
         public string PathSigner { get; set; } = "";
 

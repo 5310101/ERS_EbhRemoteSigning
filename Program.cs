@@ -18,6 +18,11 @@ using System.Security.Cryptography.X509Certificates;
 using System.Diagnostics;
 using Org.BouncyCastle.Ocsp;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.Xml;
+using VnptHashSignatures.Cms;
+using VnptHashSignatures.Office;
+using ERS_Domain.CustomSigner;
+using ERS_Domain.clsUtilities;
 
 namespace SmartCA769
 {
@@ -45,7 +50,8 @@ namespace SmartCA769
         {
 
             //_signSmartCAPDF();
-            _signSmartCAXML();
+            //_signSmartCAXML();
+            _signSmartCAXML_WithProfile();
             //_signSmartCAOFFICE();            
             Console.ReadKey();
         }
@@ -425,6 +431,25 @@ namespace SmartCA769
         }
 
 
+        public static IHashSigner GenerateSigner(byte[] unsignData, string certBase64)
+        {
+            if (string.IsNullOrEmpty(certBase64))
+            {
+                throw new FormatException("Bas64 must not be null");
+            }
+
+            try
+            {
+                Convert.FromBase64String(certBase64);
+            }
+            catch (FormatException ex)
+            {
+                throw ex;
+            }
+            return new CustomXmlSigner(unsignData, certBase64);
+              
+        }
+
         private static void _signSmartCAXML()
         {
             var userCert = _getAccountCert("https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate");
@@ -447,11 +472,14 @@ namespace SmartCA769
                 //_log.Error(ex);
                 return;
             }
+            //load unsignData vao _doc, _signercert = certbase64
             IHashSigner signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.XML);
+            //set _hashAlgorithm = MessageDigestAlgorithm.SHA256
             signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
             //Set ID cho thẻ ssignature
             //((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
+            //set _signId
             ((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
 
             //Set reference đến id
@@ -465,7 +493,7 @@ namespace SmartCA769
 
 
             var hashValue = signer.GetSecondHashAsBase64();
-
+            
             var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
             DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
@@ -515,6 +543,106 @@ namespace SmartCA769
 
             // 3. Package external signature to signed file
             byte[] signed = signer.Sign(datasigned);
+            File.WriteAllBytes(_xmlSignedPath, signed);
+
+        }
+
+        private static void _signSmartCAXML_WithProfile()
+        {
+            var userCert = _getAccountCert("https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate");
+            //var userCert = _getAccountCert("https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate");
+            if (userCert == null)
+            {
+                Console.WriteLine("not found cert");
+                return;
+            }
+            String certBase64 = userCert.cert_data;
+
+
+            byte[] unsignData = null;
+            try
+            {
+                unsignData = File.ReadAllBytes(_xmlInput);
+            }
+            catch (Exception ex)
+            {
+                //_log.Error(ex);
+                return;
+            }
+            //load unsignData vao _doc, _signercert = certbase64
+            IHashSigner signer = MethodLibrary.GenerateCustomSigner(unsignData, certBase64);
+            //set _hashAlgorithm = MessageDigestAlgorithm.SHA256
+            signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
+
+            //Set ID cho thẻ ssignature
+            //((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
+            //set _signId
+            ((CustomXmlSigner)signer).SetSignatureID("sigid");
+
+            //Set reference đến id
+            //((XmlHashSigner)signers).SetReferenceId("#SigningData");
+
+            //Set thời gian ký
+            ((CustomXmlSigner)signer).SetSigningTime(DateTime.Now, "proid");
+
+            //đường dẫn dẫn đến thẻ chứa chữ ký 
+            ((CustomXmlSigner)signer).SetParentNodePath("/Hoso/CKy_Dvi");
+
+
+            SignerProfile profile = signer.GetSignerProfile();
+            var hashValue = Convert.ToBase64String(profile.SecondHashBytes);
+
+            var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
+
+            DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
+
+           
+
+            Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
+            //Console.ReadKey();
+
+            var count = 0;
+            var isConfirm = false;
+            var datasigned = "";
+            DataTransaction transactionStatus;
+
+            while (count < 30 && !isConfirm)
+            {
+                transactionStatus = _getStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
+                if (transactionStatus.signatures != null)
+                {
+                    datasigned = transactionStatus.signatures[0].signature_value;
+                    isConfirm = true;
+                }
+                else
+                {
+                    count = count + 1;
+                    Console.WriteLine(string.Format("Wait for user confirm count : {0}", count));
+                    Thread.Sleep(10000);
+                }
+            }
+            if (!isConfirm)
+            {
+                Console.WriteLine(string.Format("Signer not confirm from App"));
+                return;
+            }
+
+            if (string.IsNullOrEmpty(datasigned))
+            {
+                Console.WriteLine("Sign error");
+                return;
+            }
+
+            if (!signer.CheckHashSignature(profile ,datasigned))
+            {
+                Console.WriteLine("Signature not match");
+                return;
+            }
+
+            // ------------------------------------------------------------------------------------------
+
+            // 3. Package external signature to signed file
+            byte[] signed = signer.Sign(profile, datasigned);
             File.WriteAllBytes(_xmlSignedPath, signed);
 
         }

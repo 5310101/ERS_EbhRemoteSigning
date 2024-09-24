@@ -1,6 +1,7 @@
 ﻿using ERS_Domain;
 using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
+using ERS_Domain.CustomSigner;
 using ERS_Domain.Exceptions;
 using ERS_Domain.Model;
 using ERS_Domain.Response;
@@ -20,6 +21,7 @@ using System.Xml;
 using System.Xml.Serialization;
 using VnptHashSignatures.Common;
 using VnptHashSignatures.Interface;
+using VnptHashSignatures.Office;
 using VnptHashSignatures.Xml;
 
 namespace ws_GetResult_RemoteSigning
@@ -92,12 +94,13 @@ namespace ws_GetResult_RemoteSigning
                 _signHSTimer.Interval = _signHSTimeInterval;
                 _signHSTimer.AutoReset = true;
                 _signHSTimer.Elapsed += SignHSTimer_Elapsed;
-                _signHSTimer.Enabled = true;
+                _signHSTimer.Enabled = false;
 
                 _getResultHSTimer = new Timer();
                 _getResultHSTimer.Interval = _hsTimeInterval;
                 _getResultHSTimer.AutoReset = true;
                 _getResultHSTimer.Elapsed += HSTimer_Elapsed;
+                _getResultHSTimer.Enabled = false;
             }
             catch (Exception ex)
             {
@@ -198,7 +201,13 @@ namespace ws_GetResult_RemoteSigning
                             UpdateStatusToKhai(id, TrangThaiFile.HetHan, "Tờ khai đã hết hạn để ký xác nhận");
                             continue;
                         }
-                        IHashSigner signer = null;
+                        SignerProfile signer = null;
+                        signer = RestoreSigner(signerPath);
+                        if (signer == null)
+                        {
+                            UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tạo được signer");
+                            continue;
+                        }
                         bool isSigned = false;
                         //thu muc duong dan save file to khai sau khi ky
 
@@ -209,24 +218,10 @@ namespace ws_GetResult_RemoteSigning
                                 isSigned = GetResult_PDF(res.data, pathSaved);
                                 break;
                             case ".xml":
-                                signer = RestoreSignerXML(signerPath);
-                                if (signer == null)
-                                {
-                                    UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tạo được signer");
-                                    continue;
-                                }
                                 isSigned = GetResult_Xml(signer, res.data, pathSaved);
                                 break;
                             case ".docx":
                             case ".xlsx":
-                                //tao lai signer
-                                signer = RestoreSignerOffice(signerPath);
-                                if (signer == null)
-                                {
-                                    //update trang thai la ky loi
-                                    UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tạo được signer");
-                                    continue;
-                                }
                                 isSigned = GetResult_Office(signer, res.data, pathSaved);
                                 break;
                             default:
@@ -261,60 +256,56 @@ namespace ws_GetResult_RemoteSigning
             }
         }
 
-        private IHashSigner RestoreSignerOffice(string signerPath)
+        private SignerProfile RestoreSigner(string signerPath)
         {
             try
             {
-                SignerInfo signerInfo = MethodLibrary.ImportSigner(signerPath);
-                if (signerInfo == null)
+                SignerProfile signerProfile = MethodLibrary.ImportSigner(signerPath);
+                if (signerProfile == null)
                 {
                     return null;
                 }
-                IHashSigner signer = null;
-
-                signer = HashSignerFactory.GenerateSigner(signerInfo.UnsignData, signerInfo.SignerCert, null, HashSignerFactory.OFFICE);
-                signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
-                signer.GetSecondHashAsBase64();
-                return signer;
+                return signerProfile;
             }
             catch (Exception ex)
             {
-                Utilities.logger.ErrorLog(ex, "RestoreSignerOffice");
+                Utilities.logger.ErrorLog(ex, "RestoreSigner");
                 return null;
             }
         }
 
-        private IHashSigner RestoreSignerXML(string signerPath, bool isTokhai = true)
-        {
-            try
-            {
-                SignerInfo signerInfo = MethodLibrary.ImportSigner(signerPath);
-                if (signerInfo == null)
-                {
-                    return null;
-                }
-                IHashSigner signer = HashSignerFactory.GenerateSigner(signerInfo.UnsignData, signerInfo.SignerCert, null, HashSignerFactory.XML);
-                signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
+        //private SignerProfile RestoreSignerXML(string signerPath, bool isTokhai = true)
+        //{
+        //    try
+        //    {
+        //        SignerProfile signerProfile = MethodLibrary.ImportSigner(signerPath);
+        //        if (signerProfile == null)
+        //        {
+        //            return null;
+        //        }
+        //        //IHashSigner signer = HashSignerFactory.GenerateSigner(signerInfo.UnsignData, signerInfo.SignerCert, null, HashSignerFactory.XML);
+        //        IHashSigner signer = MethodLibrary.GenerateCustomSigner(signerInfo.UnsignData, signerInfo.SignerCert);
+        //        signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
-                ((XmlHashSigner)signer).SetSignatureID(signerInfo.SigId);
-                ((XmlHashSigner)signer).SetSigningTime(signerInfo.SigningTime, "SigningTime-" + signerInfo.SigningTimeId);
-                if (isTokhai)
-                {
-                    ((XmlHashSigner)signer).SetParentNodePath("//Cky");
-                }
-                else
-                {
-                    ((XmlHashSigner)signer).SetParentNodePath("/Hoso/CKy_Dvi");
-                }
-                signer.GetSecondHashAsBase64();
-                return signer;
-            }
-            catch (Exception ex)
-            {
-                Utilities.logger.ErrorLog(ex, "");
-                return null;
-            }
-        }
+        //        ((CustomXmlSigner)signer).SetSignatureID(signerInfo.SigId);
+        //        ((CustomXmlSigner)signer).SetSigningTime(signerInfo.SigningTime, "SigningTime-" + signerInfo.SigningTimeId);
+        //        if (isTokhai)
+        //        {
+        //            ((CustomXmlSigner)signer).SetParentNodePath("//Cky");
+        //        }
+        //        else
+        //        {
+        //            ((CustomXmlSigner)signer).SetParentNodePath("/Hoso/CKy_Dvi");
+        //        }
+        //        signer.GetSecondHashAsBase64();
+        //        return signer;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Utilities.logger.ErrorLog(ex, "");
+        //        return null;
+        //    }
+        //}
 
         private bool GetResult_PDF(DataTransaction transactionStatus, string PDFSignedPath)
         {
@@ -361,7 +352,7 @@ namespace ws_GetResult_RemoteSigning
             }
             return true;
         }
-        private bool GetResult_Office(IHashSigner signer, DataTransaction transactionStatus, string officeSignedPath)
+        private bool GetResult_Office(SignerProfile signerProfile, DataTransaction transactionStatus, string officeSignedPath)
         {
             var isConfirm = false;
             var datasigned = "";
@@ -380,13 +371,13 @@ namespace ws_GetResult_RemoteSigning
             {
                 return false;
             }
-
-            byte[] signed = signer.Sign(datasigned);
+            IHashSigner signerNew = new OfficeHashSigner();
+            byte[] signed = signerNew.Sign(signerProfile,datasigned);
             File.WriteAllBytes(officeSignedPath, signed);
             return true;
         }
 
-        private bool GetResult_Xml(IHashSigner signer, DataTransaction transactionStatus, string xmlSignedPath)
+        private bool GetResult_Xml(SignerProfile signerProfile, DataTransaction transactionStatus, string xmlSignedPath)
         {
             var isConfirm = false;
             var datasigned = "";
@@ -407,14 +398,15 @@ namespace ws_GetResult_RemoteSigning
                 //Console.WriteLine("Sign error");
                 return false;
             }
-
-            if (!signer.CheckHashSignature(datasigned))
+            //Dung CustomXmlSigner de debug dc
+            IHashSigner signerNew = new CustomXmlSigner();
+            if (!signerNew.CheckHashSignature(signerProfile, datasigned))
             {
                 Utilities.logger.ErrorLog("Không thể valid chữ ký số", transactionStatus.transaction_id);
                 return false;
             }
 
-            byte[] signed = signer.Sign(datasigned);
+            byte[] signed = signerNew.Sign(signerProfile,datasigned);
             File.WriteAllBytes(xmlSignedPath, signed);
             return true;
         }
@@ -639,7 +631,7 @@ namespace ws_GetResult_RemoteSigning
                 }
                 string PathTempHoSo = Path.Combine(SignedTempFolder, GuidHS);
                 string pathBHXHDt = Path.Combine(PathTempHoSo, "BHXHDienTu.xml");
-                DataSign dataSign = SignSmartCAXML(userCert, pathBHXHDt, uid, out SignerInfo signer, "/Hoso/CKy_Dvi");
+                DataSign dataSign = SignSmartCAXML(userCert, pathBHXHDt, uid, out SignerProfile signerProfile, "/Hoso/CKy_Dvi");
 
                 if (dataSign == null)
                 {
@@ -648,13 +640,13 @@ namespace ws_GetResult_RemoteSigning
                     return false;
                 }
                 //co the thay doi thoi gian countdown dua vao data tra ve tu sever, default la 300
-                if (signer == null)
+                if (signerProfile == null)
                 {
                     //update trang thai ky loi
                     UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Không tạo được signer");
                     return false;
                 }
-                string PathExportSigner = MethodLibrary.ExportSigner(signer, PathTempHoSo, dataSign.transaction_id);
+                string PathExportSigner = MethodLibrary.ExportSigner(signerProfile, PathTempHoSo, dataSign.transaction_id);
                 if (PathExportSigner == "")
                 {
                     //update trang thai ky loi
@@ -676,16 +668,14 @@ namespace ws_GetResult_RemoteSigning
             }
         }
 
-        private DataSign SignSmartCAXML(UserCertificate userCert, string FileBHXHPath, string uid, out SignerInfo signerInfo, string nodeKy = "")
+        private DataSign SignSmartCAXML(UserCertificate userCert, string FileBHXHPath, string uid, out SignerProfile signerProfile, string nodeKy = "")
         {
             IHashSigner signer = null;
-            signerInfo = new SignerInfo();
+            signerProfile = new SignerProfile();
             try
             {
                 byte[] xmlUnsign = File.ReadAllBytes(FileBHXHPath);
                 String certBase64 = userCert.cert_data;
-                signerInfo.SignerCert = certBase64;
-                signerInfo.UnsignData = xmlUnsign;
                 signer = HashSignerFactory.GenerateSigner(xmlUnsign, certBase64, null, HashSignerFactory.XML);
                 signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
@@ -709,14 +699,14 @@ namespace ws_GetResult_RemoteSigning
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
                 DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
-
+                signerProfile = signer.GetSignerProfile();
                 return dataSign;
 
             }
             catch (Exception ex)
             {
                 Utilities.logger.ErrorLog(ex, "SignSmartCAXML", userCert.cert_subject);
-                signerInfo = null;
+                signerProfile = null;
                 return null;
             }
         }
@@ -756,17 +746,16 @@ namespace ws_GetResult_RemoteSigning
                             UpdateStatusHoSo(GuidHS, TrangThaiHoso.HetHan, "File [BHXHDienTu.xml] đã hết hạn để ký xác nhận");
                             continue;
                         }
-                        IHashSigner signer = null;
                         bool isSigned = false;
                         string pathSaved = Path.Combine(SignedTempFolder, GuidHS, "BHXHDienTu.xml");
 
-                        signer = RestoreSignerXML(signerPath);
-                        if (signer == null)
+                        SignerProfile signerProfile = RestoreSigner(signerPath);
+                        if (signerProfile == null)
                         {
                             UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Không tạo được signer");
                             continue;
                         }
-                        isSigned = GetResult_Xml(signer, res.data, pathSaved);
+                        isSigned = GetResult_Xml(signerProfile, res.data, pathSaved);
                         if (!isSigned)
                         {
                             //voi nhung truong hop ko loi ma chua lay dc ket qua thi se ko update trang thai ma chi update LastGet

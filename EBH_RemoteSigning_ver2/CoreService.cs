@@ -17,6 +17,7 @@ using VnptHashSignatures.Xml;
 using System.Data.SqlClient;
 using Microsoft.Win32.SafeHandles;
 using System.Security.Cryptography;
+using ERS_Domain.CustomSigner;
 
 namespace EBH_RemoteSigning_ver2
 {
@@ -42,7 +43,7 @@ namespace EBH_RemoteSigning_ver2
                 foreach (ToKhaiInfo tokhai in tokhais)
                 {
                     DataSign dataSign = null;
-                    SignerInfo signerInfo = null;
+                    SignerProfile signerProfile = null;
                     SignedHashInfo signedHashInfo = new SignedHashInfo();
                     signedHashInfo.ToKhai = tokhai;
                     switch (tokhai.Type)
@@ -51,10 +52,10 @@ namespace EBH_RemoteSigning_ver2
                             dataSign = SignSmartCAPDF(cert, tokhai.Data, uid);
                             break;
                         case FileType.XML:
-                            dataSign = SignSmartCAXML(cert, tokhai.Data, uid ,out signerInfo);
+                            dataSign = SignSmartCAXML(cert, tokhai.Data, uid ,ref signerProfile);
                             break;
                         case FileType.OFFICE:
-                            dataSign = SignSmartCAOFFICE(cert, tokhai.Data, uid , out signerInfo);
+                            dataSign = SignSmartCAOFFICE(cert, tokhai.Data, uid , ref signerProfile);
                             break;
                         default:
                             return false;
@@ -65,9 +66,9 @@ namespace EBH_RemoteSigning_ver2
                         return false;
                     }
                     signedHashInfo.SignData = dataSign;
-                    if (signerInfo != null)
+                    if (signerProfile != null)
                     {
-                        signedHashInfo.Signer = signerInfo;
+                        signedHashInfo.Signer = signerProfile;
                     }
                     listSignedDTO.Add(signedHashInfo);
                 }
@@ -225,39 +226,33 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        private DataSign SignSmartCAXML(UserCertificate userCert, byte[] xmlUnsign, string uid , out SignerInfo signerInfo, string nodeKy = "")
+        private DataSign SignSmartCAXML(UserCertificate userCert, byte[] xmlUnsign, string uid , ref SignerProfile signerProfile, string nodeKy = "")
         {
             IHashSigner signer = null;
-            signerInfo = new SignerInfo();
             try
             {
                 String certBase64 = userCert.cert_data;
-                signerInfo.SignerCert = certBase64;
-                signerInfo.UnsignData = xmlUnsign;
-                signer = HashSignerFactory.GenerateSigner(xmlUnsign, certBase64, null, HashSignerFactory.XML);
+                //signer = HashSignerFactory.GenerateSigner(xmlUnsign, certBase64, null, HashSignerFactory.XML);
+                signer = MethodLibrary.GenerateCustomSigner(xmlUnsign,certBase64);
                 signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
 
                 //Set ID cho thẻ ssignature
                 //((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
-                string SignId = Guid.NewGuid().ToString();
-                ((XmlHashSigner)signer).SetSignatureID(SignId);
-                signerInfo.SigId = SignId;
+                ((CustomXmlSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
+                
                 //Set reference đến id
                 //((XmlHashSigner)signers).SetReferenceId("#SigningData");
 
                 //Set thời gian ký
-                string SignTimeId = Guid.NewGuid().ToString();
-                DateTime SignTime = DateTime.Now;
-                ((XmlHashSigner)signer).SetSigningTime(SignTime, "SigningTime-" + SignTimeId);
-                signerInfo.SigningTimeId = SignTimeId;
-                signerInfo.SigningTime = SignTime;
+                ((CustomXmlSigner)signer).SetSigningTime(DateTime.Now, "SigningTime-" + Guid.NewGuid().ToString());
+                
                 //đường dẫn dẫn đến thẻ chứa chữ ký 
                 if (nodeKy == "")
                 {
                     nodeKy = "//Cky";
                 }
-                ((XmlHashSigner)signer).SetParentNodePath(nodeKy);
+                ((CustomXmlSigner)signer).SetParentNodePath(nodeKy);
 
                 var hashValue = signer.GetSecondHashAsBase64();
 
@@ -265,29 +260,25 @@ namespace EBH_RemoteSigning_ver2
 
                 DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
 
-                //Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
-                //Console.ReadKey();
+                signerProfile = signer.GetSignerProfile();
                 return dataSign;
 
             }
             catch (Exception ex)
             {
                 Utilities.logger.ErrorLog(ex, "SignSmartCAXML", userCert.cert_subject);
-                signerInfo = null;
+                signerProfile = null;
                 return null;
             }
         }
 
-        private DataSign SignSmartCAOFFICE(UserCertificate userCert, byte[] officeUnsign, string uid, out SignerInfo signerInfo)
+        private DataSign SignSmartCAOFFICE(UserCertificate userCert, byte[] officeUnsign, string uid, ref SignerProfile signerProfile)
         {
             try
             {
                 IHashSigner signer = null;
-                signerInfo = new SignerInfo();
 
                 String certBase64 = userCert.cert_data;
-                signerInfo.SignerCert = certBase64;
-                signerInfo.UnsignData = officeUnsign;
                 signer = HashSignerFactory.GenerateSigner(officeUnsign, certBase64, null, HashSignerFactory.OFFICE);
                 signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
@@ -296,7 +287,7 @@ namespace EBH_RemoteSigning_ver2
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
                 DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
-
+                signerProfile = signer.GetSignerProfile();
                 return dataSign;
             }
             catch (Exception ex)
