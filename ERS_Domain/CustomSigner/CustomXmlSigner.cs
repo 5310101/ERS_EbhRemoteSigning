@@ -223,7 +223,7 @@ namespace ERS_Domain.CustomSigner
                 string text = "";
                 text = x509Certificate.PublicKey.Key.ToXmlString(includePrivateParameters: false);
                 string subjectDN = x509Certificate.SubjectName.Decode(X500DistinguishedNameFlags.None);
-                XmlNode signature = CustomXmlDigSign.CreateSignature(_hashAlgorithm, _addSigningTime ? _signingTime : DateTime.MinValue, hashAlg, base64Digest, "", subjectDN, _signerCert, text, _signId, _referenceId, _signTimeId);
+                XmlNode signature = CustomXmlDsigSign.CreateSignature(_hashAlgorithm, _addSigningTime ? _signingTime : DateTime.MinValue, hashAlg, base64Digest, "", subjectDN, _signerCert, text, _signId, _referenceId, _signTimeId);
                 DsigSignature.AddSignatureNode(_doc, signature, _parentNode, _nameSpace, _nameSpaceRef);
                 return _secondHash = DsigSignature.GetHash(_doc, signature, alg);
             }

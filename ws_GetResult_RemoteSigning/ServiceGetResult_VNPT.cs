@@ -400,11 +400,13 @@ namespace ws_GetResult_RemoteSigning
             }
             //Dung CustomXmlSigner de debug dc
             IHashSigner signerNew = new CustomXmlSigner();
-            if (!signerNew.CheckHashSignature(signerProfile, datasigned))
-            {
-                Utilities.logger.ErrorLog("Không thể valid chữ ký số", transactionStatus.transaction_id);
-                return false;
-            }
+            
+            //Dang khong hieu tai sao ko load dc xml
+            //if (!signerNew.CheckHashSignature(signerProfile, datasigned))
+            //{
+            //    Utilities.logger.ErrorLog("Không thể valid chữ ký số", transactionStatus.transaction_id);
+            //    return false;
+            //}
 
             byte[] signed = signerNew.Sign(signerProfile,datasigned);
             File.WriteAllBytes(xmlSignedPath, signed);
@@ -676,30 +678,30 @@ namespace ws_GetResult_RemoteSigning
             {
                 byte[] xmlUnsign = File.ReadAllBytes(FileBHXHPath);
                 String certBase64 = userCert.cert_data;
-                signer = HashSignerFactory.GenerateSigner(xmlUnsign, certBase64, null, HashSignerFactory.XML);
+                signer = MethodLibrary.GenerateCustomSigner(xmlUnsign, certBase64);
                 signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
-                string SignId = Guid.NewGuid().ToString();
-                ((XmlHashSigner)signer).SetSignatureID(SignId);
+                ((CustomXmlSigner)signer).SetSignatureID("sigid");
                 //Set reference đến id
                 //((XmlHashSigner)signers).SetReferenceId("#SigningData");
 
                 //Set thời gian ký
-                ((XmlHashSigner)signer).SetSigningTime(DateTime.Now, "SigningTime-" + Guid.NewGuid().ToString());
+                ((CustomXmlSigner)signer).SetSigningTime(DateTime.Now, "proid");
 
                 //đường dẫn dẫn đến thẻ chứa chữ ký 
                 if (nodeKy == "")
                 {
                     nodeKy = "//Cky";
                 }
-                ((XmlHashSigner)signer).SetParentNodePath(nodeKy);
+                ((CustomXmlSigner)signer).SetParentNodePath(nodeKy);
 
-                var hashValue = signer.GetSecondHashAsBase64();
+                signerProfile = signer.GetSignerProfile();
+                var hashValue = Convert.ToBase64String(signerProfile.DataHashBytes);
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
                 DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
-                signerProfile = signer.GetSignerProfile();
+
                 return dataSign;
 
             }

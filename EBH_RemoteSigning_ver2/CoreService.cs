@@ -7,16 +7,10 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Web;
 using VnptHashSignatures.Common;
 using VnptHashSignatures.Interface;
 using VnptHashSignatures.Pdf;
-using VnptHashSignatures.Xml;
 using System.Data.SqlClient;
-using Microsoft.Win32.SafeHandles;
-using System.Security.Cryptography;
 using ERS_Domain.CustomSigner;
 
 namespace EBH_RemoteSigning_ver2
@@ -180,7 +174,7 @@ namespace EBH_RemoteSigning_ver2
                 #region Optional -----------------------------------
                 // Property: Lý do ký số
                 ((PdfHashSigner)signer).SetReason("Xác nhận tài liệu");
-                // Kiểu hiển thị chữ ký (OPTIONAL/DEFAULT=TEXT_WITH_BACKGROUND) 
+         
                 ((PdfHashSigner)signer).SetRenderingMode(PdfHashSigner.RenderMode.TEXT_ONLY);
                 // Nội dung text trên chữ ký (OPTIONAL)
                 ((PdfHashSigner)signer).SetLayer2Text($"Ngày ký: {DateTime.Now.Date} \n Người ký: QuanNa \n Nơi ký: EBH");
@@ -192,7 +186,7 @@ namespace EBH_RemoteSigning_ver2
                 // Kiểu chữ trên chữ ký
                 ((PdfHashSigner)signer).SetFontStyle(PdfHashSigner.FontStyle.Normal);
                 // Font chữ trên chữ ký
-                ((PdfHashSigner)signer).SetFontName(PdfHashSigner.FontName.Arial);
+                ((PdfHashSigner)signer).SetFontName(PdfHashSigner.FontName.Arial);           
 
                 // Hiển thị ảnh chữ ký tại nhiều vị trí trên tài liệu
                 ((PdfHashSigner)signer).AddSignatureView(new PdfSignatureView
@@ -202,6 +196,7 @@ namespace EBH_RemoteSigning_ver2
                     Page = 1
                 });
 
+                
                 #endregion -----------------------------------------            
 
                 var profile = signer.GetSignerProfile();
@@ -254,13 +249,14 @@ namespace EBH_RemoteSigning_ver2
                 }
                 ((CustomXmlSigner)signer).SetParentNodePath(nodeKy);
 
-                var hashValue = signer.GetSecondHashAsBase64();
-
+                //var hashValue = signer.GetSecondHashAsBase64();
+                signerProfile = signer.GetSignerProfile();
+                var hashValue = Convert.ToBase64String(signerProfile.SecondHashBytes);
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
                 DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
 
-                signerProfile = signer.GetSignerProfile();
+                
                 return dataSign;
 
             }
@@ -282,12 +278,13 @@ namespace EBH_RemoteSigning_ver2
                 signer = HashSignerFactory.GenerateSigner(officeUnsign, certBase64, null, HashSignerFactory.OFFICE);
                 signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
-                var hashValue = signer.GetSecondHashAsBase64();
+                //var hashValue = signer.GetSecondHashAsBase64();
+                signerProfile = signer.GetSignerProfile();
+                var hashValue = Convert.ToBase64String(signerProfile.SecondHashBytes);
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
                 DataSign dataSign = _signService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
-                signerProfile = signer.GetSignerProfile();
                 return dataSign;
             }
             catch (Exception ex)

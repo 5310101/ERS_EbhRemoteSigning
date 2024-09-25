@@ -11,7 +11,7 @@ using VnptHashSignatures.Common;
 
 namespace ERS_Domain.CustomSigner
 {
-    public class CustomXmlDigSign
+    public class CustomXmlDsigSign
     {
         public enum DsigSignatureMode
         {
@@ -82,7 +82,7 @@ namespace ERS_Domain.CustomSigner
         private static XmlDocument CreateSigningTime(DateTime signDate, string id, string targetId)
         {
             XmlDocument xmlDocument = new XmlDocument();
-            xmlDocument.LoadXml($"<Object Id=\"{id}\" xmlns=\"\"><SignatureProperty Target=\"#sigid\"><SigningTime>{signDate:yyyy-MM-dd}T{DateTime.Now:HH:mm:ss}</SigningTime></SignatureProperty></Object>");
+            xmlDocument.LoadXml($"<Object Id=\"{id}\" xmlns=\"\"><SignatureProperty Target=\"#sigid\"><SigningTime xmlns=\"http://example.org/#signatureProperties\">{signDate:yyyy-MM-dd}T{DateTime.Now:HH:mm:ss}Z</SigningTime></SignatureProperty></Object>");
             return xmlDocument;
         }
 
@@ -274,34 +274,38 @@ namespace ERS_Domain.CustomSigner
             }
         }
 
-        //public static byte[] GetHash(XmlDocument xdoc, XmlNode signature, HashAlgorithm alg)
-        //{
-        //    XmlDocument xmlDocument = new XmlDocument();
-        //    xmlDocument.LoadXml(signature.OuterXml);
-        //    XmlNodeList elementsByTagName = xmlDocument.GetElementsByTagName("SignedInfo");
-        //    XmlDocument xmlDocument2 = new XmlDocument();
-        //    xmlDocument2.LoadXml(elementsByTagName[0].OuterXml);
-        //    CanonicalXmlNodeList propagatedAttributes = Utils.GetPropagatedAttributes(xdoc.DocumentElement);
-        //    Utils.AddNamespaces(xmlDocument2.DocumentElement, propagatedAttributes);
-        //    return GetC14NDigest(xmlDocument2, alg);
-        //}
+        public static byte[] GetHash(XmlDocument xdoc, XmlNode signature, HashAlgorithm alg)
+        {
+            XmlDocument xmlDocument = new XmlDocument();
+            xmlDocument.LoadXml(signature.OuterXml);
+            XmlNodeList elementsByTagName = xmlDocument.GetElementsByTagName("SignedInfo");
+            XmlDocument xmlDocument2 = new XmlDocument();
+            xmlDocument2.LoadXml(elementsByTagName[0].OuterXml);
+            CustomCanonicalXmlNodeList propagatedAttributes = CustomUtils.GetPropagatedAttributes(xdoc.DocumentElement);
+            CustomUtils.AddNamespaces(xmlDocument2.DocumentElement, propagatedAttributes);
+            return GetC14NDigest(xmlDocument2, alg);
+        }
 
-        //public static byte[] GetC14NDigest(XmlNode xn, XmlDocument doc, HashAlgorithm alg)
-        //{
-        //    XmlDocument xmlDocument = new XmlDocument();
-        //    xmlDocument.LoadXml(xn.OuterXml);
-        //    CanonicalXmlNodeList propagatedAttributes = Utils.GetPropagatedAttributes(doc.DocumentElement);
-        //    Utils.AddNamespaces(xmlDocument.DocumentElement, propagatedAttributes);
-        //    return GetC14NDigest(xmlDocument, alg);
-        //}
+        public static byte[] GetC14NDigest(XmlNode xn, XmlDocument doc, HashAlgorithm alg)
+        {
+            XmlDocument xmlDocument = new XmlDocument();
+            xmlDocument.LoadXml(xn.OuterXml);
+            CustomCanonicalXmlNodeList propagatedAttributes = CustomUtils.GetPropagatedAttributes(doc.DocumentElement);
+            CustomUtils.AddNamespaces(xmlDocument.DocumentElement, propagatedAttributes);
+            return GetC14NDigest(xmlDocument, alg);
+        }
 
         public static byte[] GetC14NDigest(XmlDocument xdoc, HashAlgorithm alg)
         {
             //IL_0001: Unknown result type (might be due to invalid IL or missing references)
             //IL_0007: Expected O, but got Unknown
-            XmlDsigC14NTransformCustom val = new XmlDsigC14NTransformCustom();
+           
+            //XmlDsigEnvelopedSignatureTransform val = new XmlDsigEnvelopedSignatureTransform();
+            XmlDsigC14NTransformCustom val = new XmlDsigC14NTransformCustom(); 
             ((Transform)val).LoadInput((object)xdoc);
             return ((Transform)val).GetDigestedOutput(alg);
         }
+
+
     }
 }

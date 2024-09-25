@@ -3,9 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Security;
 using System.Net;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 using RestSharp;
 using System.IO;
@@ -14,13 +11,6 @@ using VnptHashSignatures.Interface;
 using VnptHashSignatures.Pdf;
 using System.Threading;
 using VnptHashSignatures.Xml;
-using System.Security.Cryptography.X509Certificates;
-using System.Diagnostics;
-using Org.BouncyCastle.Ocsp;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography.Xml;
-using VnptHashSignatures.Cms;
-using VnptHashSignatures.Office;
 using ERS_Domain.CustomSigner;
 using ERS_Domain.clsUtilities;
 
@@ -34,7 +24,7 @@ namespace SmartCA769
         private static string uid = "0101300842";        
         
 
-        private static string _pdfInput = @"C:\Users\quanna\Desktop\testapi_smartca\test.pdf";
+        private static string _pdfInput = @"C:\Users\quanna\Desktop\testapi_smartca\testPDF\test.pdf";
         private static string _pdfSignedPath = @"C:\Users\quanna\Desktop\test_signed.pdf";
 
         private static string _xmlInput = @"C:\Users\quanna\Desktop\testapi_smartca\test.xml";
@@ -49,9 +39,9 @@ namespace SmartCA769
         static void Main(string[] args)
         {
 
-            //_signSmartCAPDF();
+            _signSmartCAPDF();
             //_signSmartCAXML();
-            _signSmartCAXML_WithProfile();
+            //_signSmartCAXML_WithProfile();
             //_signSmartCAOFFICE();            
             Console.ReadKey();
         }
