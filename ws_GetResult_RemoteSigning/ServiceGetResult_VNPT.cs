@@ -2,6 +2,7 @@
 using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
 using ERS_Domain.CustomSigner;
+using ERS_Domain.CustomSigner.CustomSignerOffice;
 using ERS_Domain.Exceptions;
 using ERS_Domain.Model;
 using ERS_Domain.Response;
@@ -88,19 +89,19 @@ namespace ws_GetResult_RemoteSigning
                 _getResultTKTimer.Interval = _tkTimeInterval;
                 _getResultTKTimer.AutoReset = true;
                 _getResultTKTimer.Elapsed += TKTimer_Elapsed;
-                _getResultTKTimer.Enabled = true;
+                _getResultTKTimer.Enabled = false;
 
                 _signHSTimer = new Timer();
                 _signHSTimer.Interval = _signHSTimeInterval;
                 _signHSTimer.AutoReset = true;
                 _signHSTimer.Elapsed += SignHSTimer_Elapsed;
-                _signHSTimer.Enabled = false;
+                _signHSTimer.Enabled = true;
 
                 _getResultHSTimer = new Timer();
                 _getResultHSTimer.Interval = _hsTimeInterval;
                 _getResultHSTimer.AutoReset = true;
                 _getResultHSTimer.Elapsed += HSTimer_Elapsed;
-                _getResultHSTimer.Enabled = false;
+                _getResultHSTimer.Enabled = true;
             }
             catch (Exception ex)
             {
@@ -203,7 +204,7 @@ namespace ws_GetResult_RemoteSigning
                         }
                         SignerProfile signer = null;
                         signer = RestoreSigner(signerPath);
-                        if (signer == null)
+                        if (signer == null && Path.GetExtension(tenToKhai) !=".pdf")
                         {
                             UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tạo được signer");
                             continue;
@@ -371,7 +372,7 @@ namespace ws_GetResult_RemoteSigning
             {
                 return false;
             }
-            IHashSigner signerNew = new OfficeHashSigner();
+            IHashSigner signerNew = new OfficeCustomHashSigner();
             byte[] signed = signerNew.Sign(signerProfile,datasigned);
             File.WriteAllBytes(officeSignedPath, signed);
             return true;
@@ -448,14 +449,16 @@ namespace ws_GetResult_RemoteSigning
             }
         }
 
-        private void UpdateStatusHoSo(string GuidHS, TrangThaiHoso TrangThai, string errMsg = "", string signerPath = "", string PathFile = "")
+        private void UpdateStatusHoSo(string GuidHS, TrangThaiHoso TrangThai, string errMsg = "", string signerPath = "", string PathFile = "", string transaction_id = "", string tran_code = "")
         {
-            bool result = _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, SignerPath=@SignerPath, FilePath=@FilePath, LastGet=@LastGet WHERE Guid=@Guid", "", new SqlParameter[]
+            bool result = _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, SignerPath=@SignerPath, FilePath=@FilePath, transaction_id=@transaction_id, tran_code=@tran_code, LastGet=@LastGet WHERE Guid=@Guid", "", new SqlParameter[]
                 {
                 new SqlParameter("@TrangThai", (int)TrangThai),
                 new SqlParameter("@ErrMsg", errMsg),
-                new SqlParameter("@SingerPath", signerPath),
+                new SqlParameter("@SignerPath", signerPath),
                 new SqlParameter("@FilePath", PathFile),
+                new SqlParameter("@transaction_id", transaction_id),
+                new SqlParameter("@tran_code", tran_code),
                 new SqlParameter("@LastGet", DateTime.Now),
                 new SqlParameter("@Guid", GuidHS),
                 });
@@ -487,7 +490,7 @@ namespace ws_GetResult_RemoteSigning
             try
             {
                 //select trong bang HoSo_VNPT, chi select cac hoso ma tat ca to khai da dc ky(trang thai =2)
-                string TSQL = $"SELECT TOP {HSSignCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE GUID IN (SELECT GUID FROM HoSo_VNPT A JOIN ToKhai_VNPT B ON A.Guid = B.GuidHS GROUP BY A.Guid HAVING COUNT(*) = SUM(CASE WHEN B.TrangThai = 2 THEN 1 ELSE 0 END)) ORDER BY NgayGui";
+                string TSQL = $"SELECT TOP {HSSignCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE GUID IN (SELECT GUID FROM HoSo_VNPT A JOIN ToKhai_VNPT B ON A.Guid = B.GuidHS GROUP BY A.Guid HAVING COUNT(*) = SUM(CASE WHEN B.TrangThai = 2 THEN 1 ELSE 0 END)) AND TrangThai=4 ORDER BY NgayGui";
                 DataTable dtHS = _dbService.GetDataTable(TSQL);
                 if (dtHS.Rows.Count == 0) return;
                 foreach (DataRow dr in dtHS.Rows)
@@ -655,7 +658,7 @@ namespace ws_GetResult_RemoteSigning
                     UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Có lỗi khi lưu trữ signer");
                     return false;
                 }
-                UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKyHash, "", PathExportSigner, "");
+                UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKyHash, "", PathExportSigner, "", dataSign.transaction_id, dataSign.tran_code);
                 return true;
             }
             catch (DatabaseInteractException ex)
@@ -696,7 +699,7 @@ namespace ws_GetResult_RemoteSigning
                 ((CustomXmlSigner)signer).SetParentNodePath(nodeKy);
 
                 signerProfile = signer.GetSignerProfile();
-                var hashValue = Convert.ToBase64String(signerProfile.DataHashBytes);
+                var hashValue = Convert.ToBase64String(signerProfile.SecondHashBytes);
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
@@ -740,7 +743,12 @@ namespace ws_GetResult_RemoteSigning
 
                         ResStatus res = _smartCAService.GetStatus(url);
                         // neu ko tra ve res cho chay lay tiep cac ket qua khac
-                        if (res == null) continue;
+                        if (res == null)
+                        {
+                            //khong lay dc ket qua tu vnpt cung update lastget
+                            ListHSChuaCoKQ.Add(idHS);
+                            continue;
+                        }
 
                         if (res.message == "EXPIRED")
                         {

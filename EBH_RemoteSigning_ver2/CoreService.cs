@@ -234,13 +234,13 @@ namespace EBH_RemoteSigning_ver2
 
                 //Set ID cho thẻ ssignature
                 //((XmlHashSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
-                ((CustomXmlSigner)signer).SetSignatureID(Guid.NewGuid().ToString());
+                ((CustomXmlSigner)signer).SetSignatureID("sigid");
                 
                 //Set reference đến id
                 //((XmlHashSigner)signers).SetReferenceId("#SigningData");
 
                 //Set thời gian ký
-                ((CustomXmlSigner)signer).SetSigningTime(DateTime.Now, "SigningTime-" + Guid.NewGuid().ToString());
+                ((CustomXmlSigner)signer).SetSigningTime(DateTime.Now, "proid");
                 
                 //đường dẫn dẫn đến thẻ chứa chữ ký 
                 if (nodeKy == "")

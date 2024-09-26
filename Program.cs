@@ -13,6 +13,9 @@ using System.Threading;
 using VnptHashSignatures.Xml;
 using ERS_Domain.CustomSigner;
 using ERS_Domain.clsUtilities;
+using VnptHashSignatures.Office;
+using VnptHashSignatures.Cms;
+using ERS_Domain.CustomSigner.CustomSignerOffice;
 
 namespace SmartCA769
 {
@@ -30,8 +33,8 @@ namespace SmartCA769
         private static string _xmlInput = @"C:\Users\quanna\Desktop\testapi_smartca\test.xml";
         private static string _xmlSignedPath = @"C:\Users\quanna\Desktop\test_signed.xml";
 
-        private static string _officeInput = @"C:\Users\accca\Desktop\test.docx";
-        private static string _officeSignedPath = @"C:\Users\accca\Desktop\test_signed.docx";
+        private static string _officeInput = @"C:\Users\quanna\Desktop\testapi_smartca\testoffice\file-sample_1MB.docx";
+        private static string _officeSignedPath = @"C:\Users\quanna\Desktop\test_signed.docx";
 
         private static string _cmsInput = @"C:\Users\accca\Desktop\test.txt";
         private static string _cmsSignedPath = @"C:\Users\accca\Desktop\test_signed.txt";
@@ -39,10 +42,11 @@ namespace SmartCA769
         static void Main(string[] args)
         {
 
-            _signSmartCAPDF();
+            //_signSmartCAPDF();
             //_signSmartCAXML();
             //_signSmartCAXML_WithProfile();
-            //_signSmartCAOFFICE();            
+            //_signSmartCAOFFICE();
+            _signSmartCAOFFICE_WithProfile();
             Console.ReadKey();
         }
 
@@ -708,6 +712,101 @@ namespace SmartCA769
 
             // 3. Package external signature to signed file
             byte[] signed = signer.Sign(datasigned);
+            File.WriteAllBytes(_officeSignedPath, signed);
+
+        }
+
+        public static IHashSigner GenerateOfficeSigner(byte[] unsignData, string certBase64, string tsaUrl)
+        {
+            if (string.IsNullOrEmpty(certBase64))
+            {
+                throw new FormatException("Bas64 must not be null");
+            }
+
+            try
+            {
+                Convert.FromBase64String(certBase64);
+            }
+            catch (FormatException ex)
+            {
+                throw ex;
+            }
+
+            return new OfficeCustomHashSigner(unsignData, certBase64);
+        }
+
+        private static void _signSmartCAOFFICE_WithProfile()
+        {
+            var userCert = _getAccountCert("https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate");
+            //var userCert = _getAccountCert("https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate");
+            if (userCert == null)
+            {
+                Console.WriteLine("not found cert");
+                return;
+            }
+            String certBase64 = userCert.cert_data;
+
+
+            byte[] unsignData = null;
+            try
+            {
+                unsignData = File.ReadAllBytes(_officeInput);
+            }
+            catch (Exception ex)
+            {
+                //_log.Error(ex);
+                return;
+            }
+            IHashSigner signer = GenerateOfficeSigner(unsignData, certBase64, null);
+            ((OfficeCustomHashSigner)signer).SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
+            ((OfficeCustomHashSigner)signer).SetSignatureId(Guid.NewGuid().ToString());
+            var profile = signer.GetSignerProfile();
+            //var hashValue = signer.GetSecondHashAsBase64();
+            var hashValue = Convert.ToBase64String(profile.SecondHashBytes);
+            var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
+
+            DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
+
+            Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
+            //Console.ReadKey();
+
+            var count = 0;
+            var isConfirm = false;
+            var datasigned = "";
+            DataTransaction transactionStatus;
+
+            while (count < 30 && !isConfirm)
+            {
+                transactionStatus = _getStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
+                if (transactionStatus.signatures != null)
+                {
+                    datasigned = transactionStatus.signatures[0].signature_value;
+                    isConfirm = true;
+                }
+                else
+                {
+                    count = count + 1;
+                    Console.WriteLine(string.Format("Wait for user confirm count : {0}", count));
+                    Thread.Sleep(10000);
+                }
+            }
+            if (!isConfirm)
+            {
+                Console.WriteLine(string.Format("Signer not confirm from App"));
+                return;
+            }
+
+            if (string.IsNullOrEmpty(datasigned))
+            {
+                Console.WriteLine("Sign error");
+                return;
+            }
+
+            // ------------------------------------------------------------------------------------------
+
+            // 3. Package external signature to signed file
+            IHashSigner signerNew = new OfficeCustomHashSigner();
+            byte[] signed = signerNew.Sign(profile,datasigned);
             File.WriteAllBytes(_officeSignedPath, signed);
 
         }

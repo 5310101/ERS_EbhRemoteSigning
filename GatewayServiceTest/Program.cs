@@ -35,7 +35,7 @@ namespace GatewayServiceTest
             log4net.Config.XmlConfigurator.Configure();
             
             _signSmartCAPDF();
-            //_signSmartCAOFFICE();
+            _signSmartCAOFFICE();
             //_signSmartCAXML();            
             Console.ReadKey();
         }

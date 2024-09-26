@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>ERS_Domain</RootNamespace>
     <AssemblyName>ERS_Domain</AssemblyName>
-    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.6.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
     <TargetFrameworkProfile />
@@ -73,10 +73,11 @@
     <Compile Include="clsUtilities\Logger.cs" />
     <Compile Include="clsUtilities\MethodLibrary.cs" />
     <Compile Include="clsUtilities\PathProvider.cs" />
-    <Compile Include="CustomSigner\CustomCanonicalXmlNodeList.cs" />
-    <Compile Include="CustomSigner\CustomUltis.cs" />
-    <Compile Include="CustomSigner\CustomXmlDigSign.cs" />
-    <Compile Include="CustomSigner\CustomXmlSigner.cs" />
+    <Compile Include="CustomSigner\CustomSignerOffice\OfficeCustomSigner.cs" />
+    <Compile Include="CustomSigner\CustomSignerXml\CustomCanonicalXmlNodeList.cs" />
+    <Compile Include="CustomSigner\CustomSignerXml\CustomUltis.cs" />
+    <Compile Include="CustomSigner\CustomSignerXml\CustomXmlDigSign.cs" />
+    <Compile Include="CustomSigner\CustomSignerXml\CustomXmlSigner.cs" />
     <Compile Include="Exceptions\CustomException.cs" />
     <Compile Include="Model\BHXHDienTu.cs" />
     <Compile Include="Model\SignFileInfo.cs" />

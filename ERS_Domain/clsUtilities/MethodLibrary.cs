@@ -78,7 +78,7 @@ namespace ERS_Domain.clsUtilities
             }
             else
             {
-                return Path.GetExtension(tenFile).Replace("-595", "");
+                return Path.GetFileNameWithoutExtension(tenFile).Replace("-595", "");
             }
         }
 
