@@ -11,6 +11,7 @@ using ERS_Domain;
 using ERS_Domain.Model;
 using System.Threading.Tasks;
 using ERS_Domain.Response;
+using System.IO;
 
 namespace EBH_RemoteSigning_ver2
 {
@@ -146,6 +147,59 @@ namespace EBH_RemoteSigning_ver2
             {
                 Utilities.logger.ErrorLog(ex, "SendFileSign", hoso.GuidHS);
                 return new ERS_Response($"Lỗi Server: {ex.Message}", false);
+            }
+        }
+
+        [WebMethod]
+        [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
+        public ERS_Response GetFileSigned(string username, string password, string HoSoGuid)
+        {
+            try
+            {
+                //xac thuc
+                ERS_Response result = UserAuthorize(username, password);
+                if (!result.success)
+                {
+                    return result;
+                }
+                string TSQL = "SELECT * FROM HoSo_VNPT WHERE Guid=@Guid";
+                DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[]
+                {
+                    new SqlParameter("@Guid", HoSoGuid)
+                });
+                if (dt.Rows.Count == 0)
+                {
+                    return new ERS_Response($"Không tồn tại file hồ sơ: {HoSoGuid}", true);
+                }
+                int trangThai = MethodLibrary.SafeNumber<int>(dt.Rows[0]["TrangThai"]);
+                if ((TrangThaiHoso)trangThai == TrangThaiHoso.KyLoi || (TrangThaiHoso)trangThai == TrangThaiHoso.KyLoi)
+                {
+                    return new ERS_Response($"SIGNERROR:{MethodLibrary.SafeString(dt.Rows[0]["ErrMsg"])}", true);
+                }
+                if ((TrangThaiHoso)trangThai == TrangThaiHoso.HetHan)
+                {
+                    return new ERS_Response("EXPIRED", true);
+                }
+                if ((TrangThaiHoso)trangThai == TrangThaiHoso.DaKy)
+                {
+                    string filePath = MethodLibrary.SafeString(dt.Rows[0]["FilePath"]);
+                    byte[] data = File.ReadAllBytes(filePath);
+                    string base64Data = Convert.ToBase64String(data);
+
+                    _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=5 WHERE Guid=@Guid", "", new SqlParameter[]
+                    {
+                        new SqlParameter("@Guid",HoSoGuid)
+                    });
+                    string FolderHSPath = Path.GetDirectoryName(filePath);
+                    Directory.Delete(FolderHSPath, true);
+                    return new ERS_Response("SIGNSUCCESS", true, base64Data);
+                }
+                return new ERS_Response("PENDING", true);
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "GetFileSigned", HoSoGuid);
+                return new ERS_Response(ex.Message, false);
             }
         }
     }

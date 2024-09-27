@@ -195,9 +195,11 @@ namespace ERS_Domain.CustomSigner.CustomSignerOffice
                     CertificateOption = CertificateEmbeddingOption.InSignaturePart,
                     HashAlgorithm = "http://www.w3.org/2001/04/xmlenc#sha256"
                 });
+
                 string fieldName = profile.Fieldnames.First();
                 //PackageDigitalSignature packageDigitalSignature = packageDigitalSignatureManager.Signatures.Where((PackageDigitalSignature s) => s.Signature?.Id == MethodLibrary.SafeString(fieldName)).First();
                 PackageDigitalSignature packageDigitalSignature = packageDigitalSignatureManager.Signatures[0];
+                //PackageDigitalSignature packageDigitalSignature = packageDigitalSignatureManager.Signatures.Where((PackageDigitalSignature s) => s.SignaturePart.Uri.ToString().Contains(fieldName)).First();
                 packageDigitalSignature.Signature.SignatureValue = array;
                 packageDigitalSignature.Sign(array);
                 package.Flush();
@@ -326,14 +328,15 @@ namespace ERS_Domain.CustomSigner.CustomSignerOffice
             //    Convert.FromBase64String(_signerCert)
             //};
             //thay doi 1 so thu de restore signer
+            X509Certificate2 certificate = new X509Certificate2(Convert.FromBase64String(_signerCert));
+            
             return new SignerProfile
             {
-                TempData = _unsignData,
+                TempData = GetTempData(),
                 SecondHashBytes = _secondHash,
                 HashAlgorithm = CryptoConfig.MapNameToOID(DigestAlgrothim.ToString()),
                 DocType = "OFFICE",
-                DocId = _signerCert,
-                Fieldnames = new List<string> { _signatureId }
+                Fieldnames = new List<string> { certificate.SerialNumber }
             };
         }
 

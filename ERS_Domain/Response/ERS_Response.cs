@@ -25,6 +25,7 @@ namespace ERS_Domain
             this.data = data;
         }
 
+
         public ERS_Response(string message, bool success, UserCertificate[] certificates) : this(message, success)
         {
             this.certificates = certificates;
