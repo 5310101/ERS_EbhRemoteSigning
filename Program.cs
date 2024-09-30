@@ -25,8 +25,8 @@ namespace SmartCA769
 
         private static string client_id = "4184-637127995547330633.apps.signserviceapi.com";
         private static string client_secret = "NGNhMzdmOGE-OGM2Mi00MTg0";
-        private static string uid = "0101300842";        
-        
+        private static string uid = "0101300842";
+
 
         private static string _pdfInput = @"C:\Users\quanna\Desktop\testapi_smartca\testPDF\test.pdf";
         private static string _pdfSignedPath = @"C:\Users\quanna\Desktop\test_signed.pdf";
@@ -53,7 +53,7 @@ namespace SmartCA769
 
         private static string genRandom(int length)
         {
-            Random random = new Random();   
+            Random random = new Random();
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
             return new string(Enumerable.Repeat(chars, length).Select(s => s[random.Next(s.Length)]).ToArray());
         }
@@ -251,7 +251,7 @@ namespace SmartCA769
                 Console.WriteLine("not found cert");
                 return;
             }
-            String certBase64 = userCert.cert_data;            
+            String certBase64 = userCert.cert_data;
 
             byte[] unsignData = null;
             try
@@ -362,12 +362,12 @@ namespace SmartCA769
 
             var profileJson = JsonConvert.SerializeObject(profile);
 
-            var hashValue = Convert.ToBase64String(profile.SecondHashBytes);            
+            var hashValue = Convert.ToBase64String(profile.SecondHashBytes);
 
             var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
             string tempFolder = Path.GetTempPath();
-            File.AppendAllText(tempFolder+ data_to_be_sign + ".txt", profileJson);
+            File.AppendAllText(tempFolder + data_to_be_sign + ".txt", profileJson);
 
             DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
 
@@ -377,9 +377,9 @@ namespace SmartCA769
             var count = 0;
             var isConfirm = false;
             var datasigned = "";
-            var mapping  = "";
+            var mapping = "";
             DataTransaction transactionStatus;
-            
+
             while (count < 30 && !isConfirm)
             {
                 transactionStatus = _getStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
@@ -407,7 +407,7 @@ namespace SmartCA769
                 Console.WriteLine("Sign error");
                 return;
             }
-            
+
             string contentTempFile = File.ReadAllText(tempFolder + mapping + ".txt");
             SignerProfile signerProfileNew = JsonConvert.DeserializeObject<SignerProfile>(contentTempFile);
             var signer1 = HashSignerFactory.GenerateSigner(signerProfileNew.DocType);
@@ -419,8 +419,8 @@ namespace SmartCA769
             // ------------------------------------------------------------------------------------------
 
             // 3. Package external signature to signed file
-            byte[] signed = signer1.Sign(signerProfileNew,datasigned);
-            
+            byte[] signed = signer1.Sign(signerProfileNew, datasigned);
+
             File.WriteAllBytes(_pdfSignedPath, signed);
 
         }
@@ -442,7 +442,7 @@ namespace SmartCA769
                 throw ex;
             }
             return new CustomXmlSigner(unsignData, certBase64);
-              
+
         }
 
         private static void _signSmartCAXML()
@@ -488,7 +488,7 @@ namespace SmartCA769
 
 
             var hashValue = signer.GetSecondHashAsBase64();
-            
+
             var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
             DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
@@ -514,7 +514,7 @@ namespace SmartCA769
                     count = count + 1;
                     Console.WriteLine(string.Format("Wait for user confirm count : {0}", count));
                     Thread.Sleep(10000);
-                 }
+                }
             }
             if (!isConfirm)
             {
@@ -591,7 +591,7 @@ namespace SmartCA769
 
             DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
 
-           
+
 
             Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
             //Console.ReadKey();
@@ -628,7 +628,7 @@ namespace SmartCA769
                 return;
             }
 
-            if (!signer.CheckHashSignature(profile ,datasigned))
+            if (!signer.CheckHashSignature(profile, datasigned))
             {
                 Console.WriteLine("Signature not match");
                 return;
@@ -644,87 +644,87 @@ namespace SmartCA769
 
         private static void _signSmartCAOFFICE()
         {
+            var userCert = _getAccountCert("https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate");
+            //var userCert = _getAccountCert("https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate");
+            if (userCert == null)
+            {
+                Console.WriteLine("not found cert");
+                return;
+            }
+            String certBase64 = userCert.cert_data;
+
+
+            byte[] unsignData = null;
             try
             {
-                var userCert = _getAccountCert("https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate");
-                //var userCert = _getAccountCert("https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate");
-                if (userCert == null)
-                {
-                    Console.WriteLine("not found cert");
-                    return;
-                }
-                String certBase64 = userCert.cert_data;
-
-
-                byte[] unsignData = null;
-                try
-                {
-                    unsignData = File.ReadAllBytes(_officeInput);
-                }
-                catch (Exception ex)
-                {
-                    //_log.Error(ex);
-                    return;
-                }
-                IHashSigner signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.OFFICE);
-                signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
-
-                var profile = signer.GetSignerProfile();
-                //var hashValue = signer.GetSecondHashAsBase64();
-                var hashValue = Convert.ToBase64String(profile.SecondHashBytes);
-
-                var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
-
-                DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
-
-                Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
-                //Console.ReadKey();
-
-                var count = 0;
-                var isConfirm = false;
-                var datasigned = "";
-                DataTransaction transactionStatus;
-
-                while (count < 30 && !isConfirm)
-                {
-                    transactionStatus = _getStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
-                    if (transactionStatus.signatures != null)
-                    {
-                        datasigned = transactionStatus.signatures[0].signature_value;
-                        isConfirm = true;
-                    }
-                    else
-                    {
-                        count = count + 1;
-                        Console.WriteLine(string.Format("Wait for user confirm count : {0}", count));
-                        Thread.Sleep(10000);
-                    }
-                }
-                if (!isConfirm)
-                {
-                    Console.WriteLine(string.Format("Signer not confirm from App"));
-                    return;
-                }
-
-                if (string.IsNullOrEmpty(datasigned))
-                {
-                    Console.WriteLine("Sign error");
-                    return;
-                }
-
-                // ------------------------------------------------------------------------------------------
-
-                // 3. Package external signature to signed file
-                IHashSigner signerNew = new OfficeHashSigner();
-                byte[] signed = signer.Sign(profile,datasigned);
-                File.WriteAllBytes(_officeSignedPath, signed);
-
+                unsignData = File.ReadAllBytes(_officeInput);
             }
             catch (Exception ex)
             {
-                Utilities.logger.ErrorLog(ex, "_signSmartCAOFFICE");
+                //_log.Error(ex);
+                return;
             }
-            
+            IHashSigner signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.OFFICE);
+            signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
+
+            var profile = signer.GetSignerProfile();
+            //var hashValue = signer.GetSecondHashAsBase64();
+            var hashValue = Convert.ToBase64String(profile.SecondHashBytes);
+
+            var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
+
+            DataSign dataSign = _sign("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign", data_to_be_sign, userCert.serial_number);
+
+            Console.WriteLine(string.Format("Wait for user confirm: Transaction_id = {0}", dataSign.transaction_id));
+            //Console.ReadKey();
+
+            var count = 0;
+            var isConfirm = false;
+            var datasigned = "";
+            DataTransaction transactionStatus;
+
+            while (count < 30 && !isConfirm)
+            {
+                transactionStatus = _getStatus(string.Format("https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{0}/status", dataSign.transaction_id));
+                if (transactionStatus.signatures != null)
+                {
+                    datasigned = transactionStatus.signatures[0].signature_value;
+                    isConfirm = true;
+                }
+                else
+                {
+                    count = count + 1;
+                    Console.WriteLine(string.Format("Wait for user confirm count : {0}", count));
+                    Thread.Sleep(10000);
+                }
+            }
+            if (!isConfirm)
+            {
+                Console.WriteLine(string.Format("Signer not confirm from App"));
+                return;
+            }
+
+            if (string.IsNullOrEmpty(datasigned))
+            {
+                Console.WriteLine("Sign error");
+                return;
+            }
+
+            // ------------------------------------------------------------------------------------------
+
+            // 3. Package external signature to signed file
+            IHashSigner signerNew = new OfficeHashSigner();
+            try
+            {
+                byte[] signed = signerNew.Sign(profile, datasigned);
+                File.WriteAllBytes(_officeSignedPath, signed);
+            }
+            catch (Exception ex)
+            {
+               Console.WriteLine(ex.Message);
+            }
+
+
         }
 
         public static IHashSigner GenerateOfficeSigner(byte[] unsignData, string certBase64, string tsaUrl)
@@ -827,7 +827,7 @@ namespace SmartCA769
             {
                 Utilities.logger.ErrorLog(ex, "_signSmartCAOFFICE_WithProfile");
             }
-            
+
         }
 
         private static UserCertificate _getAccountCert(String uri)
@@ -866,21 +866,21 @@ namespace SmartCA769
                     int certIn;
                     bool isNumber = int.TryParse(certIndex, out certIn);
                     if (!isNumber)
-                    {                        
+                    {
                         return null; ;
                     }
                     if (certIn < 0 || certIn >= res.data.user_certificates.Count())
-                    {                        
+                    {
                         return null;
                     }
                     return res.data.user_certificates[certIn];
 
                 }
                 else
-                {                    
+                {
                     return null;
                 }
-                
+
             }
             return null;
 
@@ -889,7 +889,7 @@ namespace SmartCA769
         private static DataSign _sign(String uri, string data_to_be_signed, String serialNumber)
         {
 
-            
+
             var sign_files = new List<SignFile>();
             var sign_file = new SignFile();
             sign_file.data_to_be_signed = data_to_be_signed;
@@ -901,9 +901,9 @@ namespace SmartCA769
             {
                 sp_id = client_id,
                 sp_password = client_secret,
-                user_id = uid,                
+                user_id = uid,
                 transaction_id = Guid.NewGuid().ToString(),
-                transaction_desc  = "Ký Test từ NgoQuangDat",
+                transaction_desc = "Ký Test từ NgoQuangDat",
                 sign_files = sign_files,
                 serial_number = serialNumber,
 
@@ -957,7 +957,7 @@ namespace SmartCA769
         private static DataTransaction _getStatus(String uri)
         {
             var response = Query(new Object
-            {                
+            {
             }, uri);
             if (response != null)
             {
@@ -976,7 +976,7 @@ namespace SmartCA769
 
     public class DataTransaction
     {
-        public string transaction_id { get; set; }        
+        public string transaction_id { get; set; }
         public List<Signature> signatures { get; set; }
     }
 
@@ -1030,7 +1030,7 @@ namespace SmartCA769
     public class DataSign
     {
         public string transaction_id { get; set; }
-        public string tran_code { get; set; }        
+        public string tran_code { get; set; }
     }
     public class SignFile
     {
@@ -1045,7 +1045,7 @@ namespace SmartCA769
         public string sp_id { get; set; }
         public string sp_password { get; set; }
         public string user_id { get; set; }
-        public string transaction_desc { get; set; }        
+        public string transaction_desc { get; set; }
         public string transaction_id { get; set; }
         public List<SignFile> sign_files { get; set; }
         public string serial_number { get; set; }
