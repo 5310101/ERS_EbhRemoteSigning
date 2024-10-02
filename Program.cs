@@ -667,9 +667,9 @@ namespace SmartCA769
             IHashSigner signer = HashSignerFactory.GenerateSigner(unsignData, certBase64, null, HashSignerFactory.OFFICE);
             signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
-            var profile = signer.GetSignerProfile();
-            //var hashValue = signer.GetSecondHashAsBase64();
-            var hashValue = Convert.ToBase64String(profile.SecondHashBytes);
+            //var profile = signer.GetSignerProfile();
+            var hashValue = signer.GetSecondHashAsBase64();
+            //var hashValue = Convert.ToBase64String(profile.SecondHashBytes);
 
             var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
@@ -713,10 +713,10 @@ namespace SmartCA769
             // ------------------------------------------------------------------------------------------
 
             // 3. Package external signature to signed file
-            IHashSigner signerNew = new OfficeHashSigner();
+            //IHashSigner signerNew = new OfficeHashSigner();
             try
             {
-                byte[] signed = signerNew.Sign(profile, datasigned);
+                byte[] signed = signer.Sign( datasigned);
                 File.WriteAllBytes(_officeSignedPath, signed);
             }
             catch (Exception ex)
