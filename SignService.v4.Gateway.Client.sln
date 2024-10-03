@@ -21,8 +21,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERS_Domain", "ERS_Domain\ER
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ws_GetResult_RemoteSigning", "ws_GetResult_RemoteSigning\ws_GetResult_RemoteSigning.csproj", "{B49FC744-5B16-4E5B-BF90-2DF10982AB65}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowBase.TSDCustom", "WindowBase.TSDCustom\WindowBase.TSDCustom.csproj", "{811D6726-DFB3-43A2-9AD8-0EFF5D1EB5CB}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_woDrawing|Any CPU = Debug_woDrawing|Any CPU
@@ -103,14 +101,6 @@ Global
 		{B49FC744-5B16-4E5B-BF90-2DF10982AB65}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
 		{B49FC744-5B16-4E5B-BF90-2DF10982AB65}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B49FC744-5B16-4E5B-BF90-2DF10982AB65}.Release|Any CPU.Build.0 = Release|Any CPU
-		{811D6726-DFB3-43A2-9AD8-0EFF5D1EB5CB}.Debug_woDrawing|Any CPU.ActiveCfg = Debug|Any CPU
-		{811D6726-DFB3-43A2-9AD8-0EFF5D1EB5CB}.Debug_woDrawing|Any CPU.Build.0 = Debug|Any CPU
-		{811D6726-DFB3-43A2-9AD8-0EFF5D1EB5CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{811D6726-DFB3-43A2-9AD8-0EFF5D1EB5CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{811D6726-DFB3-43A2-9AD8-0EFF5D1EB5CB}.Release_woDrawing|Any CPU.ActiveCfg = Release|Any CPU
-		{811D6726-DFB3-43A2-9AD8-0EFF5D1EB5CB}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
-		{811D6726-DFB3-43A2-9AD8-0EFF5D1EB5CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{811D6726-DFB3-43A2-9AD8-0EFF5D1EB5CB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

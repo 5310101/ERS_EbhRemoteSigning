@@ -17,6 +17,7 @@ using VnptHashSignatures.Office;
 using VnptHashSignatures.Cms;
 using ERS_Domain.CustomSigner.CustomSignerOffice;
 using ERS_Domain;
+using System.IO.Packaging;
 
 namespace SmartCA769
 {
@@ -46,8 +47,8 @@ namespace SmartCA769
             //_signSmartCAPDF();
             //_signSmartCAXML();
             //_signSmartCAXML_WithProfile();
-            _signSmartCAOFFICE();
-            //_signSmartCAOFFICE_WithProfile();
+            //_signSmartCAOFFICE();
+            _signSmartCAOFFICE_WithProfile();
             Console.ReadKey();
         }
 
@@ -775,6 +776,10 @@ namespace SmartCA769
                 //((OfficeCustomHashSigner)signer).SetSignatureId(Guid.NewGuid().ToString());
                 var profile = signer.GetSignerProfile();
                 //var hashValue = signer.GetSecondHashAsBase64();
+
+                var psm = ((OfficeCustomHashSigner)signer).PackageDigitalSignatureManager;
+                
+
                 var hashValue = Convert.ToBase64String(profile.SecondHashBytes);
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 

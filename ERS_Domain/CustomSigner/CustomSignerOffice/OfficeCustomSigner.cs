@@ -32,6 +32,17 @@ namespace ERS_Domain.CustomSigner.CustomSignerOffice
         private MemoryStream _stream = new MemoryStream();
 
         private PackageDigitalSignatureManager _packageDigitalSignatureManager;
+        public PackageDigitalSignatureManager PackageDigitalSignatureManager
+        {
+            get
+            {
+                if (_packageDigitalSignatureManager != null)
+                {
+                    return _packageDigitalSignatureManager;
+                }
+                return null;
+            }
+        }
 
         private Package _package;
 
@@ -178,6 +189,25 @@ namespace ERS_Domain.CustomSigner.CustomSignerOffice
             }
         }
 
+        public byte[] SignWithPSM(PackageDigitalSignatureManager psm , string signedHashBase64)
+        {
+            try
+            {
+                byte[] sig = Convert.FromBase64String(signedHashBase64);
+                PackageDigitalSignature packageDigitalSignature = psm.SignFile(sig);
+                _package.Close();
+                _package = null;
+                _packageDigitalSignatureManager = null;
+                byte[] result = BaseHashSigner.FileToByteArray(_tempFile);
+                File.Delete(_tempFile);
+                return result;
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+
 
         public byte[] Sign(SignerProfile profile, string signedHashBase64)
         {
@@ -200,16 +230,23 @@ namespace ERS_Domain.CustomSigner.CustomSignerOffice
                 //PackageDigitalSignature packageDigitalSignature = packageDigitalSignatureManager.Signatures.Where((PackageDigitalSignature s) => s.Signature?.Id == MethodLibrary.SafeString(fieldName)).First();
                 PackageDigitalSignature packageDigitalSignature = packageDigitalSignatureManager.Signatures[0];
                 //PackageDigitalSignature packageDigitalSignature = packageDigitalSignatureManager.Signatures.Where((PackageDigitalSignature s) => s.SignaturePart.Uri.ToString().Contains(fieldName)).First();
-                packageDigitalSignature.Signature.SignatureValue = array;
-                packageDigitalSignature.Sign(array);
+                var uri = packageDigitalSignature.SignaturePart.Uri;
+                var signaturePart = package.GetPart(uri);
+                using (Stream stream = signaturePart.GetStream(FileMode.Create, FileAccess.Write))
+                {
+                    stream.Write(array, 0, array.Length);
+                }
+
                 package.Flush();
                 package.Close();
+              
                 return memoryStream.ToArray();
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                throw;
+                Utilities.logger.ErrorLog(ex, "Sign");
+                return null;
             }
             finally
             {

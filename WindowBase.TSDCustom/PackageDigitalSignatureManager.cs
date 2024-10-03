@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO.Packaging;
 using System.Net.Mime;
 using System.Security;
 using System.Security.Cryptography;
@@ -14,7 +15,7 @@ using MS.Internal.IO.Packaging;
 
 namespace System.IO.Packaging
 {
-    public sealed class PackageDigitalSignatureManager
+    public sealed class TSDPackageDigitalSignatureManager 
     {
         private delegate bool RelationshipOperation(PackageRelationship r, object context);
 
