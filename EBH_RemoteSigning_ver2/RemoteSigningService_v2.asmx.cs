@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Data;
 using System.Linq;
-using System.Web;
 using System.Web.Services;
 using System.Web.Services.Protocols;
 using ERS_Domain.CAService;
@@ -12,6 +11,7 @@ using ERS_Domain;
 using ERS_Domain.Model;
 using System.Threading.Tasks;
 using ERS_Domain.Response;
+using System.IO;
 
 namespace EBH_RemoteSigning_ver2
 {
@@ -39,7 +39,7 @@ namespace EBH_RemoteSigning_ver2
             _dbService = new DbService();
         }
 
-        [WebMethod]
+        [WebMethod(Description ="Phương thức xác thực cho SOAP service.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response UserAuthorize(string userName, string Md5Password)
         {
@@ -81,7 +81,7 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        [WebMethod]
+        [WebMethod(Description ="Phương thức lấy chữ ký số từ server VNPT, truyền serial number để lấy chính xác chữ ký số nếu tài khoản có nhiều chữ ký số.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response GetCertificate_VNPT(string userName, string password, string uid, string serialNumber = "")
         {
@@ -105,7 +105,7 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        [WebMethod]
+        [WebMethod(Description ="Phương thức gửi file lên server để thực hiện ký.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response SendFileSign(RemoteSigningProvider signProvider, string uid, string username, string password, HoSoInfo hoso, string serialNumber = "")
         {
@@ -123,11 +123,10 @@ namespace EBH_RemoteSigning_ver2
                 {
                     SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
                     _coreService = new CoreService(smartCAService, _dbService);
-                    List<Task<bool>> tasks = new List<Task<bool>>();
-                    bool isSignedHash = _coreService.SignToKhai_VNPT(hoso.ToKhais, hoso.GuidHS, uid, serialNumber);
-                    if (!isSignedHash)
+                    bool isSaveFile = _coreService.SaveToKhai(hoso.ToKhais, hoso.GuidHS,uid,serialNumber);
+                    if (!isSaveFile)
                     {
-                        return new ERS_Response("Không ký thành công", false);
+                        return new ERS_Response("Không gửi file thành công", false);
                     }
                     //Tao moi hoso va insert vao database
                     bool isSuccess = _coreService.InsertHoSoNew_VNPT(hoso,uid,serialNumber);
@@ -147,6 +146,59 @@ namespace EBH_RemoteSigning_ver2
             {
                 Utilities.logger.ErrorLog(ex, "SendFileSign", hoso.GuidHS);
                 return new ERS_Response($"Lỗi Server: {ex.Message}", false);
+            }
+        }
+
+        [WebMethod(Description ="Phương thức lấy kết quả ký số từ server.")]
+        [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
+        public ERS_Response GetFileSigned(string username, string password, string HoSoGuid)
+        {
+            try
+            {
+                //xac thuc
+                ERS_Response result = UserAuthorize(username, password);
+                if (!result.success)
+                {
+                    return result;
+                }
+                string TSQL = "SELECT * FROM HoSo_VNPT WHERE Guid=@Guid";
+                DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[]
+                {
+                    new SqlParameter("@Guid", HoSoGuid)
+                });
+                if (dt.Rows.Count == 0)
+                {
+                    return new ERS_Response($"Không tồn tại file hồ sơ: {HoSoGuid}", true);
+                }
+                int trangThai = MethodLibrary.SafeNumber<int>(dt.Rows[0]["TrangThai"]);
+                if ((TrangThaiHoso)trangThai == TrangThaiHoso.KyLoi || (TrangThaiHoso)trangThai == TrangThaiHoso.KyLoi)
+                {
+                    return new ERS_Response($"SIGNERROR:{MethodLibrary.SafeString(dt.Rows[0]["ErrMsg"])}", true);
+                }
+                if ((TrangThaiHoso)trangThai == TrangThaiHoso.HetHan)
+                {
+                    return new ERS_Response("EXPIRED", true);
+                }
+                if ((TrangThaiHoso)trangThai == TrangThaiHoso.DaKy)
+                {
+                    string filePath = MethodLibrary.SafeString(dt.Rows[0]["FilePath"]);
+                    byte[] data = File.ReadAllBytes(filePath);
+                    string base64Data = Convert.ToBase64String(data);
+
+                    _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=5 WHERE Guid=@Guid", "", new SqlParameter[]
+                    {
+                        new SqlParameter("@Guid",HoSoGuid)
+                    });
+                    string FolderHSPath = Path.GetDirectoryName(filePath);
+                    Directory.Delete(FolderHSPath, true);
+                    return new ERS_Response("SIGNSUCCESS", true, base64Data);
+                }
+                return new ERS_Response("PENDING", true);
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "GetFileSigned", HoSoGuid);
+                return new ERS_Response(ex.Message, false);
             }
         }
     }

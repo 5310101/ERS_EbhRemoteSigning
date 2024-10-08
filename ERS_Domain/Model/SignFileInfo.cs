@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.UI.WebControls;
+using VnptHashSignatures.Interface;
 
 namespace ERS_Domain.Model
 {
@@ -16,6 +17,7 @@ namespace ERS_Domain.Model
 
     public enum TrangThaiFile
     {
+        TaoMoi = 6,
         KyLoi = 0,
         DaKyHash = 1,
         DaKy = 2,
@@ -25,6 +27,7 @@ namespace ERS_Domain.Model
     public enum TrangThaiHoso
     {
         ChuaTaoFile =4,
+        TaoMoi = 6,
         DaKyHash = 1,
         DaKy = 2,
         HetHan = 3,
@@ -100,8 +103,7 @@ namespace ERS_Domain.Model
 
     public class SignedHashInfo
     {
-        public ToKhaiInfo ToKhai { get; set; }
-        public SignerInfo Signer { get; set; }
+        public IHashSigner Signer { get; set; }
         public DataSign SignData { get; set; }
         public string PathSigner { get; set; } = "";
 

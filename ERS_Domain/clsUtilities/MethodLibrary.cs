@@ -1,15 +1,20 @@
-﻿using ERS_Domain.Model;
+﻿using ERS_Domain.CustomSigner;
+using ERS_Domain.Model;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.CodeDom;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Xml;
 using System.Text;
+using System.Xml;
+using VnptHashSignatures.Interface;
 
 namespace ERS_Domain.clsUtilities
 {
@@ -73,7 +78,7 @@ namespace ERS_Domain.clsUtilities
             }
             else
             {
-                return Path.GetExtension(tenFile).Replace("-595", "");
+                return Path.GetFileNameWithoutExtension(tenFile).Replace("-595", "");
             }
         }
 
@@ -115,7 +120,7 @@ namespace ERS_Domain.clsUtilities
         }
 
         //luu tru thong tin signer de sau khi lay ket qua tao signer moi
-        public static string ExportSigner(SignerInfo signer, string pathTempHS, string transaction_id)
+        public static string ExportSigner(SignerProfile signer, string pathTempHS,string transaction_id)
         {
             try
             {
@@ -135,11 +140,69 @@ namespace ERS_Domain.clsUtilities
             }
         }
         //import lai thong tin signer da luu tru
-        public static SignerInfo ImportSigner(string filePath)
+        public static SignerProfile ImportSigner(string filePath)
         {
             string json = File.ReadAllText(filePath);
-            SignerInfo output = JsonConvert.DeserializeObject<SignerInfo>(json);
+            SignerProfile output = JsonConvert.DeserializeObject<SignerProfile>(json);
             return output;
+        }
+
+        public static IHashSigner GenerateCustomSigner(byte[] unsignData, string certBase64)
+        {
+            if (string.IsNullOrEmpty(certBase64))
+            {
+                throw new FormatException("Bas64 must not be null");
+            }
+
+            try
+            {
+                Convert.FromBase64String(certBase64);
+            }
+            catch (FormatException ex)
+            {
+                throw ex;
+            }
+            return new CustomXmlSigner(unsignData, certBase64);
+
+        }
+        public static bool VerifySignature(byte[] signedDocBytes, string idSignature)
+        {
+            List<bool> list = new List<bool>();
+            XmlDocument xmlDocument = new XmlDocument();
+            try
+            {
+                xmlDocument.Load(new MemoryStream(signedDocBytes));
+                SignedXmlCustom val = new SignedXmlCustom(xmlDocument);
+                XmlNodeList elementsByTagName = xmlDocument.GetElementsByTagName("Signature");
+                XmlElement xmlElement = null;
+                if (string.IsNullOrEmpty(idSignature))
+                {
+                    xmlElement = (XmlElement)elementsByTagName[0];
+                }
+                else
+                {
+                    if (idSignature[0] == '#')
+                    {
+                        idSignature = idSignature.Substring(1);
+                    }
+
+                    xmlElement = (XmlElement)elementsByTagName.Cast<XmlNode>().SingleOrDefault((XmlNode node) => node.Attributes["id"].Value == idSignature);
+                }
+
+                try
+                {
+                    val.LoadXml((XmlElement)elementsByTagName[0]);
+                }
+                catch (Exception ex)
+                {
+
+                }
+                return val.CheckSignature();
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
     }
 }

@@ -32,7 +32,7 @@ namespace ERS_Domain.clsUtilities
                 CheckFilePath(filePath);
                 StringBuilder sb = new StringBuilder(); 
                 sb.AppendLine($"Title: {title}");
-                sb.AppendLine($"Time: {DateTime.Now:dd/MM/yyyy : HH:mm;ss}");
+                sb.AppendLine($"Time: {DateTime.Now:dd/MM/yyyy : HH:mm:ss}");
                 sb.AppendLine($"Message: {ex.Message}");
                 sb.AppendLine($"StackTrace: {ex.StackTrace}");
                 if(ex.InnerException != null)
