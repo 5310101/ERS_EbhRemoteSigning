@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<M01B-HSB xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<ThongTinKhac>
+		<MaDonVi>TS12345</MaDonVi>
+		<SoDienThoai/>
+		<SoTaiKhoan/>
+		<MoTai/>
+		<ChiNhanh/>
+		<DotXetDuyet>20231101</DotXetDuyet>
+		<ThuTruongDonVi>fdgfdgdfg</ThuTruongDonVi>
+		<KemHoSoGiay>1</KemHoSoGiay>
+		<LyDoGiaiTrinh/>
+	</ThongTinKhac>
+	<NoiDung>
+		<PhatSinh>
+			<CheDoOmDau/>
+			<CheDoThaiSan/>
+			<CheDoDuongSuc/>
+		</PhatSinh>
+		<DieuChinh>
+			<CheDoOmDau/>
+			<CheDoThaiSan>
+				<LaoDong>
+					<STT>1</STT>
+					<MaNhomHuong>T12</MaNhomHuong>
+					<SoBHXH>1111111111</SoBHXH>
+					<SoCMND/>
+					<HoTen>thg</HoTen>
+					<TuNgay>17/11/2023</TuNgay>
+					<DenNgay>17/11/2023</DenNgay>
+					<TongSoNgay>11</TongSoNgay>
+					<DotDaGiaiQuyet>20230900001</DotDaGiaiQuyet>
+					<HinhThucNhan>DDCHI</HinhThucNhan>
+					<SoTaiKhoan/>
+					<TenChuTaiKhoan/>
+					<MaNganHang/>
+					<MaNhanVien/>
+					<GhiChu/>
+					<LyDoDieuChinh>adfdasf</LyDoDieuChinh>
+					<TuNgayDuyetTruoc>17/11/2023</TuNgayDuyetTruoc>
+				</LaoDong>
+			</CheDoThaiSan>
+			<CheDoDuongSuc/>
+		</DieuChinh>
+	</NoiDung>
+	<Cky/>
+</M01B-HSB>

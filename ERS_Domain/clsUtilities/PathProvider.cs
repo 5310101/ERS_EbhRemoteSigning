@@ -50,8 +50,7 @@ namespace ERS_Domain.clsUtilities
             {
                 if (string.IsNullOrEmpty(_signedTempFolder))
                 {
-                    string TempFolderName = ConfigurationManager.AppSettings["SIGNEDTEMPFOLDER"];
-                    _signedTempFolder = Path.Combine(AppPath, TempFolderName);
+                    _signedTempFolder = ConfigurationManager.AppSettings["SIGNEDTEMPFOLDER"];
                 }
                 return _signedTempFolder;
             }

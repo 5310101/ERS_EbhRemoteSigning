@@ -39,7 +39,7 @@ namespace EBH_RemoteSigning_ver2
             _dbService = new DbService();
         }
 
-        [WebMethod]
+        [WebMethod(Description ="Phương thức xác thực cho SOAP service.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response UserAuthorize(string userName, string Md5Password)
         {
@@ -81,7 +81,7 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        [WebMethod]
+        [WebMethod(Description ="Phương thức lấy chữ ký số từ server VNPT, truyền serial number để lấy chính xác chữ ký số nếu tài khoản có nhiều chữ ký số.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response GetCertificate_VNPT(string userName, string password, string uid, string serialNumber = "")
         {
@@ -105,7 +105,7 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        [WebMethod]
+        [WebMethod(Description ="Phương thức gửi file lên server để thực hiện ký.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response SendFileSign(RemoteSigningProvider signProvider, string uid, string username, string password, HoSoInfo hoso, string serialNumber = "")
         {
@@ -123,11 +123,10 @@ namespace EBH_RemoteSigning_ver2
                 {
                     SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
                     _coreService = new CoreService(smartCAService, _dbService);
-                    List<Task<bool>> tasks = new List<Task<bool>>();
-                    bool isSignedHash = _coreService.SignToKhai_VNPT(hoso.ToKhais, hoso.GuidHS, uid, serialNumber);
-                    if (!isSignedHash)
+                    bool isSaveFile = _coreService.SaveToKhai(hoso.ToKhais, hoso.GuidHS,uid,serialNumber);
+                    if (!isSaveFile)
                     {
-                        return new ERS_Response("Không ký thành công", false);
+                        return new ERS_Response("Không gửi file thành công", false);
                     }
                     //Tao moi hoso va insert vao database
                     bool isSuccess = _coreService.InsertHoSoNew_VNPT(hoso,uid,serialNumber);
@@ -150,7 +149,7 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        [WebMethod]
+        [WebMethod(Description ="Phương thức lấy kết quả ký số từ server.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response GetFileSigned(string username, string password, string HoSoGuid)
         {

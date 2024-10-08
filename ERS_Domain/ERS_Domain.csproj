@@ -81,6 +81,7 @@
     <Compile Include="Exceptions\CustomException.cs" />
     <Compile Include="Model\BHXHDienTu.cs" />
     <Compile Include="Model\SignFileInfo.cs" />
+    <Compile Include="Model\TSDHashSigner.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Request\SmartCARequest.cs" />
     <Compile Include="Response\ERS_Response.cs" />

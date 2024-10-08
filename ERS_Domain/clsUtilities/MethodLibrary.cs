@@ -120,7 +120,7 @@ namespace ERS_Domain.clsUtilities
         }
 
         //luu tru thong tin signer de sau khi lay ket qua tao signer moi
-        public static string ExportSigner(SignerProfile signer, string pathTempHS, string transaction_id)
+        public static string ExportSigner(SignerProfile signer, string pathTempHS,string transaction_id)
         {
             try
             {
