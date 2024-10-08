@@ -9,6 +9,7 @@ using iTextSharp.text;
 using iTextSharp.text.html.simpleparser;
 using iTextSharp.text.pdf;
 using iTextSharp.text.pdf.parser;
+using iTextSharp.text.pdf.security;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.X509;
 using SignLib2003;
