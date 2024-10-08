@@ -523,7 +523,7 @@ namespace ws_GetResult_RemoteSigning
                     //update trang thai to khai
                     try
                     {
-                        UpdateStatusToKhai(id, TrangThaiFile.DaKyHash, "", "", dataSign.transaction_id, dataSign.transaction_id, dataSign.tran_code);
+                        UpdateStatusToKhai(id, TrangThaiFile.DaKyHash, "", FilePath, dataSign.transaction_id, dataSign.transaction_id, dataSign.tran_code);
                     }
                     catch (DatabaseInteractException ex)
                     {
@@ -1015,7 +1015,6 @@ namespace ws_GetResult_RemoteSigning
                     DateTime LastGet = MethodLibrary.SafeDateTime(dr["LastGet"]);
                     string tran_id = MethodLibrary.SafeString(dr["transaction_id"]);
                     //string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
-                    string signerPath = MethodLibrary.SafeString(dr["SignerPath"]);
                     string url = $"https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{tran_id}/status";
                     try
                     {
