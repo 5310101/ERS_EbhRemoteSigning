@@ -2,7 +2,6 @@
 using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
 using ERS_Domain.CustomSigner;
-using ERS_Domain.CustomSigner.CustomSignerOffice;
 using ERS_Domain.Exceptions;
 using ERS_Domain.Model;
 using ERS_Domain.Response;
@@ -14,8 +13,6 @@ using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
-using System.Runtime;
-using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Text;
 using System.Timers;
@@ -25,7 +22,6 @@ using VnptHashSignatures.Common;
 using VnptHashSignatures.Interface;
 using VnptHashSignatures.Office;
 using VnptHashSignatures.Pdf;
-using VnptHashSignatures.Xml;
 
 namespace ws_GetResult_RemoteSigning
 {
@@ -239,6 +235,7 @@ namespace ws_GetResult_RemoteSigning
                         }
                         
                         TSDHashSigner TSDSigner = listSigner.FirstOrDefault(s => s.Id == signerId);
+                        //file pdf ky bang signer profile ko can luu tru signer
                         if (TSDSigner == null && Path.GetExtension(tenToKhai) !=".pdf")
                         {
                             UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tìm được signer");
