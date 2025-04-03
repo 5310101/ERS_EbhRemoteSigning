@@ -3,16 +3,10 @@ using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
 using ERS_Domain.Model;
 using ERS_Domain.Response;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using VnptHashSignatures.Common;
-using VnptHashSignatures.Interface;
-using VnptHashSignatures.Pdf;
 using System.Data.SqlClient;
-using ERS_Domain.CustomSigner;
-using System.Security.Cryptography;
 
 namespace EBH_RemoteSigning_ver2
 {
