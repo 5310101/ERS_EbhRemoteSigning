@@ -104,7 +104,7 @@ namespace ERS_Domain.CAService
             
         }
 
-        public DataSign Sign(string uri, string data_to_be_signed, string serialNumber, string uid)
+        public DataSign Sign(string uri, string data_to_be_signed, string serialNumber, string uid, string fileType)
         {
             try
             {
@@ -112,7 +112,7 @@ namespace ERS_Domain.CAService
                 var sign_file = new SignFile();
                 sign_file.data_to_be_signed = data_to_be_signed;
                 sign_file.doc_id = data_to_be_signed;
-                sign_file.file_type = "pdf";
+                sign_file.file_type = fileType;
                 sign_file.sign_type = "hash";
                 sign_files.Add(sign_file);
                 var response = Query(new ReqSign

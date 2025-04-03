@@ -203,18 +203,26 @@ namespace testSigning_Winform
 
         private void btnTestFolder_Click(object sender, EventArgs e)
         {
-            //string path = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
-            //DirectoryInfo di = new DirectoryInfo(path);
-            //DirectorySecurity ds = di.GetAccessControl();
-            //AuthorizationRuleCollection rules = ds.GetAccessRules(true, true, typeof(NTAccount));
-            var control = panelToKhai.Controls.OfType<FileDisplayControl>().First();
-            //string json = JsonConvert.SerializeObject(control.signer);
-            //File.WriteAllText("C:\\Users\\quanna\\Desktop\\testapi_smartca\\SerializeObject\\Signer.txt", json);
-
-            XmlSerializer serializer = new XmlSerializer(typeof(XmlHashSigner));
-            using (var writer = new StreamWriter("C:\\Users\\quanna\\Desktop\\testapi_smartca\\SerializeObject\\Signer.xml"))
+            try
             {
-                serializer.Serialize(writer, control.signer);  
+                //string path = "C:\\Users\\quanna\\Desktop\\testapi_smartca\\TestResult";
+                //DirectoryInfo di = new DirectoryInfo(path);
+                //DirectorySecurity ds = di.GetAccessControl();
+                //AuthorizationRuleCollection rules = ds.GetAccessRules(true, true, typeof(NTAccount));
+                var control = panelToKhai.Controls.OfType<FileDisplayControl>().First();
+                //string json = JsonConvert.SerializeObject(control.signer);
+                //File.WriteAllText("C:\\Users\\quanna\\Desktop\\testapi_smartca\\SerializeObject\\Signer.txt", json);
+
+                XmlSerializer serializer = new XmlSerializer(typeof(XmlHashSigner));
+                using (var writer = new StreamWriter("C:\\Users\\quanna\\Desktop\\testapi_smartca\\SerializeObject\\Signer.xml"))
+                {
+                    serializer.Serialize(writer, control.signer);
+                }
+            }
+            catch (Exception)
+            {
+
+                throw;
             }
         }
 
@@ -233,7 +241,6 @@ namespace testSigning_Winform
 
         private void button2_Click(object sender, EventArgs e)
         {
-            
             try
             {
                 //check tung to khai da ky chua

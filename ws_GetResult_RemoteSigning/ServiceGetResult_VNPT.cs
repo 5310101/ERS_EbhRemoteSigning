@@ -11,8 +11,11 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Policy;
 using System.ServiceProcess;
 using System.Text;
 using System.Timers;
@@ -219,7 +222,7 @@ namespace ws_GetResult_RemoteSigning
                     string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
                     string filePath = MethodLibrary.SafeString(dr["FilePath"]);
                     string signerId = MethodLibrary.SafeString(dr["SignerId"]);
-                    string url = $"https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{tran_id}/status";
+                    string url = $"{VNPT_URI.uriGetResult_test}/{tran_id}/status";
                     try
                     {
 
@@ -230,7 +233,7 @@ namespace ws_GetResult_RemoteSigning
                         if (res.message == "EXPIRED")
                         {
                             //khi to khai da het han update trang thai
-                            UpdateStatusToKhai(id, TrangThaiFile.HetHan, "Tờ khai đã hết hạn để ký xác nhận");
+                            UpdateStatusToKhai(id, TrangThaiFile.HetHan, "The file's signing time has expired");
                             continue;
                         }
                         
@@ -238,7 +241,7 @@ namespace ws_GetResult_RemoteSigning
                         //file pdf ky bang signer profile ko can luu tru signer
                         if (TSDSigner == null && Path.GetExtension(tenToKhai) !=".pdf")
                         {
-                            UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Không tìm được signer");
+                            UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Cannot find signer");
                             continue;
                         }
                         IHashSigner signer = null;
@@ -349,7 +352,7 @@ namespace ws_GetResult_RemoteSigning
             var datasigned = "";
             var mapping = "";
             string tempFolder = Path.GetTempPath();
-            if (transactionStatus.signatures != null)
+            if (transactionStatus?.signatures != null)
             {
                 datasigned = transactionStatus.signatures[0].signature_value;
                 mapping = transactionStatus.signatures[0].doc_id;
@@ -486,16 +489,17 @@ namespace ws_GetResult_RemoteSigning
                         Data = File.ReadAllBytes(FilePath);  
                     }
                     IHashSigner signer = null;
+                    string errMessage = "";
                     switch (type)
                     {
                         case FileType.PDF:
-                            dataSign = SignSmartCAPDF(cert, Data, uid);
+                            dataSign = SignSmartCAPDF(cert, Data, uid, ref errMessage);
                             break;
                         case FileType.XML:
-                            dataSign = SignSmartCAXML(cert, Data, uid, ref signer);
+                            dataSign = SignSmartCAXML(cert, Data, uid, ref signer, ref errMessage);
                             break;
                         case FileType.OFFICE:
-                            dataSign = SignSmartCAOFFICE(cert, Data, uid, ref signer);
+                            dataSign = SignSmartCAOFFICE(cert, Data, uid, ref signer, ref errMessage);
                             break;
                         default:
                             return ;
@@ -503,6 +507,8 @@ namespace ws_GetResult_RemoteSigning
                     //1 file ky loi thi them vao list guid loi
                     if (dataSign == null)
                     {
+                        //update to khai ky loi
+                        UpdateStatusToKhai(id, TrangThaiFile.KyLoi, errMessage);
                         listHoSo_Loi.Add(GuidHS);
                         continue;
                     }
@@ -540,7 +546,7 @@ namespace ws_GetResult_RemoteSigning
         #endregion
 
         #region cac ham ky remote
-        private DataSign SignSmartCAPDF(UserCertificate userCert, byte[] pdfUnsign, string uid)
+        private DataSign SignSmartCAPDF(UserCertificate userCert, byte[] pdfUnsign, string uid, ref string errMessage)
         {
             try
             {
@@ -581,25 +587,30 @@ namespace ws_GetResult_RemoteSigning
                 var profileJson = JsonConvert.SerializeObject(profile);
 
                 var hashValue = Convert.ToBase64String(profile.SecondHashBytes);
+                if (string.IsNullOrEmpty(hashValue))
+                {
+                    throw new Exception("Hash file error");
+                }
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
                 string tempFolder = Path.GetTempPath();
                 File.AppendAllText(tempFolder + data_to_be_sign + ".txt", profileJson);
 
-                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
+                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid, "pdf");
 
                 return dataSign;
             }
             catch (Exception ex)
             {
                 Utilities.logger.ErrorLog(ex, "SignSmartCAPDF", userCert.cert_subject);
+                errMessage = ex.Message;
                 return null;
             }
         }
 
-        private DataSign SignSmartCAXML(UserCertificate userCert, byte[] xmlUnsign, string uid, ref IHashSigner signer, string nodeKy = "")
-        { 
+        private DataSign SignSmartCAXML(UserCertificate userCert, byte[] xmlUnsign, string uid, ref IHashSigner signer,ref string errMesage ,string nodeKy = "")
+        {
             try
             {
                 String certBase64 = userCert.cert_data;
@@ -626,11 +637,15 @@ namespace ws_GetResult_RemoteSigning
                 ((CustomXmlSigner)signer).SetParentNodePath(nodeKy);
 
                 var hashValue = signer.GetSecondHashAsBase64();
+                if (string.IsNullOrEmpty(hashValue))
+                {
+                    throw new Exception("Hash file error");
+                }
                 //signerProfile = signer.GetSignerProfile();
                 //var hashValue = Convert.ToBase64String(signerProfile.SecondHashBytes);
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
+                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid,"xml");
 
                 return dataSign;
 
@@ -639,11 +654,12 @@ namespace ws_GetResult_RemoteSigning
             {
                 Utilities.logger.ErrorLog(ex, "SignSmartCAXML", userCert.cert_subject);
                 signer = null;
+                errMesage = ex.Message;
                 return null;
             }
         }
 
-        private DataSign SignSmartCAOFFICE(UserCertificate userCert, byte[] officeUnsign, string uid, ref IHashSigner signer)
+        private DataSign SignSmartCAOFFICE(UserCertificate userCert, byte[] officeUnsign, string uid, ref IHashSigner signer, ref string errMessage)
         {
             try
             {
@@ -652,18 +668,23 @@ namespace ws_GetResult_RemoteSigning
                 signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
                 var hashValue = signer.GetSecondHashAsBase64();
+                if (string.IsNullOrEmpty(hashValue))
+                {
+                    throw new Exception("Hash file error");
+                }
                 //signerProfile = signer.GetSignerProfile();
                 //var hashValue = Convert.ToBase64String(signerProfile.SecondHashBytes);
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
+                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid,"office");
                 return dataSign;
             }
             catch (Exception ex)
             {
                 Utilities.logger.ErrorLog(ex, "SignSmartCAOFFICE", userCert.cert_subject);
                 signer = null;
+                errMessage = ex.Message;
                 return null;
             }
         }
@@ -675,11 +696,11 @@ namespace ws_GetResult_RemoteSigning
             bool result = _dbService.ExecQuery("UPDATE ToKhai_VNPT SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, FilePath=@FilePath, SignerId=@SignerId, transaction_id=@transaction_id, tran_code=@tran_code, LastGet=@LastGet WHERE id=@id", "", new SqlParameter[]
                 {
                 new SqlParameter("@TrangThai", (int)TrangThai),
-                new SqlParameter("@ErrMsg", errMsg),
-                new SqlParameter("@FilePath", FilePath),
-                new SqlParameter("@SignerId", SignerId),
-                new SqlParameter("@transaction_id", transaction_id),
-                new SqlParameter("@tran_code", tran_code),
+                new SqlParameter("@ErrMsg", errMsg.SafeString()),
+                new SqlParameter("@FilePath", FilePath.SafeString()),
+                new SqlParameter("@SignerId", SignerId.SafeString()),
+                new SqlParameter("@transaction_id", transaction_id.SafeString()),
+                new SqlParameter("@tran_code", tran_code.SafeString()),
                 new SqlParameter("@LastGet", DateTime.Now),
                 new SqlParameter("@id", id),
                 });
@@ -730,9 +751,10 @@ namespace ws_GetResult_RemoteSigning
         {
             foreach(string guid in listGuid)
             {
-                bool isUpdated = _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=0 WHERE Guid=@Guid", "", new SqlParameter[]
+                bool isUpdated = _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=0, ErrMsg=@ErrMsg WHERE Guid=@Guid", "", new SqlParameter[]
                 {
-                    new SqlParameter("@Guid",guid)
+                    new SqlParameter("@Guid",guid),
+                    new SqlParameter("@ErrMsg","Sign Error")
                 });
                 string tempHS = Path.Combine(SignedTempFolder,guid);
                 if (isUpdated && Directory.Exists(tempHS))
@@ -898,6 +920,7 @@ namespace ws_GetResult_RemoteSigning
 
         private bool SignHoSoBHXH(string uid, string GuidHS, string serialNumber)
         {
+            string errMessage = "";
             try
             {
                 //lay cert
@@ -911,12 +934,12 @@ namespace ws_GetResult_RemoteSigning
                 string pathBHXHDt = Path.Combine(PathTempHoSo, "BHXHDienTu.xml");
                 IHashSigner signer = null;
                 byte[] DataBHXHDt = File.ReadAllBytes(pathBHXHDt);
-                DataSign dataSign = SignSmartCAXML(userCert, DataBHXHDt, uid, ref signer, "/Hoso/CKy_Dvi");
+                DataSign dataSign = SignSmartCAXML(userCert, DataBHXHDt, uid, ref signer, ref errMessage,"/Hoso/CKy_Dvi");
 
                 if (dataSign == null)
                 {
                     //update trang thai ky loi
-                    UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Lỗi khi ký hash");
+                    UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, errMessage);
                     return false;
                 }
                 //co the thay doi thoi gian countdown dua vao data tra ve tu sever, default la 300
@@ -978,7 +1001,7 @@ namespace ws_GetResult_RemoteSigning
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid);
+                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid, "xml");
 
                 return dataSign;
 
@@ -1012,7 +1035,7 @@ namespace ws_GetResult_RemoteSigning
                     DateTime LastGet = MethodLibrary.SafeDateTime(dr["LastGet"]);
                     string tran_id = MethodLibrary.SafeString(dr["transaction_id"]);
                     //string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
-                    string url = $"https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign/{tran_id}/status";
+                    string url = $"{VNPT_URI.uriGetResult_test}/{tran_id}/status";
                     try
                     {
 

@@ -54,10 +54,15 @@ namespace ERS_Domain.clsUtilities
 
 	public static class VNPT_URI
 	{
-        public static string uriGetCert = "https://gwsca.vnpt.vn/sca/sp769/v1/credentials/get_certificate";
-        public static string uriSign = "https://gwsca.vnptit.vn/sca/sp769/v1/signatures/sign";
-        
-        public static string uriGetCert_test = "https://rmgateway.vnptit.vn/sca/sp769/v1/credentials/get_certificate";
-        public static string uriSign_test = "https://rmgateway.vnptit.vn/sca/sp769/v1/signatures/sign";
+		public static string URI = ConfigurationManager.AppSettings["URL_ENDPOINT"];
+        public static string URI_TEST = ConfigurationManager.AppSettings["URL_ENDPOINT_TEST"];
+
+        public static string uriGetCert = $"{URI}/v1/credentials/get_certificate";
+        public static string uriSign = $"{URI}/v1/signatures/sign";
+		public static string uriGetResult = $"{URI}/v1/signatures/sign";
+
+        public static string uriGetCert_test = $"{URI_TEST}/v1/credentials/get_certificate";
+        public static string uriSign_test = $"{URI_TEST}/v1/signatures/sign";
+        public static string uriGetResult_test = $"{URI_TEST}/v1/signatures/sign";
     }
 }
