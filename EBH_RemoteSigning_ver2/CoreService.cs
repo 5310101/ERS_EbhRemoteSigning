@@ -112,7 +112,7 @@ namespace EBH_RemoteSigning_ver2
         //neu nguoi dung co tu 2 cks tro len se dung ham nay de lay 
         public UserCertificate[] GetListUserCertificateVNPT(string uid)
         {
-            UserCertificate[] certs = _signService.GetListAccountCert(VNPT_URI.uriGetCert_test,uid);
+            UserCertificate[] certs = _signService.GetListAccountCert(VNPT_URI.uriGetCert,uid);
             return certs;
         }
         

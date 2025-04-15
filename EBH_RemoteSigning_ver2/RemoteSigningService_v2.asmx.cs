@@ -171,13 +171,17 @@ namespace EBH_RemoteSigning_ver2
                     return new ERS_Response($"Không tồn tại file hồ sơ: {HoSoGuid}", true);
                 }
                 int trangThai = MethodLibrary.SafeNumber<int>(dt.Rows[0]["TrangThai"]);
-                if ((TrangThaiHoso)trangThai == TrangThaiHoso.KyLoi || (TrangThaiHoso)trangThai == TrangThaiHoso.KyLoi)
+                if ((TrangThaiHoso)trangThai == TrangThaiHoso.KyLoi )
                 {
                     return new ERS_Response($"SIGNERROR:{MethodLibrary.SafeString(dt.Rows[0]["ErrMsg"])}", true);
                 }
                 if ((TrangThaiHoso)trangThai == TrangThaiHoso.HetHan)
                 {
                     return new ERS_Response("EXPIRED", true);
+                }
+                if ((TrangThaiHoso)trangThai == TrangThaiHoso.DaLayKetQua)
+                {
+                    return new ERS_Response("RESULT_RETURNED_BEFORE", true);
                 }
                 if ((TrangThaiHoso)trangThai == TrangThaiHoso.DaKy)
                 {
@@ -191,7 +195,7 @@ namespace EBH_RemoteSigning_ver2
                     });
                     string FolderHSPath = Path.GetDirectoryName(filePath);
                     Directory.Delete(FolderHSPath, true);
-                    return new ERS_Response("SIGNSUCCESS", true, base64Data);
+                    return new ERS_Response("SIGN_SUCCESS", true, base64Data);
                 }
                 return new ERS_Response("PENDING", true);
             }

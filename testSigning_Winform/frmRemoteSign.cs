@@ -1,10 +1,12 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Security.AccessControl;
 using System.Security.Principal;
+using System.Text;
 using System.Windows.Forms;
 using System.Xml;
 using System.Xml.Serialization;
@@ -101,7 +103,7 @@ namespace testSigning_Winform
                 MessageBox.Show("Signed successfully","Notification");
                 lblTimeLeft.Text = "00";
             }
-            catch (Exception ex)
+            catch 
             {
                 //log
                 _timerGetResult.Stop();
@@ -141,7 +143,7 @@ namespace testSigning_Winform
                     _timer.Stop();
                 }
             }
-            catch (Exception ex)
+            catch 
             {
                 //Ghilog ex
                 _timer.Stop();
@@ -195,7 +197,7 @@ namespace testSigning_Winform
                     MessageBox.Show("All document has been signed");
                 }
             }
-            catch (Exception ex)
+            catch 
             {
                 //Ghilog
             }
@@ -278,7 +280,7 @@ namespace testSigning_Winform
                 _signer = signer;
                 _dataSign = result;
             }
-            catch (Exception ex)
+            catch 
             {
                 //log
                 return;

@@ -22,17 +22,17 @@ namespace ERS_Domain.clsUtilities
     {
         public static string MD5Hasher(string intput)
         {
-            using (MD5 md5 = MD5.Create()) 
+            using (MD5 md5 = MD5.Create())
             {
-                byte[] stringByte = Encoding.ASCII.GetBytes(intput); 
-                byte[] hashByte = md5.ComputeHash(stringByte);  
+                byte[] stringByte = Encoding.ASCII.GetBytes(intput);
+                byte[] hashByte = md5.ComputeHash(stringByte);
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < hashByte.Length; i++)
                 {
                     sb.Append(hashByte[i].ToString("X2"));
                 }
                 return sb.ToString();
-            }  
+            }
         }
 
         public static string SafeString(this object input)
@@ -43,20 +43,20 @@ namespace ERS_Domain.clsUtilities
             }
             return input.ToString();
         }
-        public static T SafeNumber<T>(this object input) where T : struct, IConvertible 
+        public static T SafeNumber<T>(this object input) where T : struct, IConvertible
         {
             if (input == null || input is DBNull)
             {
                 return default;
             }
-            return (T)Convert.ChangeType(input, typeof(T)); 
+            return (T)Convert.ChangeType(input, typeof(T));
         }
 
-        public static DateTime SafeDateTime(this object input, string DateType = "MM/dd/yyyy") 
+        public static DateTime SafeDateTime(this object input, string DateType = "MM/dd/yyyy")
         {
             try
             {
-                if (input == null || input is DBNull) 
+                if (input == null || input is DBNull)
                 {
                     return default;
                 }
@@ -107,7 +107,7 @@ namespace ERS_Domain.clsUtilities
 
             if (response == null || response.ErrorException != null)
             {
-                Utilities.logger.ErrorLog("Service return null response","Server SmartCA Error");
+                Utilities.logger.ErrorLog("Service return null response", "Server SmartCA Error");
                 return null;
             }
             if (response.StatusCode != HttpStatusCode.OK)
@@ -120,7 +120,7 @@ namespace ERS_Domain.clsUtilities
         }
 
         //luu tru thong tin signer de sau khi lay ket qua tao signer moi
-        public static string ExportSigner(SignerProfile signer, string pathTempHS,string transaction_id)
+        public static string ExportSigner(SignerProfile signer, string pathTempHS, string transaction_id)
         {
             try
             {
@@ -203,6 +203,14 @@ namespace ERS_Domain.clsUtilities
             {
                 return false;
             }
+        }
+
+        public static string GetSubjectValue(this string subject, string subjectName)
+        {
+            string[] subjArr = subject.Split(new string[] { "," }, StringSplitOptions.RemoveEmptyEntries);
+            var subjFinded = subjArr.FirstOrDefault(x => x.Contains(subjectName));
+            var subjValue = subjFinded.Split(new string[] { "=" }, StringSplitOptions.RemoveEmptyEntries)[1];
+            return subjValue == null ? "" : subjValue.Trim();
         }
     }
 }

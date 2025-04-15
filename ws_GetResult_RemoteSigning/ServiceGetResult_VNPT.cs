@@ -11,11 +11,8 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
 using System.Data.SqlClient;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Security.Policy;
 using System.ServiceProcess;
 using System.Text;
 using System.Timers;
@@ -222,7 +219,7 @@ namespace ws_GetResult_RemoteSigning
                     string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
                     string filePath = MethodLibrary.SafeString(dr["FilePath"]);
                     string signerId = MethodLibrary.SafeString(dr["SignerId"]);
-                    string url = $"{VNPT_URI.uriGetResult_test}/{tran_id}/status";
+                    string url = $"{VNPT_URI.uriGetResult}/{tran_id}/status";
                     try
                     {
 
@@ -482,7 +479,7 @@ namespace ws_GetResult_RemoteSigning
                     string FilePath = MethodLibrary.SafeString(row["FilePath"]);
                     DataSign dataSign = null;
                     //SignedHashInfo signedHashInfo = new SignedHashInfo();
-                    UserCertificate cert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert_test, uid, serialNumber);
+                    UserCertificate cert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert, uid, serialNumber);
                     byte[] Data = null;
                     if (File.Exists(FilePath))
                     {
@@ -560,7 +557,11 @@ namespace ws_GetResult_RemoteSigning
 
                 ((PdfHashSigner)signer).SetRenderingMode(PdfHashSigner.RenderMode.TEXT_ONLY);
                 // Nội dung text trên chữ ký (OPTIONAL)
-                ((PdfHashSigner)signer).SetLayer2Text($"Ngày ký: {DateTime.Now.Date} \n Người ký: QuanNa \n Nơi ký: EBH");
+                string subject = userCert.cert_subject;
+                string nguoiKy = subject.GetSubjectValue("CN=");
+                string noiKy = subject.GetSubjectValue("ST=");
+
+                ((PdfHashSigner)signer).SetLayer2Text($"Ngày ký: {DateTime.Now.Date} \n Người ký: {nguoiKy} \n Nơi ký: {noiKy}");
                 // Fontsize cho text trên chữ ký (OPTIONAL/DEFAULT = 10)
                 ((PdfHashSigner)signer).SetFontSize(10);
                 //((PdfHashSigner)signer).SetLayer2Text("yahooooooooooooooooooooooooooo");
@@ -597,7 +598,7 @@ namespace ws_GetResult_RemoteSigning
                 string tempFolder = Path.GetTempPath();
                 File.AppendAllText(tempFolder + data_to_be_sign + ".txt", profileJson);
 
-                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid, "pdf");
+                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign, data_to_be_sign, userCert.serial_number, uid, "pdf");
 
                 return dataSign;
             }
@@ -645,7 +646,7 @@ namespace ws_GetResult_RemoteSigning
                 //var hashValue = Convert.ToBase64String(signerProfile.SecondHashBytes);
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid,"xml");
+                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign, data_to_be_sign, userCert.serial_number, uid,"xml");
 
                 return dataSign;
 
@@ -677,7 +678,7 @@ namespace ws_GetResult_RemoteSigning
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid,"office");
+                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign, data_to_be_sign, userCert.serial_number, uid,"office");
                 return dataSign;
             }
             catch (Exception ex)
@@ -769,7 +770,7 @@ namespace ws_GetResult_RemoteSigning
             string TSQL = $"UPDATE HoSo_VNPT SET LastGet=@LastGet WHERE id IN ({strListId})";
             var result = _dbService.ExecQuery(TSQL, "", new SqlParameter[]
             {
-                        new SqlParameter("@LastGet", DateTime.Now)
+                new SqlParameter("@LastGet", DateTime.Now)
             });
             if (!result)
             {
@@ -924,7 +925,7 @@ namespace ws_GetResult_RemoteSigning
             try
             {
                 //lay cert
-                UserCertificate userCert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert_test, uid, serialNumber);
+                UserCertificate userCert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert, uid, serialNumber);
                 if (userCert == null)
                 {
                     Utilities.logger.ErrorLog("Không tìm thấy cert trên server VNPT để ký", "Lỗi khi ký", uid, serialNumber);
@@ -1001,7 +1002,7 @@ namespace ws_GetResult_RemoteSigning
 
                 var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
 
-                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign_test, data_to_be_sign, userCert.serial_number, uid, "xml");
+                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign, data_to_be_sign, userCert.serial_number, uid, "xml");
 
                 return dataSign;
 
@@ -1035,7 +1036,7 @@ namespace ws_GetResult_RemoteSigning
                     DateTime LastGet = MethodLibrary.SafeDateTime(dr["LastGet"]);
                     string tran_id = MethodLibrary.SafeString(dr["transaction_id"]);
                     //string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
-                    string url = $"{VNPT_URI.uriGetResult_test}/{tran_id}/status";
+                    string url = $"{VNPT_URI.uriGetResult}/{tran_id}/status";
                     try
                     {
 
@@ -1072,7 +1073,7 @@ namespace ws_GetResult_RemoteSigning
                             continue;
                         }
                         //update thanh trang thai da ky
-                        UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKy, "", pathSaved);
+                        UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKy, "", "",pathSaved);
                     }
                     catch (DatabaseInteractException ex)
                     {

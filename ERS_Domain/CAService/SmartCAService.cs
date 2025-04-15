@@ -121,7 +121,7 @@ namespace ERS_Domain.CAService
                     sp_password = _configRequest.sp_password,
                     user_id = uid,
                     transaction_id = Guid.NewGuid().ToString(),
-                    transaction_desc = "Ký Test từ QuanNguyenAnh",
+                    transaction_desc = "Ký từ EBH",
                     sign_files = sign_files,
                     serial_number = serialNumber,
 
