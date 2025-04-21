@@ -760,6 +760,7 @@ namespace testSigning_Winform
             {
                 RemoteSigningService_v2 service_V2 = new RemoteSigningService_v2()
                 {
+                    //Url = "https://ebh.vn/RemoteSigning/RemoteSigningService_v2.asmx",
                     Url = "https://localhost:44359/RemoteSigningService_v2.asmx",
                     AuthorizeValue = new Authorize()
                     {
@@ -767,7 +768,7 @@ namespace testSigning_Winform
                     }
                 };
                 HoSoInfo hoso = CreateHoSoTest(controls);
-                var result = service_V2.SendFileSign(RemoteSigningProvider.VNPT, uid, "1", "c4ca4238a0b923820dcc509a6f75849b", hoso, "");
+                var result = service_V2.SendFileSign(RemoteSigningProvider.VNPT, uid, "0101300842999", "2911055af3c0b54ff4d313b28032fe23", hoso, "");
                 MessageBox.Show(result.message,"notification");
             }
             catch (Exception ex)

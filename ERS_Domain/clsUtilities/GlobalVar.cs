@@ -56,8 +56,8 @@ namespace ERS_Domain.clsUtilities
     {
         public static readonly string URI =
             ConfigurationManager.AppSettings["ISTEST"] == "1"
-                ? ConfigurationManager.AppSettings["URL_ENDPOINT"]
-                : ConfigurationManager.AppSettings["URL_ENDPOINT_TEST"];
+                ? ConfigurationManager.AppSettings["URL_ENDPOINT_TEST"]
+                : ConfigurationManager.AppSettings["URL_ENDPOINT"];
 
         public static readonly string uriGetCert = URI + "/v1/credentials/get_certificate";
         public static readonly string uriSign = URI + "/v1/signatures/sign";

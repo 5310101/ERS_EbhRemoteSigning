@@ -17,7 +17,7 @@ namespace ERS_Domain.CAService
 
         public SmartCAService(ConfigRequest configRequest)
         {
-            _configRequest = configRequest;   
+            _configRequest = configRequest;
         }
 
 
@@ -64,7 +64,7 @@ namespace ERS_Domain.CAService
                 Utilities.logger.ErrorLog(ex, "GetAccountCert", uid);
                 return null;
             }
-            
+
         }
 
         public UserCertificate[] GetListAccountCert(string uri, string uid)
@@ -101,44 +101,36 @@ namespace ERS_Domain.CAService
                 Utilities.logger.ErrorLog(ex, "GetListAccountCert", uid);
                 return null;
             }
-            
+
         }
 
         public DataSign Sign(string uri, string data_to_be_signed, string serialNumber, string uid, string fileType)
         {
-            try
-            {
-                var sign_files = new List<SignFile>();
-                var sign_file = new SignFile();
-                sign_file.data_to_be_signed = data_to_be_signed;
-                sign_file.doc_id = data_to_be_signed;
-                sign_file.file_type = fileType;
-                sign_file.sign_type = "hash";
-                sign_files.Add(sign_file);
-                var response = Query(new ReqSign
-                {
-                    sp_id = _configRequest.sp_id,
-                    sp_password = _configRequest.sp_password,
-                    user_id = uid,
-                    transaction_id = Guid.NewGuid().ToString(),
-                    transaction_desc = "Ký từ EBH",
-                    sign_files = sign_files,
-                    serial_number = serialNumber,
 
-                }, uri);
-                if (response != null)
-                {
-                    ResSign req = JsonConvert.DeserializeObject<ResSign>(response);
-                    return req.data;
-                }
-                return null;
-            }
-            catch (Exception ex)
+            var sign_files = new List<SignFile>();
+            var sign_file = new SignFile();
+            sign_file.data_to_be_signed = data_to_be_signed;
+            sign_file.doc_id = data_to_be_signed;
+            sign_file.file_type = fileType;
+            sign_file.sign_type = "hash";
+            sign_files.Add(sign_file);
+            var response = Query(new ReqSign
             {
-                Utilities.logger.ErrorLog(ex, "Sign", uid);
-                return null;
+                sp_id = _configRequest.sp_id,
+                sp_password = _configRequest.sp_password,
+                user_id = uid,
+                transaction_id = Guid.NewGuid().ToString(),
+                transaction_desc = "Ký từ EBH",
+                sign_files = sign_files,
+                serial_number = serialNumber,
+
+            }, uri);
+            if (response != null)
+            {
+                ResSign req = JsonConvert.DeserializeObject<ResSign>(response);
+                return req.data;
             }
-            
+            return null;
         }
 
         private String Query(object req, string serviceUri)
@@ -161,18 +153,18 @@ namespace ERS_Domain.CAService
             catch (Exception ex)
             {
                 Utilities.logger.ErrorLog(ex, $"Connect gateway error: {ex.Message}");
-                return null;
+                throw new Exception($"Connect gateway error: {ex.Message}");
             }
 
             if (response == null || response.ErrorException != null)
             {
                 Utilities.logger.ErrorLog("Service return null response", "Server error");
-                return null;
+                throw new Exception("Server error: Service return null response");
             }
             if (response.StatusCode != HttpStatusCode.OK)
             {
                 Utilities.logger.ErrorLog($"Status code={response.StatusCode}. Status content: {response.Content}", "Server error");
-                return null;
+                throw new Exception($"Server error: Status code={response.StatusCode}. Status content: {response.Content}");
             }
 
             return response.Content;
@@ -185,7 +177,7 @@ namespace ERS_Domain.CAService
             }, uri);
             if (response != null)
             {
-              return JsonConvert.DeserializeObject<ResStatus>(response);
+                return JsonConvert.DeserializeObject<ResStatus>(response);
             }
             return null;
         }
