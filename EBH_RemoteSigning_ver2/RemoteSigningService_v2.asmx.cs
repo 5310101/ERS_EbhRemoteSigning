@@ -129,6 +129,15 @@ namespace EBH_RemoteSigning_ver2
                         return new ERS_Response("Không gửi file thành công", false);
                     }
                     //Tao moi hoso va insert vao database
+                    //Check xem hoso da ton tai chua, trong th ky lai
+                    string TSQL = "SELECT * FROM HoSo_VNPT WHERE Guid=@Guid";
+                    DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
+                    if (dt.Rows.Count > 0)
+                    {
+                        // neu da ton tai thi xoa ban ghi cu truoc khi insert ban ghi moi
+                        _dbService.ExecQuery("DELETE FROM ToKhai_VNPT WHERE GuidHS=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
+                        _dbService.ExecQuery("DELETE FROM HoSo_VNPT WHERE Guid=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
+                    }
                     bool isSuccess = _coreService.InsertHoSoNew_VNPT(hoso,uid,serialNumber);
                     if (!isSuccess)
                     {
