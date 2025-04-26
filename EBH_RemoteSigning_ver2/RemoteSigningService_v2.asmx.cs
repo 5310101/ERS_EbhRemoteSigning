@@ -70,7 +70,7 @@ namespace EBH_RemoteSigning_ver2
                 isAuthed = dtAuth.AsEnumerable().Any(r => r["PASS"].SafeString() == Md5Password);
                 if (!isAuthed)
                 {
-                    return new ERS_Response("Username not found", false);
+                    return new ERS_Response("Password is incorrect", false);
                 }
                 return new ERS_Response("Authorized", true);
             }
@@ -123,13 +123,6 @@ namespace EBH_RemoteSigning_ver2
                 {
                     SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
                     _coreService = new CoreService(smartCAService, _dbService);
-                    bool isSaveFile = _coreService.SaveToKhai(hoso.ToKhais, hoso.GuidHS,uid,serialNumber);
-                    if (!isSaveFile)
-                    {
-                        return new ERS_Response("Không gửi file thành công", false);
-                    }
-                    //Tao moi hoso va insert vao database
-                    //Check xem hoso da ton tai chua, trong th ky lai
                     string TSQL = "SELECT * FROM HoSo_VNPT WHERE Guid=@Guid";
                     DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
                     if (dt.Rows.Count > 0)
@@ -138,6 +131,14 @@ namespace EBH_RemoteSigning_ver2
                         _dbService.ExecQuery("DELETE FROM ToKhai_VNPT WHERE GuidHS=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
                         _dbService.ExecQuery("DELETE FROM HoSo_VNPT WHERE Guid=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
                     }
+                    bool isSaveFile = _coreService.SaveToKhai(hoso.ToKhais, hoso.GuidHS,uid,serialNumber);
+                    if (!isSaveFile)
+                    {
+                        return new ERS_Response("Không gửi file thành công", false);
+                    }
+                    //Tao moi hoso va insert vao database
+                    //Check xem hoso da ton tai chua, trong th ky lai
+                   
                     bool isSuccess = _coreService.InsertHoSoNew_VNPT(hoso,uid,serialNumber);
                     if (!isSuccess)
                     {

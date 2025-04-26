@@ -798,6 +798,10 @@ namespace ws_GetResult_RemoteSigning
         }
         private void UpdateLastGetHoSo(List<int> ListIdHS)
         {
+            if(ListIdHS == null || ListIdHS.Count == 0)
+            {
+                return;
+            }
             string strListId = string.Join(",", ListIdHS);
             string TSQL = $"UPDATE HoSo_VNPT SET LastGet=@LastGet WHERE id IN ({strListId})";
             var result = _dbService.ExecQuery(TSQL, "", new SqlParameter[]
@@ -1005,50 +1009,6 @@ namespace ws_GetResult_RemoteSigning
                 return false;
             }
         }
-
-        private DataSign SignSmartCAXML(UserCertificate userCert, string FileBHXHPath, string uid, out SignerProfile signerProfile, string nodeKy = "")
-        {
-            IHashSigner signer = null;
-            signerProfile = new SignerProfile();
-            try
-            {
-                byte[] xmlUnsign = File.ReadAllBytes(FileBHXHPath);
-                String certBase64 = userCert.cert_data;
-                signer = MethodLibrary.GenerateCustomSigner(xmlUnsign, certBase64);
-                signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
-
-                ((CustomXmlSigner)signer).SetSignatureID("sigid");
-                //Set reference đến id
-                //((XmlHashSigner)signers).SetReferenceId("#SigningData");
-
-                //Set thời gian ký
-                ((CustomXmlSigner)signer).SetSigningTime(DateTime.Now, "proid");
-
-                //đường dẫn dẫn đến thẻ chứa chữ ký 
-                if (nodeKy == "")
-                {
-                    nodeKy = "//Cky";
-                }
-                ((CustomXmlSigner)signer).SetParentNodePath(nodeKy);
-
-                signerProfile = signer.GetSignerProfile();
-                var hashValue = Convert.ToBase64String(signerProfile.SecondHashBytes);
-
-                var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
-
-                DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign, data_to_be_sign, userCert.serial_number, uid, "xml");
-
-                return dataSign;
-
-            }
-            catch (Exception ex)
-            {
-                Utilities.logger.ErrorLog(ex, "SignSmartCAXML", userCert.cert_subject);
-                signerProfile = null;
-                return null;
-            }
-        }
-
         private void GetResultHoSo_VNPT()
         {
             List<int> ListHSChuaCoKQ = new List<int>();
@@ -1128,5 +1088,47 @@ namespace ws_GetResult_RemoteSigning
             }
         }
         #endregion
+        //private DataSign SignSmartCAXML(UserCertificate userCert, string FileBHXHPath, string uid, out SignerProfile signerProfile, string nodeKy = "")
+        //{
+        //    IHashSigner signer = null;
+        //    signerProfile = new SignerProfile();
+        //    try
+        //    {
+        //        byte[] xmlUnsign = File.ReadAllBytes(FileBHXHPath);
+        //        String certBase64 = userCert.cert_data;
+        //        signer = MethodLibrary.GenerateCustomSigner(xmlUnsign, certBase64);
+        //        signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
+
+        //        ((CustomXmlSigner)signer).SetSignatureID("sigid");
+        //        //Set reference đến id
+        //        //((XmlHashSigner)signers).SetReferenceId("#SigningData");
+
+        //        //Set thời gian ký
+        //        ((CustomXmlSigner)signer).SetSigningTime(DateTime.Now, "proid");
+
+        //        //đường dẫn dẫn đến thẻ chứa chữ ký 
+        //        if (nodeKy == "")
+        //        {
+        //            nodeKy = "//Cky";
+        //        }
+        //        ((CustomXmlSigner)signer).SetParentNodePath(nodeKy);
+
+        //        signerProfile = signer.GetSignerProfile();
+        //        var hashValue = Convert.ToBase64String(signerProfile.SecondHashBytes);
+
+        //        var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
+
+        //        DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign, data_to_be_sign, userCert.serial_number, uid, "xml");
+
+        //        return dataSign;
+
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Utilities.logger.ErrorLog(ex, "SignSmartCAXML", userCert.cert_subject);
+        //        signerProfile = null;
+        //        return null;
+        //    }
+        //}
     }
 }
