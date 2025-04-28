@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Data.SqlClient;
+using System.Security.Cryptography;
 
 namespace EBH_RemoteSigning_ver2
 {
@@ -54,7 +55,34 @@ namespace EBH_RemoteSigning_ver2
                 {
                     Directory.Delete(pathTempHS, true);
                 }
-                Utilities.logger.ErrorLog(ex, "SignToKhai_VNPT");
+                Utilities.logger.ErrorLog(ex, "SaveToKhai");
+                return false;
+            }
+        }
+
+        public bool SaveHSDKFile(HoSoDKInfo hsDK,string base64Data )
+        {
+            //Tao thu muc chua ho so ky
+            string pathTempHS = Path.Combine(Utilities.globalPath.SignedTempFolder, $"{hsDK.GuidHS}");
+            string filePath = Path.Combine(pathTempHS, $"{hsDK.MaNghiepVu}.xml");
+            try
+            {
+                if (!Directory.Exists(pathTempHS))
+                {
+                    Directory.CreateDirectory(pathTempHS);
+                }
+                string data = base64Data.FromBase64ToString();
+                File.WriteAllText(filePath, data);
+                return true;
+            } 
+            catch (Exception ex)
+            {
+                //Xoa thu muc chua temp file cua hoso neu loi
+                if (pathTempHS != "" || Directory.Exists(pathTempHS))
+                {
+                    Directory.Delete(pathTempHS, true);
+                }
+                Utilities.logger.ErrorLog(ex, "SaveHSDKFile");
                 return false;
             }
         }
@@ -121,7 +149,7 @@ namespace EBH_RemoteSigning_ver2
         {
             try
             {
-                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet,uid,SerialNumber) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet,@uid,@SerialNumber)";
+                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet,uid,SerialNumber,typeDK) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet,@uid,@SerialNumber,@typeDK)";
                 SqlParameter[] listParams = new SqlParameter[] {
                         new SqlParameter("@Guid",hoso.GuidHS),
                         new SqlParameter("@TenHS",hoso.TenThuTuc),
@@ -138,6 +166,7 @@ namespace EBH_RemoteSigning_ver2
                         new SqlParameter("@LastGet",DateTime.Now),
                         new SqlParameter("@uid",uid),
                         new SqlParameter("@serialNumber",serialNumber),
+                        new SqlParameter("@typeDK",0)
                 };
                 bool isSuccess = _dbService.ExecQuery_Tran(TSQL,"", listParams);
                 return isSuccess;   
@@ -146,6 +175,74 @@ namespace EBH_RemoteSigning_ver2
             catch (Exception ex)
             {
                 Utilities.logger.ErrorLog(ex, "InsertHoSoNew_VNPT");
+                return false;
+            }
+        }
+
+        //Insert HSDK
+        public bool InsertHoSoDKNew_VNPT(HoSoDKInfo hoso, string uid, string serialNumber, int typeDK)
+        {
+            try
+            {
+                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet,uid,SerialNumber, typeDK) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet,@uid,@SerialNumber,@typeDK)";
+                SqlParameter[] listParams = new SqlParameter[] {
+                        new SqlParameter("@Guid",hoso.GuidHS),
+                        new SqlParameter("@TenHS",hoso.TenHoSo),
+                        new SqlParameter("@MaNV",hoso.MaNghiepVu),
+                        new SqlParameter("@NgayGui",DateTime.Now),
+                        new SqlParameter("@TenDonVi",hoso.HoSoDK.TenDoiTuong),
+                        new SqlParameter("@FromMST",hoso.HoSoDK.MaSoThue),
+                        new SqlParameter("@FromMDV",""),
+                        new SqlParameter("@LoaiDoiTuong",hoso.HoSoDK.LoaiDoiTuong),
+                        new SqlParameter("@MaCQBH",hoso.HoSoDK.MaCoQuan),
+                        new SqlParameter("@NguoiKy",hoso.HoSoDK.NguoiLienHe),
+                        new SqlParameter("@DienThoai",hoso.HoSoDK.DienThoai),
+                        new SqlParameter("@TrangThai",(int)TrangThaiHoso.ChuaTaoFile),
+                        new SqlParameter("@LastGet",DateTime.Now),
+                        new SqlParameter("@uid",uid),
+                        new SqlParameter("@serialNumber",serialNumber),
+                        new SqlParameter("@typeDK",typeDK)
+                };
+                bool isSuccess = _dbService.ExecQuery_Tran(TSQL, "", listParams);
+                return isSuccess;
+
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "InsertHoSoNew_VNPT");
+                return false;
+            }
+        }
+
+        public bool InsertHSDKLanDau(HoSoDKInfo hsDK)
+        {
+            try
+            {
+                string TSQL = "INSERT INTO HSDKLanDau (GuidHS,TenCoQuan,MaCoQuan,LoaiDoiTuong,TenDoiTuong,MaSoThue,DienThoai,Email,NguoiLienHe,DiaChi,DiaChiLienHe,DienThoaiLienHe,NgayLap,NgayDangKy,PTNhanKetQua) VALUES (@GuidHS,@TenCoQuan,@MaCoQuan,@LoaiDoiTuong,@TenDoiTuong,@MaSoThue,@DienThoai,@Email,@NguoiLienHe,@DiaChi,@DiaChiLienHe,@DienThoaiLienHe,@NgayLap,@NgayDangKy,@PTNhanKetQua)";
+                SqlParameter[] listParams = new SqlParameter[] {
+                        new SqlParameter("@GuidHS",hsDK.GuidHS),
+                        new SqlParameter("@TenCoQuan",hsDK.HoSoDK.TenCoQuan),
+                        new SqlParameter("@MaCoQuan",hsDK.HoSoDK.MaCoQuan),
+                        new SqlParameter("@LoaiDoiTuong",hsDK.HoSoDK.LoaiDoiTuong),
+                        new SqlParameter("@TenDoiTuong",hsDK.HoSoDK.TenDoiTuong),
+                        new SqlParameter("@MaSoThue",hsDK.HoSoDK.MaSoThue),
+                        new SqlParameter("@DienThoai",hsDK.HoSoDK.DienThoai),
+                        new SqlParameter("@Email",hsDK.HoSoDK.Email),
+                        new SqlParameter("@NguoiLienHe",hsDK.HoSoDK.NguoiLienHe),
+                        new SqlParameter("@DiaChi",hsDK.HoSoDK.DiaChi),
+                        new SqlParameter("@DiaChiLienHe",hsDK.HoSoDK.DiaChiLienHe),
+                        new SqlParameter("@DienThoaiLienHe",hsDK.HoSoDK.DienThoaiLienHe),
+                        new SqlParameter("@NgayLap",hsDK.HoSoDK.NgayLap),
+                        new SqlParameter("@NgayDangKy",hsDK.HoSoDK.NgayDangKy),
+                        new SqlParameter("@PTNhanKetQua",hsDK.HoSoDK.PTNhanKetQua),
+                };
+                bool isSuccess = _dbService.ExecQuery_Tran(TSQL, "", listParams);
+                return isSuccess;
+
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "InsertHSDKLanDau");
                 return false;
             }
         }

@@ -193,7 +193,7 @@ namespace ERS_Domain.clsUtilities
                 {
                     val.LoadXml((XmlElement)elementsByTagName[0]);
                 }
-                catch (Exception ex)
+                catch 
                 {
 
                 }
@@ -211,6 +211,24 @@ namespace ERS_Domain.clsUtilities
             var subjFinded = subjArr.FirstOrDefault(x => x.Contains(subjectName));
             var subjValue = subjFinded.Split(new string[] { "=" }, StringSplitOptions.RemoveEmptyEntries)[1];
             return subjValue == null ? "" : subjValue.Trim();
+        }
+
+        public static string FromBase64ToString(this string base64)
+        {
+            if (string.IsNullOrEmpty(base64))
+            {
+                return "";
+            }
+            try
+            {
+                byte[] bytes = Convert.FromBase64String(base64);
+                return Encoding.UTF8.GetString(bytes);
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "FromBase64ToString");
+                return "";
+            }
         }
     }
 }

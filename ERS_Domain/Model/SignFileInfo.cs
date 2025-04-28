@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.UI.WebControls;
+using System.Xml.Serialization;
 using VnptHashSignatures.Interface;
 
 namespace ERS_Domain.Model
@@ -107,5 +108,37 @@ namespace ERS_Domain.Model
         public DataSign SignData { get; set; }
         public string PathSigner { get; set; } = "";
 
+    }
+
+    
+    public class  HoSoDKInfo
+    {
+        public string GuidHS { get; set; }
+        public string TenHoSo { get; set; } 
+        public string MaNghiepVu { get; set; }
+        //neu la ho so cap ma lan dau thi object nay chua thong tin to khai DK04
+        public HoSoDK HoSoDK { get; set; }
+        //neu la ho so cap ma lan dau thi ToKhais != null
+        public List<ToKhaiInfo> ToKhais { get; set; }
+    }
+
+    public class HoSoDK
+    {
+        public string TenCoQuan { get; set; }
+        public string MaCoQuan { get; set; }
+        public string LoaiDoiTuong { get; set; }
+        public string TenDoiTuong { get; set; }
+        public string MaSoThue { get; set; }
+        public string DienThoai { get; set; }
+        public string Email { get; set; }
+        public string NguoiLienHe { get; set; }
+        public string DiaChi { get; set; }
+        public string DiaChiLienHe { get; set; }
+        public string DienThoaiLienHe { get; set; }
+        public DateTime NgayLap { get; set; }
+        public DateTime NgayDangKy { get; set; } 
+        public string MaIVan { get; set; } = "00040";
+        public string TenIVan { get; set; } = "THAISON";
+        public int PTNhanKetQua { get; set; }
     }
 }

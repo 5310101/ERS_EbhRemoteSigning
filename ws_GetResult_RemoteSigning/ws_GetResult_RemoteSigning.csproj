@@ -94,6 +94,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ServiceSignHSDK_VNPT.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ServiceSignHSDK_VNPT.Designer.cs">
+      <DependentUpon>ServiceSignHSDK_VNPT.cs</DependentUpon>
+    </Compile>
     <Compile Include="ServiceGetResult_VNPT.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -102,6 +108,7 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Stores\ServiceStore.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
@@ -125,5 +132,6 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -159,6 +159,80 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
+        [WebMethod(Description = "Phương thức gửi file lên server để thực hiện ký (hồ sơ đăng ký).")]
+        [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
+        public ERS_Response SendFileSignDK(RemoteSigningProvider signProvider, string uid, string username, string password, HoSoDKInfo hsDK , string base64DataDK = "" , string serialNumber = "")
+        {
+            try
+            {
+                //xac thuc
+                ERS_Response result = UserAuthorize(username, password);
+                if (!result.success)
+                {
+                    return result;
+                }
+                //tien hanh ky cac to khai neu ky dc ko loi thi luu hoso vao db
+                //chon nha cung cap dich vu
+                if (signProvider == RemoteSigningProvider.VNPT)
+                {
+                    SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
+                    _coreService = new CoreService(smartCAService, _dbService);
+                    string TSQL = "SELECT * FROM HoSo_VNPT WHERE Guid=@Guid";
+                    DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
+                    if (dt.Rows.Count > 0)
+                    {
+                        // neu da ton tai thi xoa ban ghi cu truoc khi insert ban ghi moi
+                        if (hsDK.ToKhais != null)
+                        {
+                            _dbService.ExecQuery("DELETE FROM ToKhai_VNPT WHERE GuidHS=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
+                        }
+                        
+                        _dbService.ExecQuery("DELETE FROM HoSo_VNPT WHERE Guid=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
+                    }
+                    bool isSaveFile = true;
+                    //Loai dang ky 1 = 04,05,06, 2 la dk ma lan dau
+                    int typeDK = 1;
+                    // chi dk ma lan dau moi co to khai va file dinh kem
+                    if(hsDK.ToKhais != null)
+                    {
+                        isSaveFile = _coreService.SaveToKhai(hsDK.ToKhais, hsDK.GuidHS, uid, serialNumber);
+                        bool isInsertHSDKLanDau = _coreService.InsertHSDKLanDau(hsDK);
+                        typeDK = 2;
+                    }
+                    else
+                    {
+                        //neu ko ton tai tokhais tuc la ky 04,05,06 gửi trực tiếp base64 của file .xml lên
+                        isSaveFile = _coreService.SaveHSDKFile(hsDK, base64DataDK);
+
+                    }
+                    
+                    if (!isSaveFile)
+                    {
+                        return new ERS_Response("Không gửi file thành công", false);
+                    }
+                    //Tao moi hoso va insert vao database
+                    //Check xem hoso da ton tai chua, trong th ky lai
+
+                    bool isSuccess = _coreService.InsertHoSoDKNew_VNPT(hsDK, uid, serialNumber, typeDK);
+                    if (!isSuccess)
+                    {
+                        Utilities.logger.ErrorLog($"Hồ sơ lưu vào lỗi vào database: {hsDK.GuidHS}", "Hồ sơ lưu lỗi");
+                        return new ERS_Response("Có lỗi khi lưu dữ liệu hồ sơ trên server", false);
+                    }
+                    return new ERS_Response("Chờ xác thực trên app ký của VNPT", true);
+                }
+                else
+                {
+                    return new ERS_Response("Hiện phần mềm mới hỗ trợ ký từ xa từ dịch vụ của VNPT", false);
+                }
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "SendFileSign", hsDK.GuidHS);
+                return new ERS_Response($"Lỗi Server: {ex.Message}", false);
+            }
+        }
+
         [WebMethod(Description ="Phương thức lấy kết quả ký số từ server.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response GetFileSigned(string username, string password, string HoSoGuid)
