@@ -165,12 +165,11 @@ namespace EBH_RemoteSigning_ver2
                         new SqlParameter("@TrangThai",(int)TrangThaiHoso.ChuaTaoFile),
                         new SqlParameter("@LastGet",DateTime.Now),
                         new SqlParameter("@uid",uid),
-                        new SqlParameter("@serialNumber",serialNumber),
-                        new SqlParameter("@typeDK",0)
+                        new SqlParameter("@SerialNumber",serialNumber),
+                        new SqlParameter("@typeDK",System.Data.SqlDbType.Int){ Value = 0},
                 };
                 bool isSuccess = _dbService.ExecQuery_Tran(TSQL,"", listParams);
                 return isSuccess;   
-                
             }
             catch (Exception ex)
             {
@@ -201,7 +200,7 @@ namespace EBH_RemoteSigning_ver2
                         new SqlParameter("@LastGet",DateTime.Now),
                         new SqlParameter("@uid",uid),
                         new SqlParameter("@serialNumber",serialNumber),
-                        new SqlParameter("@typeDK",typeDK)
+                        new SqlParameter("@typeDK", System.Data.SqlDbType.Int){ Value = typeDK}
                 };
                 bool isSuccess = _dbService.ExecQuery_Tran(TSQL, "", listParams);
                 return isSuccess;

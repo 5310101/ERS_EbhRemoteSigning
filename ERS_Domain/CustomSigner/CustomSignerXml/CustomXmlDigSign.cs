@@ -82,7 +82,7 @@ namespace ERS_Domain.CustomSigner
         private static XmlDocument CreateSigningTime(DateTime signDate, string id, string targetId)
         {
             XmlDocument xmlDocument = new XmlDocument();
-            xmlDocument.LoadXml($"<Object Id=\"{id}\" xmlns=\"\"><SignatureProperty Target=\"#sigid\"><SigningTime xmlns=\"http://example.org/#signatureProperties\">{signDate:yyyy-MM-dd}T{DateTime.Now:HH:mm:ss}Z</SigningTime></SignatureProperty></Object>");
+            xmlDocument.LoadXml($"<Object><SignatureProperties Id=\"{id}\" xmlns=\"\"><SignatureProperty Target=\"#sigid\"><SigningTime xmlns=\"http://example.org/#signatureProperties\">{signDate:yyyy-MM-dd}T{DateTime.Now:HH:mm:ss}Z</SigningTime></SignatureProperty></SignatureProperties></Object>");
             return xmlDocument;
         }
 

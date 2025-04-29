@@ -1,34 +1,15 @@
 ﻿using ERS_Domain;
-using ERS_Domain.CAService;
-using ERS_Domain.clsUtilities;
-using ERS_Domain.CustomSigner;
-using ERS_Domain.Exceptions;
-using ERS_Domain.Model;
-using ERS_Domain.Response;
-using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.Configuration;
-using System.Data;
-using System.Data.SqlClient;
-using System.IO;
-using System.Linq;
 using System.ServiceProcess;
-using System.Text;
 using System.Timers;
-using System.Xml;
-using System.Xml.Serialization;
-using VnptHashSignatures.Common;
-using VnptHashSignatures.Interface;
-using VnptHashSignatures.Office;
-using VnptHashSignatures.Pdf;
 using ws_GetResult_RemoteSigning.Utils;
 
 namespace ws_GetResult_RemoteSigning
 {
     public partial class ServiceGetResult_VNPT : ServiceBase
     {
-        private readonly ServiceStore _store;
+        private readonly SigningService _service;
 
         #region Timer ky to khai
         private Timer _signTKTimer;
@@ -54,10 +35,16 @@ namespace ws_GetResult_RemoteSigning
         private int _hsTimeInterval = int.Parse(ConfigurationManager.AppSettings["HS_TIME_INTERVAL"]);
         #endregion
 
+        //timer ky cac hs dang ky ngoai tru hsdk cap ma lan dau
+        #region timer sign ho so dang ky (tru dk cap ma lan dau)
+        private Timer _signHSDKTimer;
+        private int _signHSDKInterval = int.Parse(ConfigurationManager.AppSettings["SIGNHSDK_TIME_INTERVAL"]);
+        #endregion
+
         public ServiceGetResult_VNPT()
         {
             InitializeComponent();
-            _store = new ServiceStore();
+            _service = new SigningService();
 
         }
 
@@ -102,6 +89,12 @@ namespace ws_GetResult_RemoteSigning
                 _getResultHSTimer.AutoReset = true;
                 _getResultHSTimer.Elapsed += HSTimer_Elapsed;
                 _getResultHSTimer.Enabled = true;
+
+                _signHSDKTimer = new Timer();
+                _signHSDKTimer.Interval = _signHSDKInterval;
+                _signHSDKTimer.AutoReset = true;
+                _signHSDKTimer.Elapsed += SignHSDK_Elapsed;
+                _signHSDKTimer.Enabled = true;
             }
             catch (Exception ex)
             {
@@ -119,7 +112,7 @@ namespace ws_GetResult_RemoteSigning
             _signTKTimer.Enabled = false;
             try
             {
-                _store.SignToKhai_VNPT();
+                _service.SignToKhai_VNPT();
             }
             catch (Exception ex)
             {
@@ -136,7 +129,7 @@ namespace ws_GetResult_RemoteSigning
             _getResultTKTimer.Enabled = false;
             try
             {
-                _store.GetResultToKhai_VNPT();
+                _service.GetResultToKhai_VNPT();
             }
             catch (Exception ex)
             {
@@ -153,7 +146,7 @@ namespace ws_GetResult_RemoteSigning
             _signHSTimer.Enabled = false;
             try
             {
-                _store.SignFileBHXHDienTu();
+                _service.SignFileBHXHDienTu();
             }
             catch (Exception ex)
             {
@@ -170,7 +163,7 @@ namespace ws_GetResult_RemoteSigning
             _getResultHSTimer.Enabled = false;
             try
             {
-                _store.GetResultHoSo_VNPT();
+                _service.GetResultHoSo_VNPT();
             }
             catch (Exception ex)
             {
@@ -179,6 +172,24 @@ namespace ws_GetResult_RemoteSigning
             finally
             {
                 _getResultHSTimer.Enabled = true;
+            }
+        }
+
+        private void SignHSDK_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            _signHSDKTimer.Enabled = false;
+            try
+            {
+                _service.SignHSDK_Type1();
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "SignHSDK_Elapsed");
+
+            }
+            finally
+            {
+                _signHSDKTimer.Enabled = true;
             }
         }
     }

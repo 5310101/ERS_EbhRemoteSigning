@@ -1,19 +1,17 @@
 ﻿using ERS_Domain.CustomSigner;
-using ERS_Domain.Model;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
-using System.CodeDom;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Xml;
+using System.Xml.Serialization;
 using VnptHashSignatures.Interface;
 
 namespace ERS_Domain.clsUtilities
@@ -224,10 +222,38 @@ namespace ERS_Domain.clsUtilities
                 byte[] bytes = Convert.FromBase64String(base64);
                 return Encoding.UTF8.GetString(bytes);
             }
-            catch (Exception ex)
+            catch 
             {
-                Utilities.logger.ErrorLog(ex, "FromBase64ToString");
+                //Utilities.logger.ErrorLog(ex, "FromBase64ToString");
                 return "";
+            }
+        }
+
+        public static bool SerializeToFile<T>(T obj, string filePath)
+        {
+            try
+            {
+                XmlSerializer serializer = new XmlSerializer(typeof(T));
+                XmlWriterSettings settings = new XmlWriterSettings()
+                {
+                    Encoding = new UTF8Encoding(false),
+                    Indent = true
+                };
+
+                string xmlString = "";
+                using (var stream = new MemoryStream())
+                using (var writer = XmlWriter.Create(stream, settings))
+                {
+                    serializer.Serialize(writer, obj);
+                    xmlString = Encoding.UTF8.GetString(stream.ToArray());
+                }
+                File.WriteAllText(filePath, xmlString);
+                return true;
+            }
+            catch 
+            {
+                //Utilities.logger.ErrorLog(ex, "SerializeToFile");
+                return false;
             }
         }
     }

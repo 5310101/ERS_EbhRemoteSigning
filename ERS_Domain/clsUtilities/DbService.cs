@@ -114,8 +114,8 @@ namespace ERS_Domain.clsUtilities
                 }
                 using (SqlConnection conn = GetConnection(connectionString))
                 {
-                    using (SqlTransaction trans = conn.BeginTransaction())
                     using (SqlCommand command = new SqlCommand(TSQL, conn))
+                    using (SqlTransaction trans = conn.BeginTransaction())
                     {
                         if (sqlParams != null && sqlParams?.Length > 0)
                         {

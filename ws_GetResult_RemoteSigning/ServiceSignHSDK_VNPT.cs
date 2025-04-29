@@ -1,17 +1,7 @@
-﻿using ERS_Domain.CAService;
-using ERS_Domain.clsUtilities;
-using ERS_Domain;
+﻿using ERS_Domain;
 using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Diagnostics;
-using System.Linq;
 using System.ServiceProcess;
-using System.Text;
-using System.Threading.Tasks;
 using System.Timers;
-using ERS_Domain.Model;
 using System.Configuration;
 using ws_GetResult_RemoteSigning.Utils;
 
@@ -22,7 +12,7 @@ namespace ws_GetResult_RemoteSigning
     /// </summary>
     partial class ServiceSignHSDK_VNPT : ServiceBase
     {
-        private readonly ServiceStore _store;
+        private readonly SigningService _service;
        
         //cac timer
         //timer ky cac hs dang ky ngoai tru hsdk cap ma lan dau
@@ -32,7 +22,7 @@ namespace ws_GetResult_RemoteSigning
         public ServiceSignHSDK_VNPT()
         {
             InitializeComponent();
-           _store = new ServiceStore();
+           _service = new SigningService();
         }
 
         #region test method
@@ -76,7 +66,7 @@ namespace ws_GetResult_RemoteSigning
             _signHSDKTimer.Enabled = false;
             try
             {
-                _store.SignHSDK_Type1();
+                _service.SignHSDK_Type1();
             }
             catch (Exception ex)
             {
@@ -88,7 +78,5 @@ namespace ws_GetResult_RemoteSigning
                 _signHSDKTimer.Enabled = true;
             }
         }
-
-       
     }
 }

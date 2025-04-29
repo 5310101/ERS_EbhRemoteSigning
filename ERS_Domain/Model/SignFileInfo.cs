@@ -117,12 +117,12 @@ namespace ERS_Domain.Model
         public string TenHoSo { get; set; } 
         public string MaNghiepVu { get; set; }
         //neu la ho so cap ma lan dau thi object nay chua thong tin to khai DK04
-        public HoSoDK HoSoDK { get; set; }
+        public HosoDKLanDau HoSoDK { get; set; }
         //neu la ho so cap ma lan dau thi ToKhais != null
         public List<ToKhaiInfo> ToKhais { get; set; }
     }
 
-    public class HoSoDK
+    public class HosoDKLanDau
     {
         public string TenCoQuan { get; set; }
         public string MaCoQuan { get; set; }

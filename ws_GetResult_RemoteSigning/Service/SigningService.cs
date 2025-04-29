@@ -11,9 +11,6 @@ using System.Data.SqlClient;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Xml.Serialization;
-using System.Xml;
 using VnptHashSignatures.Common;
 using VnptHashSignatures.Interface;
 using VnptHashSignatures.Office;
@@ -23,7 +20,7 @@ using System.Configuration;
 
 namespace ws_GetResult_RemoteSigning.Utils
 {
-    public class ServiceStore
+    public class SigningService
     {
         private readonly DbService _dbService;
         private readonly SmartCAService _smartCAService;
@@ -42,7 +39,7 @@ namespace ws_GetResult_RemoteSigning.Utils
 
         private readonly string SignedTempFolder = ConfigurationManager.AppSettings["HOSO_TEMP_FOLDER"];
 
-        public ServiceStore()
+        public SigningService()
         {
             _dbService = new DbService();
             _smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
@@ -167,39 +164,6 @@ namespace ws_GetResult_RemoteSigning.Utils
                 return null;
             }
         }
-
-        //private SignerProfile RestoreSignerXML(string signerPath, bool isTokhai = true)
-        //{
-        //    try
-        //    {
-        //        SignerProfile signerProfile = MethodLibrary.ImportSigner(signerPath);
-        //        if (signerProfile == null)
-        //        {
-        //            return null;
-        //        }
-        //        //IHashSigner signer = HashSignerFactory.GenerateSigner(signerInfo.UnsignData, signerInfo.SignerCert, null, HashSignerFactory.XML);
-        //        IHashSigner signer = MethodLibrary.GenerateCustomSigner(signerInfo.UnsignData, signerInfo.SignerCert);
-        //        signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
-
-        //        ((CustomXmlSigner)signer).SetSignatureID(signerInfo.SigId);
-        //        ((CustomXmlSigner)signer).SetSigningTime(signerInfo.SigningTime, "SigningTime-" + signerInfo.SigningTimeId);
-        //        if (isTokhai)
-        //        {
-        //            ((CustomXmlSigner)signer).SetParentNodePath("//Cky");
-        //        }
-        //        else
-        //        {
-        //            ((CustomXmlSigner)signer).SetParentNodePath("/Hoso/CKy_Dvi");
-        //        }
-        //        signer.GetSecondHashAsBase64();
-        //        return signer;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Utilities.logger.ErrorLog(ex, "");
-        //        return null;
-        //    }
-        //}
         private bool GetResult_PDF(DataTransaction transactionStatus, string PDFSignedPath)
         {
             var isConfirm = false;
@@ -326,7 +290,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             try
             {
                 //select ho so thoa man dieu kien 
-                string TSQL = $"WITH TopHoSo AS (SELECT TOP {_signTK_HSCount} Guid FROM HoSo_VNPT WHERE TrangThai = 4 AND typeDK=0 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui),ToKhaiChuaKy AS (SELECT GuidHS FROM ToKhai_VNPT WHERE GuidHS IN (SELECT Guid FROM TopHoSo) GROUP BY GuidHS HAVING COUNT(*) = SUM(CASE WHEN TrangThai = 6 THEN 1 ELSE 0 END)) SELECT * FROM ToKhai_VNPT WHERE GuidHS IN (SELECT GuidHS FROM ToKhaiChuaKy);";
+                string TSQL = $"WITH TopHoSo AS (SELECT TOP {_signTK_HSCount} Guid FROM HoSo_VNPT WHERE TrangThai = 4 AND typeDK<>1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui),ToKhaiChuaKy AS (SELECT GuidHS FROM ToKhai_VNPT WHERE GuidHS IN (SELECT Guid FROM TopHoSo) GROUP BY GuidHS HAVING COUNT(*) = SUM(CASE WHEN TrangThai = 6 THEN 1 ELSE 0 END)) SELECT * FROM ToKhai_VNPT WHERE GuidHS IN (SELECT GuidHS FROM ToKhaiChuaKy);";
                 DataTable dt = _dbService.GetDataTable(TSQL);
                 if (dt.Rows.Count == 0)
                 {
@@ -684,13 +648,29 @@ namespace ws_GetResult_RemoteSigning.Utils
                         string uid = MethodLibrary.SafeString(dr["uid"]);
                         string serialNumber = MethodLibrary.SafeString(dr["SerialNumber"]);
                         string pathSaveHS = Path.Combine(SignedTempFolder, $"{GuidHS}");
-                        bool isCreated = CreateBHXHDienTu(dr, pathSaveHS);
-                        if (!isCreated)
+                        string maNV = MethodLibrary.SafeString(dr["MaNV"]);
+                        int typeDK = MethodLibrary.SafeNumber<int>(dr["typeDK"]);
+
+                        bool isCreated = false; 
+                        if (typeDK == 0)
                         {
-                            //ko tao dc file thi continue lan sau tao lai
-                            continue;
+                            isCreated = CreateBHXHDienTu(dr, pathSaveHS);
+                            if (!isCreated)
+                            {
+                                //ko tao dc file thi continue lan sau tao lai
+                                continue;
+                            }
                         }
-                        bool isSigned = SignHoSoBHXH(uid, GuidHS, serialNumber);
+                        else if(typeDK == 2)
+                        {
+                            string pathFile = Path.Combine(pathSaveHS, $"{maNV}.xml");
+                            isCreated = CreateFileHSDK(dr, pathFile);
+                            if (!isCreated)
+                            {
+                                continue;
+                            }
+                        }
+                        bool isSigned = SignHoSoBHXH(uid, GuidHS, serialNumber, typeDK, maNV);
                         if (!isSigned)
                         {
                             Utilities.logger.InfoLog($"Hồ sơ ký lỗi không lấy kết quả: {GuidHS}", "Hồ sơ ký lỗi");
@@ -711,6 +691,76 @@ namespace ws_GetResult_RemoteSigning.Utils
             }
         }
 
+        private bool CreateFileHSDK(DataRow dr, string pathSaveHSDK)
+        {
+            try
+            {
+                string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
+                DataTable dtToKhais = _dbService.GetDataTable("SELECT * FROM ToKhai_VNPT WITH (NOLOCK) WHERE GuidHS=@GuidHS", "", new SqlParameter[]
+                {
+                      new SqlParameter("@GuidHS", GuidHS)
+                });
+                if (dtToKhais.Rows.Count == 0) return false;
+                List<FileToKhai> listTK = new List<FileToKhai>();
+                foreach (DataRow rowTK in dtToKhais.Rows)
+                {
+                    byte[] tkDaKy = File.ReadAllBytes(MethodLibrary.SafeString(rowTK["FilePath"]));
+                    string base64Data = Convert.ToBase64String(tkDaKy);
+                    string tenFile = MethodLibrary.SafeString(rowTK["TenToKhai"]);
+
+                    FileToKhai tk = new FileToKhai()
+                    {
+                        MaToKhai = MethodLibrary.GetMaTK(tenFile),
+                        MoTaToKhai = MethodLibrary.SafeString(rowTK["MoTa"]),
+                        TenFile = tenFile,
+                        LoaiFile = Path.GetExtension(tenFile),
+                        DoDaiFile = base64Data.Length,
+                        NoiDungFile = base64Data,
+                    };
+                    listTK.Add(tk);
+                }
+
+                //Load thong tin de tao file HSDK 04DK
+                DataTable dtHSDK = _dbService.GetDataTable("SELECT * FROM HSDKLanDau WHERE GuidHS=@Guid", "", new SqlParameter[]
+                {
+                    new SqlParameter("@Guid", GuidHS)
+                });
+                if (dtHSDK.Rows.Count == 0) return false;
+                DataRow row = dtHSDK.Rows[0];
+                HosoDKLanDauObjSerialize hsdk = new HosoDKLanDauObjSerialize()
+                {
+                    NoiDung = new NoiDungDK()
+                    {
+                        TenCoQuan = row["TenCoQuan"].SafeString(),
+                        MaCoQuan = row["MaCoQuan"].SafeString(),
+                        LoaiDoiTuong = row["LoaiDoiTuong"].SafeString(),
+                        TenDoiTuong = row["TenDoiTuong"].SafeString(),
+                        MaSoThue = row["MaSoThue"].SafeString(),
+                        DienThoai = row["DienThoai"].SafeString(),
+                        Email = row["Email"].SafeString(),
+                        NguoiLienHe = row["NguoiLienHe"].SafeString(),
+                        DiaChi = row["DiaChi"].SafeString(),
+                        DiaChiLienHe = row["DiaChiLienHe"].SafeString(),
+                        DienThoaiLienHe = row["DienThoaiLienHe"].SafeString(),
+                        NgayLap = row["NgayLap"].SafeDateTime().ToString("dd/MM/yyyy"),
+                        NgayDangKy = row["NgayDangKy"].SafeDateTime().ToString("dd/MM/yyyy"),
+                        PTNhanKetQua = row["PTNhanKetQua"].SafeString(),
+                        ToKhais = new ToKhais()
+                        {
+                            FileToKhai = listTK.ToArray()
+                        },
+                    },
+                };
+
+                return MethodLibrary.SerializeToFile(hsdk, pathSaveHSDK);
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "CreateFileHSDK");
+                return false;
+            }
+        }
+
         private bool CreateBHXHDienTu(DataRow dr, string pathFolderHoSo)
         {
             try
@@ -718,7 +768,7 @@ namespace ws_GetResult_RemoteSigning.Utils
                 string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
                 DataTable dtToKhais = _dbService.GetDataTable("SELECT * FROM ToKhai_VNPT WITH (NOLOCK) WHERE GuidHS=@GuidHS", "", new SqlParameter[]
                 {
-                        new SqlParameter("@GuidHS", GuidHS)
+                      new SqlParameter("@GuidHS", GuidHS)
                 });
                 if (dtToKhais.Rows.Count == 0) return false;
                 List<FileToKhai> listTK = new List<FileToKhai>();
@@ -782,24 +832,8 @@ namespace ws_GetResult_RemoteSigning.Utils
                 {
                     NoiDung = noiDung,
                 };
-
-                XmlSerializer serializer = new XmlSerializer(typeof(Hoso));
-                XmlWriterSettings settings = new XmlWriterSettings()
-                {
-                    Encoding = new UTF8Encoding(false),
-                    Indent = true
-                };
-
-                string xmlString = "";
-                using (var stream = new MemoryStream())
-                using (var writer = XmlWriter.Create(stream, settings))
-                {
-                    serializer.Serialize(writer, hoso);
-                    xmlString = Encoding.UTF8.GetString(stream.ToArray());
-                }
                 string pathBHXHDT = Path.Combine(pathFolderHoSo, "BHXHDienTu.xml");
-                File.WriteAllText(pathBHXHDT, xmlString);
-                return true;
+                return MethodLibrary.SerializeToFile(hoso, pathBHXHDT);
             }
             catch (Exception ex)
             {
@@ -826,7 +860,7 @@ namespace ws_GetResult_RemoteSigning.Utils
                 {
                     pathBHXHDt = Path.Combine(PathTempHoSo, "BHXHDienTu.xml");
                 }
-                else if (typeDK == 1)
+                else if (typeDK == 1 || typeDK == 2)
                 {
                     pathBHXHDt = Path.Combine(PathTempHoSo, HSDKName);
                 }
@@ -954,9 +988,9 @@ namespace ws_GetResult_RemoteSigning.Utils
         {
             try
             {
-                string TSQL = $"SELECT TOP {_signHSDKCount} FROM HoSo_VNPT WITH (NOLOCK) WHERE TrangThai = 4 AND typeDK=1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui";
+                string TSQL = $"SELECT TOP {_signHSDKCount} FROM HoSo_VNPT WITH (NOLOCK) WHERE TrangThai=4 AND typeDK=1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui";
                 DataTable dt = _dbService.GetDataTable(TSQL);
-                if(dt.Rows.Count == 0)
+                if(dt == null || dt.Rows.Count == 0)
                 {
                     return;
                 }
@@ -979,21 +1013,55 @@ namespace ws_GetResult_RemoteSigning.Utils
                             Directory.Delete(pathHSFolder, true);
                         }
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
+                        Utilities.logger.ErrorLog(ex, "SignHSDK_Type1");
                         continue;
                     }
                 }
             }
-            catch (Exception ex)
+            catch 
             {
-                Utilities.logger.ErrorLog(ex, "SignHSDK_Type1");
                 return;
             }
         }
 
         #endregion
+        //[Obsolete]
+        //private SignerProfile RestoreSignerXML(string signerPath, bool isTokhai = true)
+        //{
+        //    try
+        //    {
+        //        SignerProfile signerProfile = MethodLibrary.ImportSigner(signerPath);
+        //        if (signerProfile == null)
+        //        {
+        //            return null;
+        //        }
+        //        //IHashSigner signer = HashSignerFactory.GenerateSigner(signerInfo.UnsignData, signerInfo.SignerCert, null, HashSignerFactory.XML);
+        //        IHashSigner signer = MethodLibrary.GenerateCustomSigner(signerInfo.UnsignData, signerInfo.SignerCert);
+        //        signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
 
+        //        ((CustomXmlSigner)signer).SetSignatureID(signerInfo.SigId);
+        //        ((CustomXmlSigner)signer).SetSigningTime(signerInfo.SigningTime, "SigningTime-" + signerInfo.SigningTimeId);
+        //        if (isTokhai)
+        //        {
+        //            ((CustomXmlSigner)signer).SetParentNodePath("//Cky");
+        //        }
+        //        else
+        //        {
+        //            ((CustomXmlSigner)signer).SetParentNodePath("/Hoso/CKy_Dvi");
+        //        }
+        //        signer.GetSecondHashAsBase64();
+        //        return signer;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Utilities.logger.ErrorLog(ex, "");
+        //        return null;
+        //    }
+        //}
+
+        //[Obsolete]
         //private DataSign SignSmartCAXML(UserCertificate userCert, string FileBHXHPath, string uid, out SignerProfile signerProfile, string nodeKy = "")
         //{
         //    IHashSigner signer = null;

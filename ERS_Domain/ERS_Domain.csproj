@@ -80,6 +80,7 @@
     <Compile Include="CustomSigner\CustomSignerXml\CustomXmlSigner.cs" />
     <Compile Include="Exceptions\CustomException.cs" />
     <Compile Include="Model\BHXHDienTu.cs" />
+    <Compile Include="Model\HSDKLanDau.cs" />
     <Compile Include="Model\SignFileInfo.cs" />
     <Compile Include="Model\TSDHashSigner.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

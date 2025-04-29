@@ -49,6 +49,7 @@
             this.label4 = new System.Windows.Forms.Label();
             this.btnTestFolder = new System.Windows.Forms.Button();
             this.chkTestKyService = new System.Windows.Forms.CheckBox();
+            this.chkDangKy = new System.Windows.Forms.CheckBox();
             this.panel1.SuspendLayout();
             this.panel2.SuspendLayout();
             this.SuspendLayout();
@@ -103,7 +104,7 @@
             this.panelToKhai.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
             this.panelToKhai.Location = new System.Drawing.Point(22, 78);
             this.panelToKhai.Name = "panelToKhai";
-            this.panelToKhai.Padding = new System.Windows.Forms.Padding(8, 8, 8, 8);
+            this.panelToKhai.Padding = new System.Windows.Forms.Padding(8);
             this.panelToKhai.Size = new System.Drawing.Size(628, 276);
             this.panelToKhai.TabIndex = 10;
             // 
@@ -286,11 +287,22 @@
             this.chkTestKyService.UseVisualStyleBackColor = true;
             this.chkTestKyService.CheckedChanged += new System.EventHandler(this.chkTestKyService_CheckedChanged);
             // 
+            // chkDangKy
+            // 
+            this.chkDangKy.AutoSize = true;
+            this.chkDangKy.Location = new System.Drawing.Point(594, 37);
+            this.chkDangKy.Name = "chkDangKy";
+            this.chkDangKy.Size = new System.Drawing.Size(117, 24);
+            this.chkDangKy.TabIndex = 16;
+            this.chkDangKy.Text = "HS đăng ký";
+            this.chkDangKy.UseVisualStyleBackColor = true;
+            // 
             // frmRemoteSign
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1107, 574);
+            this.Controls.Add(this.chkDangKy);
             this.Controls.Add(this.chkTestKyService);
             this.Controls.Add(this.btnTestFolder);
             this.Controls.Add(this.label4);
@@ -332,6 +344,7 @@
         public System.Windows.Forms.Button btnTestFolder;
         public System.Windows.Forms.Label label6;
         private System.Windows.Forms.CheckBox chkTestKyService;
+        private System.Windows.Forms.CheckBox chkDangKy;
     }
 }
 
