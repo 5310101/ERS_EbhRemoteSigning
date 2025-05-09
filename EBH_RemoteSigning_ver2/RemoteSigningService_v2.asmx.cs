@@ -193,7 +193,7 @@ namespace EBH_RemoteSigning_ver2
                     //Loai dang ky 1 = 04,05,06, 2 la dk ma lan dau
                     int typeDK = 1;
                     // chi dk ma lan dau moi co to khai va file dinh kem
-                    if(hsDK.ToKhais != null)
+                    if(hsDK.ToKhais is null || hsDK.ToKhais.Count > 0)
                     {
                         isSaveFile = _coreService.SaveToKhai(hsDK.ToKhais, hsDK.GuidHS, uid, serialNumber);
                         bool isInsertHSDKLanDau = _coreService.InsertHSDKLanDau(hsDK);

@@ -35,7 +35,7 @@ namespace ws_GetResult_RemoteSigning
         private int _hsTimeInterval = int.Parse(ConfigurationManager.AppSettings["HS_TIME_INTERVAL"]);
         #endregion
 
-        //timer ky cac hs dang ky ngoai tru hsdk cap ma lan dau
+        //timer ky cac hs dang ky (ngoai tru hsdk cap ma lan dau)
         #region timer sign ho so dang ky (tru dk cap ma lan dau)
         private Timer _signHSDKTimer;
         private int _signHSDKInterval = int.Parse(ConfigurationManager.AppSettings["SIGNHSDK_TIME_INTERVAL"]);

@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Data.SqlClient;
-using System.Security.Cryptography;
 
 namespace EBH_RemoteSigning_ver2
 {

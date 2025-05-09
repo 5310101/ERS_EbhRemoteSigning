@@ -28,7 +28,6 @@ namespace ERS_Domain.Model
     public enum TrangThaiHoso
     {
         ChuaTaoFile =4,
-        TaoMoi = 6,
         DaKyHash = 1,
         DaKy = 2,
         HetHan = 3,

@@ -55,7 +55,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             try
             {
                 DataTable dt = _dbService.GetDataTable(TSQL);
-                if (dt.Rows.Count == 0)
+                if (dt is null || dt.Rows.Count == 0)
                 {
                     return;
                 }
@@ -988,7 +988,9 @@ namespace ws_GetResult_RemoteSigning.Utils
         {
             try
             {
-                string TSQL = $"SELECT TOP {_signHSDKCount} FROM HoSo_VNPT WITH (NOLOCK) WHERE TrangThai=4 AND typeDK=1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui";
+                //voi cac ho so dang ky type 1 thi chi gom file xml ko can tao file tokhai ma ky thang vao file ho so 
+                //vi ko tao file xml hoso nen trangthai=4 (chua tao file) chi de select cac ho so moi, chu ko co y nghia nhu voi hsnghiepvu(typeDk=0) hay hosocapmalandau(typeDk=2)
+                string TSQL = $"SELECT TOP {_signHSDKCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE TrangThai=4 AND typeDK=1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui";
                 DataTable dt = _dbService.GetDataTable(TSQL);
                 if(dt == null || dt.Rows.Count == 0)
                 {
