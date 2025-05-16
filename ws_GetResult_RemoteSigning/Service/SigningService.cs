@@ -862,9 +862,12 @@ namespace ws_GetResult_RemoteSigning.Utils
                 }
                 else if (typeDK == 1 || typeDK == 2)
                 {
-                    pathBHXHDt = Path.Combine(PathTempHoSo, HSDKName);
+                    pathBHXHDt = Path.Combine(PathTempHoSo, $"{HSDKName}.xml");
                 }
+               
                 IHashSigner signer = null;
+                
+
                 byte[] DataBHXHDt = File.ReadAllBytes(pathBHXHDt);
                 DataSign dataSign = SignSmartCAXML(userCert, DataBHXHDt, uid, ref signer, ref errMessage, "/Hoso/CKy_Dvi");
 
@@ -924,6 +927,9 @@ namespace ws_GetResult_RemoteSigning.Utils
                     string tran_id = MethodLibrary.SafeString(dr["transaction_id"]);
                     //string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
                     string url = $"{VNPT_URI.uriGetResult}/{tran_id}/status";
+                    int typeDK = MethodLibrary.SafeNumber<int>(dr["typeDK"]);
+                    string maNV = MethodLibrary.SafeString(dr["MaNV"]);
+
                     try
                     {
 
@@ -943,8 +949,16 @@ namespace ws_GetResult_RemoteSigning.Utils
                             continue;
                         }
                         bool isSigned = false;
-                        string pathSaved = Path.Combine(SignedTempFolder, GuidHS, "BHXHDienTu.xml");
-
+                        string pathSaved = "";
+                        if(typeDK == 0)
+                        {
+                             pathSaved = Path.Combine(SignedTempFolder, GuidHS, "BHXHDienTu.xml");
+                        }
+                        else if(typeDK == 1 || typeDK == 2)
+                        {
+                             pathSaved = Path.Combine(SignedTempFolder, GuidHS, $"{maNV}.xml");
+                        }
+                        
                         TSDHashSigner TSDSigner = listSigner.FirstOrDefault(s => s.Id == signerId);
                         if (TSDSigner == null)
                         {
@@ -1005,9 +1019,9 @@ namespace ws_GetResult_RemoteSigning.Utils
                         string uid = MethodLibrary.SafeString(row["uid"]);
                         string serialNumber = MethodLibrary.SafeString(row["SerialNumber"]);
                         string maNV = MethodLibrary.SafeString(row["MaNV"]);
-                        string tenFile = $"{maNV}.xml";
+                        //string tenFile = $"{maNV}.xml";
 
-                        bool isSigned = SignHoSoBHXH(uid, GuidHS, serialNumber, 1, tenFile);
+                        bool isSigned = SignHoSoBHXH(uid, GuidHS, serialNumber, 1, maNV);
                         if (!isSigned)
                         {
                             Utilities.logger.InfoLog($"Hồ sơ ký lỗi không lấy kết quả: {GuidHS}", "Hồ sơ ký lỗi");

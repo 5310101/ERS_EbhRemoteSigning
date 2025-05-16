@@ -124,15 +124,6 @@ namespace ERS_Domain.Model
 
         [XmlElement(ElementName = "CKy_Dvi")]
         public string CKyDvi { get; set; } = "";
-
-        [XmlAttribute(AttributeName = "xsi")]
-        public string Xsi { get; set; }
-
-        [XmlAttribute(AttributeName = "xsd")]
-        public string Xsd { get; set; }
-
-        [XmlText]
-        public string Text { get; set; }
     }
 
 }

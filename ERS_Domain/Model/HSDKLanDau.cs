@@ -70,15 +70,7 @@ namespace ERS_Domain.Model
         public NoiDungDK NoiDung { get; set; }
 
         [XmlElement(ElementName = "CKy_Dvi")]
-        public object CKyDvi { get; set; }
+        public string CKyDvi { get; set; } = "";
 
-        [XmlAttribute(AttributeName = "xsi")]
-        public string Xsi { get; set; }
-
-        [XmlAttribute(AttributeName = "xsd")]
-        public string Xsd { get; set; }
-
-        [XmlText]
-        public string Text { get; set; }
     }
 }

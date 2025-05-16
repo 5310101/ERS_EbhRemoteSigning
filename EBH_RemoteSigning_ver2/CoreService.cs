@@ -216,6 +216,19 @@ namespace EBH_RemoteSigning_ver2
         {
             try
             {
+                string TSQL1 = "SELECT * FROM HSDKLanDau WHERE GuidHS=@Guid";
+                var dt = _dbService.GetDataTable(TSQL1,"", new SqlParameter[]
+                {
+                    new SqlParameter("@Guid", hsDK.GuidHS)
+                });
+                if(dt.Rows.Count > 0)
+                {
+                    _dbService.ExecQuery("DELETE FROM HSDKlanDau WHERE GuidHS=@Guid", "", new SqlParameter[]
+                    {
+                        new SqlParameter("@Guid", hsDK.GuidHS)
+                    });
+                }
+
                 string TSQL = "INSERT INTO HSDKLanDau (GuidHS,TenCoQuan,MaCoQuan,LoaiDoiTuong,TenDoiTuong,MaSoThue,DienThoai,Email,NguoiLienHe,DiaChi,DiaChiLienHe,DienThoaiLienHe,NgayLap,NgayDangKy,PTNhanKetQua) VALUES (@GuidHS,@TenCoQuan,@MaCoQuan,@LoaiDoiTuong,@TenDoiTuong,@MaSoThue,@DienThoai,@Email,@NguoiLienHe,@DiaChi,@DiaChiLienHe,@DienThoaiLienHe,@NgayLap,@NgayDangKy,@PTNhanKetQua)";
                 SqlParameter[] listParams = new SqlParameter[] {
                         new SqlParameter("@GuidHS",hsDK.GuidHS),

@@ -94,12 +94,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ServiceSignHSDK_VNPT.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="ServiceSignHSDK_VNPT.Designer.cs">
-      <DependentUpon>ServiceSignHSDK_VNPT.cs</DependentUpon>
-    </Compile>
     <Compile Include="ServiceGetResult_VNPT.cs">
       <SubType>Component</SubType>
     </Compile>
