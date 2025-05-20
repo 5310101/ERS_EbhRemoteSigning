@@ -5,8 +5,8 @@ using ERS_Domain.Model;
 using ERS_Domain.Response;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Data.SqlClient;
+using System.IO;
 
 namespace EBH_RemoteSigning_ver2
 {
@@ -32,9 +32,9 @@ namespace EBH_RemoteSigning_ver2
             try
             {
                 //Tao cac file de ky
-                foreach(ToKhaiInfo tokhai in tokhais)
+                foreach (ToKhaiInfo tokhai in tokhais)
                 {
-                    string pathFile = Path.Combine(pathTempHS,tokhai.TenFile);
+                    string pathFile = Path.Combine(pathTempHS, tokhai.TenFile);
                     File.WriteAllBytes(pathFile, tokhai.Data);
                 }
 
@@ -59,7 +59,7 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        public bool SaveHSDKFile(HoSoDKInfo hsDK,string base64Data )
+        public bool SaveHSDKFile(HoSoDKInfo hsDK, string base64Data)
         {
             //Tao thu muc chua ho so ky
             string pathTempHS = Path.Combine(Utilities.globalPath.SignedTempFolder, $"{hsDK.GuidHS}");
@@ -73,7 +73,7 @@ namespace EBH_RemoteSigning_ver2
                 string data = base64Data.FromBase64ToString();
                 File.WriteAllText(filePath, data);
                 return true;
-            } 
+            }
             catch (Exception ex)
             {
                 //Xoa thu muc chua temp file cua hoso neu loi
@@ -92,7 +92,7 @@ namespace EBH_RemoteSigning_ver2
             using (SqlConnection conn = new SqlConnection(_dbService.ConnStr))
             {
                 conn.Open();
-                SqlTransaction trans  = conn.BeginTransaction();
+                SqlTransaction trans = conn.BeginTransaction();
                 try
                 {
                     foreach (ToKhaiInfo tokhai in tokhais)
@@ -117,7 +117,7 @@ namespace EBH_RemoteSigning_ver2
                             command.CommandType = System.Data.CommandType.Text;
                             command.CommandTimeout = 60;
                             var result = command.ExecuteNonQuery();
-                            if(result <= 0)
+                            if (result <= 0)
                             {
                                 throw new Exception("Insert Failed");
                             }
@@ -128,21 +128,20 @@ namespace EBH_RemoteSigning_ver2
                 }
                 catch (Exception ex)
                 {
-                    trans.Rollback();   
-                    Utilities.logger.ErrorLog(ex, "InsertDatabase_ToKhai",GuidHS);
+                    trans.Rollback();
+                    Utilities.logger.ErrorLog(ex, "InsertDatabase_ToKhai", GuidHS);
                     return false;
                 }
             }
-
         }
 
-        //neu nguoi dung co tu 2 cks tro len se dung ham nay de lay 
+        //neu nguoi dung co tu 2 cks tro len se dung ham nay de lay
         public UserCertificate[] GetListUserCertificateVNPT(string uid)
         {
-            UserCertificate[] certs = _signService.GetListAccountCert(VNPT_URI.uriGetCert,uid);
+            UserCertificate[] certs = _signService.GetListAccountCert(VNPT_URI.uriGetCert, uid);
             return certs;
         }
-        
+
         //Cac ham lien quan den tao lap hoso
         public bool InsertHoSoNew_VNPT(HoSoInfo hoso, string uid, string serialNumber)
         {
@@ -167,8 +166,8 @@ namespace EBH_RemoteSigning_ver2
                         new SqlParameter("@SerialNumber",serialNumber),
                         new SqlParameter("@typeDK",System.Data.SqlDbType.Int){ Value = 0},
                 };
-                bool isSuccess = _dbService.ExecQuery_Tran(TSQL,"", listParams);
-                return isSuccess;   
+                bool isSuccess = _dbService.ExecQuery_Tran(TSQL, "", listParams);
+                return isSuccess;
             }
             catch (Exception ex)
             {
@@ -203,7 +202,6 @@ namespace EBH_RemoteSigning_ver2
                 };
                 bool isSuccess = _dbService.ExecQuery_Tran(TSQL, "", listParams);
                 return isSuccess;
-
             }
             catch (Exception ex)
             {
@@ -217,11 +215,11 @@ namespace EBH_RemoteSigning_ver2
             try
             {
                 string TSQL1 = "SELECT * FROM HSDKLanDau WHERE GuidHS=@Guid";
-                var dt = _dbService.GetDataTable(TSQL1,"", new SqlParameter[]
+                var dt = _dbService.GetDataTable(TSQL1, "", new SqlParameter[]
                 {
                     new SqlParameter("@Guid", hsDK.GuidHS)
                 });
-                if(dt.Rows.Count > 0)
+                if (dt.Rows.Count > 0)
                 {
                     _dbService.ExecQuery("DELETE FROM HSDKlanDau WHERE GuidHS=@Guid", "", new SqlParameter[]
                     {
@@ -249,7 +247,6 @@ namespace EBH_RemoteSigning_ver2
                 };
                 bool isSuccess = _dbService.ExecQuery_Tran(TSQL, "", listParams);
                 return isSuccess;
-
             }
             catch (Exception ex)
             {

@@ -48,7 +48,8 @@ namespace ws_GetResult_RemoteSigning.Utils
         #region ham lay ket qua ky tu server VNPT
         public void GetResultToKhai_VNPT()
         {
-            List<int> listIdChuaCoKetQua = new List<int>();
+            List<string> listGuidKoLayDuocKQ = new List<string>();
+            List<string> listHetHan = new List<string>();
             //lay cac ban ghi to khai da ky hash
             //sau khi lay ket qua thi 10s sau ms lay lai ket qua neu ko thanh cong
             string TSQL = $"SELECT TOP {FileCount} * FROM ToKhai_VNPT WITH (NOLOCK) WHERE TrangThai=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
@@ -73,16 +74,39 @@ namespace ws_GetResult_RemoteSigning.Utils
                     {
 
                         ResStatus res = _smartCAService.GetStatus(url);
-                        // neu ko tra ve res cho chay lay tiep cac ket qua khac, 10s sau ms lấy lại
                         if (res == null)
                         {
-                            listIdChuaCoKetQua.Add(id);
+                            if (!listGuidKoLayDuocKQ.Contains(GuidHS))
+                            {
+                                listGuidKoLayDuocKQ.Add(GuidHS);
+                            }
+                        }
+
+                        if(res.message == "PENDING")
+                        {
+                            //van chua lay ket qua thi continue sau lay tiep
+                            continue;
                         }
 
                         if (res.message == "EXPIRED")
                         {
                             //khi to khai da het han update trang thai
                             UpdateStatusToKhai(id, TrangThaiFile.HetHan, "The file's signing time has expired");
+                            if (!listHetHan.Contains(GuidHS))
+                            {
+                                listHetHan.Add(GuidHS);
+                            }
+                            continue;
+                        }
+
+                        if (res.message == "REJECTED")
+                        {
+                            //khi to khai da het han update trang thai
+                            UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "The file has been rejected");
+                            if (!listGuidKoLayDuocKQ.Contains(GuidHS))
+                            {
+                                listGuidKoLayDuocKQ.Add(GuidHS);
+                            }
                             continue;
                         }
 
@@ -117,9 +141,9 @@ namespace ws_GetResult_RemoteSigning.Utils
                         }
                         if (!isSigned)
                         {
-                            if (!listIdChuaCoKetQua.Contains(id))
+                            if (!listGuidKoLayDuocKQ.Contains(GuidHS))
                             {
-                                listIdChuaCoKetQua.Add(id);
+                                listGuidKoLayDuocKQ.Add(GuidHS);
                             }
                             continue;
                         }
@@ -136,10 +160,15 @@ namespace ws_GetResult_RemoteSigning.Utils
                     {
                         Utilities.logger.ErrorLog(ex, $"Lỗi khi lấy kết quả file {GuidHS}[{id}]");
                         UpdateStatusToKhai(id, TrangThaiFile.KyLoi, ex.Message, filePath, signerId, tran_id);
+                        if (!listGuidKoLayDuocKQ.Contains(GuidHS))
+                        {
+                            listGuidKoLayDuocKQ.Add(GuidHS);
+                        }
                         continue;
                     }
                 }
-                UpdateLastGetToKhai(listIdChuaCoKetQua);
+                UpdateHoSo_SignFailed(listGuidKoLayDuocKQ);
+                UpdateHoSo_Expired(listHetHan);
             }
             catch (DatabaseInteractException ex)
             {
@@ -316,6 +345,11 @@ namespace ws_GetResult_RemoteSigning.Utils
                     DataSign dataSign = null;
                     //SignedHashInfo signedHashInfo = new SignedHashInfo();
                     UserCertificate cert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert, uid, serialNumber);
+                    if(cert == null)
+                    {
+                        Utilities.logger.ErrorLog("error when call api","null cert");
+                        Utilities.logger.ErrorLog("param", $"{VNPT_URI.uriGetCert}, {uid},{serialNumber}");
+                    }
                     byte[] Data = null;
                     if (File.Exists(FilePath))
                     {
@@ -611,6 +645,24 @@ namespace ws_GetResult_RemoteSigning.Utils
                 }
             }
         }
+
+        private void UpdateHoSo_Expired(List<string> listGuid)
+        {
+            foreach (string guid in listGuid)
+            {
+                bool isUpdated = _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=3, ErrMsg=@ErrMsg WHERE Guid=@Guid", "", new SqlParameter[]
+                {
+                    new SqlParameter("@Guid",guid),
+                    new SqlParameter("@ErrMsg","Expired")
+                });
+                string tempHS = Path.Combine(SignedTempFolder, guid);
+                if (isUpdated && Directory.Exists(tempHS))
+                {
+                    Directory.Delete(tempHS, true);
+                }
+            }
+        }
+
         private void UpdateLastGetHoSo(List<int> ListIdHS)
         {
             if (ListIdHS == null || ListIdHS.Count == 0)
@@ -907,7 +959,8 @@ namespace ws_GetResult_RemoteSigning.Utils
         }
         public void GetResultHoSo_VNPT()
         {
-            List<int> ListHSChuaCoKQ = new List<int>();
+            List<string> ListHSKoLayDuocKQ = new List<string>();
+            List<string> ListHetHan = new List<string>();
             //lay cac ban ghi to khai da ky hash
             //sau khi lay ket qua thi 10s sau ms lay lai ket qua neu ko thanh cong
             string TSQL = $"SELECT TOP {HoSoCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE TrangThai=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
@@ -934,18 +987,40 @@ namespace ws_GetResult_RemoteSigning.Utils
                     {
 
                         ResStatus res = _smartCAService.GetStatus(url);
-                        // neu ko tra ve res cho chay lay tiep cac ket qua khac
+                       
                         if (res == null)
                         {
-                            //khong lay dc ket qua tu vnpt cung update lastget
-                            ListHSChuaCoKQ.Add(idHS);
+                            if (!ListHSKoLayDuocKQ.Contains(GuidHS))
+                            {
+                                ListHSKoLayDuocKQ.Add(GuidHS);
+                            }
+                            continue;
+                        }
+
+                        if(res.message == "PENDING")
+                        {
+                            // neu chua lay ket qua do chua ky ben app vnpt cho chay lay tiep cac ket qua khac
                             continue;
                         }
 
                         if (res.message == "EXPIRED")
                         {
                             //khi to khai da het han update trang thai
-                            UpdateStatusHoSo(GuidHS, TrangThaiHoso.HetHan, "File [BHXHDienTu.xml] đã hết hạn để ký xác nhận");
+                            UpdateStatusHoSo(GuidHS, TrangThaiHoso.HetHan, "File [BHXHDienTu.xml] is expired");
+                            if (!ListHetHan.Contains(GuidHS))
+                            {
+                                ListHetHan.Add(GuidHS);
+                            }
+                            continue;
+                        }
+                        if (res.message == "REJECTED")
+                        {
+                            //khi to khai da het han update trang thai
+                            UpdateStatusHoSo(GuidHS, TrangThaiHoso.HetHan, "File [BHXHDienTu.xml] is rejected");
+                            if (!ListHSKoLayDuocKQ.Contains(GuidHS))
+                            {
+                                ListHSKoLayDuocKQ.Add(GuidHS);
+                            }
                             continue;
                         }
                         bool isSigned = false;
@@ -968,9 +1043,10 @@ namespace ws_GetResult_RemoteSigning.Utils
                         isSigned = GetResult_Xml(TSDSigner.Signer, res.data, pathSaved);
                         if (!isSigned)
                         {
-                            //voi nhung truong hop ko loi ma chua lay dc ket qua thi se ko update trang thai ma chi update LastGet
-                            //voi nhung ban ghi ma tinh tu luc cuoi lay kq den hien tai ma chua dc 10s thi se bo qua
-                            ListHSChuaCoKQ.Add(idHS);
+                            if (!ListHSKoLayDuocKQ.Contains(GuidHS))
+                            {
+                                ListHSKoLayDuocKQ.Add(GuidHS);
+                            }
                             continue;
                         }
                         //update thanh trang thai da ky
@@ -987,7 +1063,8 @@ namespace ws_GetResult_RemoteSigning.Utils
                         continue;
                     }
                 }
-                UpdateLastGetHoSo(ListHSChuaCoKQ);
+                UpdateHoSo_Expired(ListHetHan);
+                UpdateHoSo_SignFailed(ListHSKoLayDuocKQ);
             }
             catch (DatabaseInteractException ex)
             {
@@ -1039,6 +1116,32 @@ namespace ws_GetResult_RemoteSigning.Utils
             catch 
             {
                 return;
+            }
+        }
+
+        internal void UpdateHoSoKyLoi()
+        {
+            List<string> listHSLoi = new List<string>();    
+            try
+            {
+                string TSQL = "SELECT * FROM ToKhai_VNPT WHERE TrangThai=0";
+                DataTable dt = _dbService.GetDataTable(TSQL);
+                if (dt == null || dt.Rows.Count == 0)
+                {
+                    return;
+                }
+                foreach (DataRow row in dt.Rows)
+                {
+                    if (!listHSLoi.Contains(row["GuidHS"].SafeString()))
+                    {
+                        listHSLoi.Add(row["GuidHS"].SafeString());  
+                    }
+                }
+            }
+            catch (Exception)
+            {
+
+                throw;
             }
         }
 
