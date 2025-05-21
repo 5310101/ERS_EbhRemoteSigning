@@ -33,6 +33,8 @@ namespace ERS_Domain.CAService
                     serial_number = "",
                     transaction_id = Guid.NewGuid().ToString(),
                 }, uri);
+                //Utilities.logger.ErrorLog("response",response.SafeString());
+                //Utilities.logger.ErrorLog("param", $"{_configRequest.sp_id},{_configRequest.sp_password},{uid},{ serialNumber}");
                 if (response != null)
                 {
                     ResGetCert res = JsonConvert.DeserializeObject<ResGetCert>(response);

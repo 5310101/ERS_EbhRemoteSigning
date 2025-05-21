@@ -347,8 +347,11 @@ namespace ws_GetResult_RemoteSigning.Utils
                     UserCertificate cert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert, uid, serialNumber);
                     if(cert == null)
                     {
-                        Utilities.logger.ErrorLog("error when call api","null cert");
-                        Utilities.logger.ErrorLog("param", $"{VNPT_URI.uriGetCert}, {uid},{serialNumber}");
+                        //khong tim dc cks thi se bao luon ho so loi
+                        Utilities.logger.ErrorLog("Cert not found", $"{VNPT_URI.uriGetCert}, {uid},{serialNumber}");
+                        UpdateStatusToKhai(id,TrangThaiFile.KyLoi,$"Cannot find certificate of {uid}");
+                        listHoSo_Loi.Add(GuidHS);
+                        continue;
                     }
                     byte[] Data = null;
                     if (File.Exists(FilePath))
@@ -725,7 +728,7 @@ namespace ws_GetResult_RemoteSigning.Utils
                         bool isSigned = SignHoSoBHXH(uid, GuidHS, serialNumber, typeDK, maNV);
                         if (!isSigned)
                         {
-                            Utilities.logger.InfoLog($"Hồ sơ ký lỗi không lấy kết quả: {GuidHS}", "Hồ sơ ký lỗi");
+                            Utilities.logger.ErrorLog($"Hồ sơ ký lỗi không lấy kết quả: {GuidHS}", "Hồ sơ ký lỗi");
                             //Xoa thu muc neu ky loi
                             Directory.Delete(pathSaveHS, true);
                         }
@@ -904,6 +907,7 @@ namespace ws_GetResult_RemoteSigning.Utils
                 if (userCert == null)
                 {
                     Utilities.logger.ErrorLog("Không tìm thấy cert trên server VNPT để ký", "Lỗi khi ký", uid, serialNumber);
+                    UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, $"Cert not found for {uid}");
                     return false;
                 }
                 string PathTempHoSo = Path.Combine(SignedTempFolder, GuidHS);
