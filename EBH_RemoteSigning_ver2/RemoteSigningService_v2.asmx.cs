@@ -33,6 +33,7 @@ namespace EBH_RemoteSigning_ver2
         public RemoteSigningService_v2()
         {
             _dbService = new DbService();
+            _coreService = new CoreService(_dbService);
         }
 
         [WebMethod(Description = "Phương thức xác thực cho SOAP service.")]
@@ -91,8 +92,8 @@ namespace EBH_RemoteSigning_ver2
                 //}
 
                 SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
-                _coreService = new CoreService(smartCAService, _dbService);
-                UserCertificate[] certs = _coreService.GetListUserCertificateVNPT(uid);
+                //_coreService = new CoreService(smartCAService, _dbService);
+                UserCertificate[] certs = smartCAService.GetListAccountCert(VNPT_URI.uriGetCert, uid);
                 if (certs == null) return new ERS_Response("Không tìm thấy chữ ký số", false);
                 return new ERS_Response("Thành công", true, certs);
             }
@@ -117,38 +118,31 @@ namespace EBH_RemoteSigning_ver2
                 }
                 //tien hanh ky cac to khai neu ky dc ko loi thi luu hoso vao db
                 //chon nha cung cap dich vu
-                if (signProvider == RemoteSigningProvider.VNPT)
+                //SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
+                //_coreService = new CoreService( _dbService);
+                string TSQL = "SELECT * FROM HoSo_RS WHERE Guid=@Guid";
+                DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
+                if (dt.Rows.Count > 0)
                 {
-                    SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
-                    _coreService = new CoreService(smartCAService, _dbService);
-                    string TSQL = "SELECT * FROM HoSo_VNPT WHERE Guid=@Guid";
-                    DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
-                    if (dt.Rows.Count > 0)
-                    {
-                        // neu da ton tai thi xoa ban ghi cu truoc khi insert ban ghi moi
-                        _dbService.ExecQuery("DELETE FROM ToKhai_VNPT WHERE GuidHS=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
-                        _dbService.ExecQuery("DELETE FROM HoSo_VNPT WHERE Guid=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
-                    }
-                    bool isSaveFile = _coreService.SaveToKhai(hoso.ToKhais, hoso.GuidHS, uid, serialNumber);
-                    if (!isSaveFile)
-                    {
-                        return new ERS_Response("Không gửi file thành công", false);
-                    }
-                    //Tao moi hoso va insert vao database
-                    //Check xem hoso da ton tai chua, trong th ky lai
+                    // neu da ton tai thi xoa ban ghi cu truoc khi insert ban ghi moi
+                    _dbService.ExecQuery("DELETE FROM ToKhai_RS WHERE GuidHS=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
+                    _dbService.ExecQuery("DELETE FROM HoSo_RS WHERE Guid=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hoso.GuidHS) });
+                }
+                bool isSaveFile = _coreService.SaveToKhai(hoso.ToKhais, hoso.GuidHS, uid, serialNumber);
+                if (!isSaveFile)
+                {
+                    return new ERS_Response("Không gửi file thành công", false);
+                }
+                //Tao moi hoso va insert vao database
+                //Check xem hoso da ton tai chua, trong th ky lai
 
-                    bool isSuccess = _coreService.InsertHoSoNew_VNPT(hoso, uid, serialNumber);
-                    if (!isSuccess)
-                    {
-                        Utilities.logger.ErrorLog($"Hồ sơ lưu vào lỗi vào database: {hoso.GuidHS}", "Hồ sơ lưu lỗi");
-                        return new ERS_Response("Có lỗi khi lưu dữ liệu hồ sơ trên server", false);
-                    }
-                    return new ERS_Response("Chờ xác thực trên app ký của VNPT", true);
-                }
-                else
+                bool isSuccess = _coreService.InsertHoSoNew(hoso, uid, serialNumber, (int)signProvider);
+                if (!isSuccess)
                 {
-                    return new ERS_Response("Hiện phần mềm mới hỗ trợ ký từ xa từ dịch vụ của VNPT", false);
+                    Utilities.logger.ErrorLog($"Hồ sơ lưu vào lỗi vào database: {hoso.GuidHS}", "Hồ sơ lưu lỗi");
+                    return new ERS_Response("Có lỗi khi lưu dữ liệu hồ sơ trên server", false);
                 }
+                return new ERS_Response("Chờ xác thực trên app ký của nhà cung cấp dịch vụ CA", true);
             }
             catch (Exception ex)
             {
@@ -169,24 +163,21 @@ namespace EBH_RemoteSigning_ver2
                 //{
                 //    return result;
                 //}
-
                 //tien hanh ky cac to khai neu ky dc ko loi thi luu hoso vao db
                 //chon nha cung cap dich vu
-                if (signProvider == RemoteSigningProvider.VNPT)
-                {
-                    SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
-                    _coreService = new CoreService(smartCAService, _dbService);
-                    string TSQL = "SELECT * FROM HoSo_VNPT WHERE Guid=@Guid";
+                    //SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
+                    //_coreService = new CoreService( _dbService);
+                    string TSQL = "SELECT * FROM HoSo_RS WHERE Guid=@Guid";
                     DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
                     if (dt.Rows.Count > 0)
                     {
                         // neu da ton tai thi xoa ban ghi cu truoc khi insert ban ghi moi
                         if (hsDK.ToKhais != null)
                         {
-                            _dbService.ExecQuery("DELETE FROM ToKhai_VNPT WHERE GuidHS=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
+                            _dbService.ExecQuery("DELETE FROM ToKhai_RS WHERE GuidHS=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
                         }
 
-                        _dbService.ExecQuery("DELETE FROM HoSo_VNPT WHERE Guid=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
+                        _dbService.ExecQuery("DELETE FROM HoSo_RS WHERE Guid=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
                     }
                     bool isSaveFile = true;
                     //Loai dang ky 1 = 04,05,06, 2 la dk ma lan dau
@@ -211,18 +202,14 @@ namespace EBH_RemoteSigning_ver2
                     //Tao moi hoso va insert vao database
                     //Check xem hoso da ton tai chua, trong th ky lai
 
-                    bool isSuccess = _coreService.InsertHoSoDKNew_VNPT(hsDK, uid, serialNumber, typeDK);
+                    bool isSuccess = _coreService.InsertHoSoDKNew(hsDK, uid, serialNumber, typeDK, (int)signProvider);
                     if (!isSuccess)
                     {
                         Utilities.logger.ErrorLog($"Hồ sơ lưu vào lỗi vào database: {hsDK.GuidHS}", "Hồ sơ lưu lỗi");
                         return new ERS_Response("Có lỗi khi lưu dữ liệu hồ sơ trên server", false);
                     }
-                    return new ERS_Response("Chờ xác thực trên app ký của VNPT", true);
-                }
-                else
-                {
-                    return new ERS_Response("Hiện phần mềm mới hỗ trợ ký từ xa từ dịch vụ của VNPT", false);
-                }
+                    return new ERS_Response("Chờ xác thực trên app ký của nhà cung cấp dịch vụ CA", true);
+              
             }
             catch (Exception ex)
             {
@@ -237,7 +224,7 @@ namespace EBH_RemoteSigning_ver2
         {
             try
             {
-                string TSQL = "SELECT * FROM HoSo_VNPT WHERE Guid=@Guid";
+                string TSQL = "SELECT * FROM HoSo_RS WHERE Guid=@Guid";
                 DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[]
                 {
                     new SqlParameter("@Guid", HoSoGuid)
@@ -276,7 +263,7 @@ namespace EBH_RemoteSigning_ver2
                     byte[] data = File.ReadAllBytes(filePath);
                     string base64Data = Convert.ToBase64String(data);
 
-                    _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=5 WHERE Guid=@Guid", "", new SqlParameter[]
+                    _dbService.ExecQuery("UPDATE HoSo_RS SET TrangThai=5 WHERE Guid=@Guid", "", new SqlParameter[]
                     {
                         new SqlParameter("@Guid",HoSoGuid)
                     });

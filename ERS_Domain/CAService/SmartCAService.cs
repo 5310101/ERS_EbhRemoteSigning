@@ -66,7 +66,6 @@ namespace ERS_Domain.CAService
                 Utilities.logger.ErrorLog(ex, "GetAccountCert", uid);
                 return null;
             }
-
         }
 
         public UserCertificate[] GetListAccountCert(string uri, string uid)

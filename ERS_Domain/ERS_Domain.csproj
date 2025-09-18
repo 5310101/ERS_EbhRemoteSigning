@@ -45,6 +45,7 @@
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Security.Custom, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\GatewayServiceTest\lib\System.Security.Custom.dll</HintPath>
@@ -66,6 +67,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Cache\SessionCache.cs" />
+    <Compile Include="CAService\IntrustCAService.cs" />
     <Compile Include="CAService\IRemoteSignService.cs" />
     <Compile Include="CAService\SmartCAService.cs" />
     <Compile Include="clsUtilities\DbService.cs" />
@@ -89,6 +92,11 @@
     <Compile Include="Response\SmartCAResponse.cs" />
     <Compile Include="Utilities.cs" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\IntrustderCA_Domain\IntrustCA_Domain.csproj">
+      <Project>{6cfb174d-d6fb-4cc0-b417-7da09d6491d8}</Project>
+      <Name>IntrustCA_Domain</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

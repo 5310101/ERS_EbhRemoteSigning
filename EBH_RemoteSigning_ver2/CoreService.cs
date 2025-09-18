@@ -12,12 +12,12 @@ namespace EBH_RemoteSigning_ver2
 {
     public class CoreService
     {
-        private IRemoteSignService _signService;
+        //private IRemoteSignService _signService;
         private DbService _dbService;
 
-        public CoreService(IRemoteSignService signService, DbService dbService)
+        public CoreService( DbService dbService)
         {
-            _signService = signService;
+            //_signService = signService;
             _dbService = dbService;
         }
 
@@ -97,7 +97,7 @@ namespace EBH_RemoteSigning_ver2
                 {
                     foreach (ToKhaiInfo tokhai in tokhais)
                     {
-                        string TSQL = "INSERT INTO ToKhai_VNPT (GuidHS,TenToKhai,LoaiFile,MoTa,NgayGui,TrangThai,FilePath,LastGet,uid,SerialNumber) VALUES (@GuidHS,@TenToKhai,@LoaiFile,@Mota,@NgayGui,@TrangThai,@FilePath,@LastGet,@uid,@SerialNumber)";
+                        string TSQL = "INSERT INTO ToKhai_RS (GuidHS,TenToKhai,LoaiFile,MoTa,NgayGui,TrangThai,FilePath,LastGet,uid,SerialNumber) VALUES (@GuidHS,@TenToKhai,@LoaiFile,@Mota,@NgayGui,@TrangThai,@FilePath,@LastGet,@uid,@SerialNumber)";
                         var listParams = new SqlParameter[]
                         {
                             new SqlParameter("@GuidHS",GuidHS),
@@ -136,18 +136,18 @@ namespace EBH_RemoteSigning_ver2
         }
 
         //neu nguoi dung co tu 2 cks tro len se dung ham nay de lay
-        public UserCertificate[] GetListUserCertificateVNPT(string uid)
-        {
-            UserCertificate[] certs = _signService.GetListAccountCert(VNPT_URI.uriGetCert, uid);
-            return certs;
-        }
+        //public UserCertificate[] GetListUserCertificateVNPT(string uid)
+        //{
+        //    UserCertificate[] certs = _signService.GetListAccountCert(VNPT_URI.uriGetCert, uid);
+        //    return certs;
+        //}
 
         //Cac ham lien quan den tao lap hoso
-        public bool InsertHoSoNew_VNPT(HoSoInfo hoso, string uid, string serialNumber)
+        public bool InsertHoSoNew(HoSoInfo hoso, string uid, string serialNumber ,int CAProvider)
         {
             try
             {
-                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet,uid,SerialNumber,typeDK) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet,@uid,@SerialNumber,@typeDK)";
+                string TSQL = "INSERT INTO HoSo_RS (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet,uid,SerialNumber,typeDK,CAProvider) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet,@uid,@SerialNumber,@typeDK,@CAProvider)";
                 SqlParameter[] listParams = new SqlParameter[] {
                         new SqlParameter("@Guid",hoso.GuidHS),
                         new SqlParameter("@TenHS",hoso.TenThuTuc),
@@ -165,6 +165,7 @@ namespace EBH_RemoteSigning_ver2
                         new SqlParameter("@uid",uid),
                         new SqlParameter("@SerialNumber",serialNumber),
                         new SqlParameter("@typeDK",System.Data.SqlDbType.Int){ Value = 0},
+                        new SqlParameter("@CAProvider",System.Data.SqlDbType.Int){ Value = CAProvider},
                 };
                 bool isSuccess = _dbService.ExecQuery_Tran(TSQL, "", listParams);
                 return isSuccess;
@@ -177,11 +178,11 @@ namespace EBH_RemoteSigning_ver2
         }
 
         //Insert HSDK
-        public bool InsertHoSoDKNew_VNPT(HoSoDKInfo hoso, string uid, string serialNumber, int typeDK)
+        public bool InsertHoSoDKNew(HoSoDKInfo hoso, string uid, string serialNumber, int typeDK, int CAProvider)
         {
             try
             {
-                string TSQL = "INSERT INTO HoSo_VNPT (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet,uid,SerialNumber, typeDK) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet,@uid,@SerialNumber,@typeDK)";
+                string TSQL = "INSERT INTO HoSo_RS (Guid,TenHS,MaNV,NgayGui,TenDonVi,FromMST,FromMDV,LoaiDoiTuong,MaCQBH,NguoiKy,DienThoai,TrangThai,LastGet,uid,SerialNumber,typeDK,CAProvider) VALUES (@Guid,@TenHS,@MaNV,@NgayGui,@TenDonVi,@FromMST,@FromMDV,@LoaiDoiTuong,@MaCQBH,@NguoiKy,@DienThoai,@TrangThai,@LastGet,@uid,@SerialNumber,@typeDK,@CAProvider)";
                 SqlParameter[] listParams = new SqlParameter[] {
                         new SqlParameter("@Guid",hoso.GuidHS),
                         new SqlParameter("@TenHS",hoso.TenHoSo),
@@ -198,7 +199,8 @@ namespace EBH_RemoteSigning_ver2
                         new SqlParameter("@LastGet",DateTime.Now),
                         new SqlParameter("@uid",uid),
                         new SqlParameter("@serialNumber",serialNumber),
-                        new SqlParameter("@typeDK", System.Data.SqlDbType.Int){ Value = typeDK}
+                        new SqlParameter("@typeDK", System.Data.SqlDbType.Int){ Value = typeDK},
+                        new SqlParameter("@CAProvider", System.Data.SqlDbType.Int){ Value = CAProvider}
                 };
                 bool isSuccess = _dbService.ExecQuery_Tran(TSQL, "", listParams);
                 return isSuccess;

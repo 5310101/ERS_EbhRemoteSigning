@@ -52,7 +52,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             List<string> listHetHan = new List<string>();
             //lay cac ban ghi to khai da ky hash
             //sau khi lay ket qua thi 10s sau ms lay lai ket qua neu ko thanh cong
-            string TSQL = $"SELECT TOP {FileCount} * FROM ToKhai_VNPT WITH (NOLOCK) WHERE TrangThai=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
+            string TSQL = $"SELECT TOP {FileCount} * FROM ToKhai_RS WITH (NOLOCK) WHERE TrangThai=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
             try
             {
                 DataTable dt = _dbService.GetDataTable(TSQL);
@@ -319,7 +319,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             try
             {
                 //select ho so thoa man dieu kien 
-                string TSQL = $"WITH TopHoSo AS (SELECT TOP {_signTK_HSCount} Guid FROM HoSo_VNPT WHERE TrangThai = 4 AND typeDK<>1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui),ToKhaiChuaKy AS (SELECT GuidHS FROM ToKhai_VNPT WHERE GuidHS IN (SELECT Guid FROM TopHoSo) GROUP BY GuidHS HAVING COUNT(*) = SUM(CASE WHEN TrangThai = 6 THEN 1 ELSE 0 END)) SELECT * FROM ToKhai_VNPT WHERE GuidHS IN (SELECT GuidHS FROM ToKhaiChuaKy);";
+                string TSQL = $"WITH TopHoSo AS (SELECT TOP {_signTK_HSCount} Guid FROM HoSo_RS WHERE TrangThai = 4 AND typeDK<>1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui),ToKhaiChuaKy AS (SELECT GuidHS FROM ToKhai_VNPT WHERE GuidHS IN (SELECT Guid FROM TopHoSo) GROUP BY GuidHS HAVING COUNT(*) = SUM(CASE WHEN TrangThai = 6 THEN 1 ELSE 0 END)) SELECT * FROM ToKhai_VNPT WHERE GuidHS IN (SELECT GuidHS FROM ToKhaiChuaKy) AND CAProvider=1;";
                 DataTable dt = _dbService.GetDataTable(TSQL);
                 if (dt.Rows.Count == 0)
                 {
@@ -614,7 +614,7 @@ namespace ws_GetResult_RemoteSigning.Utils
 
         private void UpdateStatusHoSo(string GuidHS, TrangThaiHoso TrangThai, string errMsg = "", string signerId = "", string PathFile = "", string transaction_id = "", string tran_code = "")
         {
-            bool result = _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, SignerId=@SignerId, FilePath=@FilePath, transaction_id=@transaction_id, tran_code=@tran_code, LastGet=@LastGet WHERE Guid=@Guid", "", new SqlParameter[]
+            bool result = _dbService.ExecQuery("UPDATE HoSo_RS SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, SignerId=@SignerId, FilePath=@FilePath, transaction_id=@transaction_id, tran_code=@tran_code, LastGet=@LastGet WHERE Guid=@Guid", "", new SqlParameter[]
                 {
                 new SqlParameter("@TrangThai", (int)TrangThai),
                 new SqlParameter("@ErrMsg", errMsg),
@@ -636,7 +636,7 @@ namespace ws_GetResult_RemoteSigning.Utils
         {
             foreach (string guid in listGuid)
             {
-                bool isUpdated = _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=0, ErrMsg=@ErrMsg WHERE Guid=@Guid", "", new SqlParameter[]
+                bool isUpdated = _dbService.ExecQuery("UPDATE HoSo_RS SET TrangThai=0, ErrMsg=@ErrMsg WHERE Guid=@Guid", "", new SqlParameter[]
                 {
                     new SqlParameter("@Guid",guid),
                     new SqlParameter("@ErrMsg","Sign Error")
@@ -653,7 +653,7 @@ namespace ws_GetResult_RemoteSigning.Utils
         {
             foreach (string guid in listGuid)
             {
-                bool isUpdated = _dbService.ExecQuery("UPDATE HoSo_VNPT SET TrangThai=3, ErrMsg=@ErrMsg WHERE Guid=@Guid", "", new SqlParameter[]
+                bool isUpdated = _dbService.ExecQuery("UPDATE HoSo_RS SET TrangThai=3, ErrMsg=@ErrMsg WHERE Guid=@Guid", "", new SqlParameter[]
                 {
                     new SqlParameter("@Guid",guid),
                     new SqlParameter("@ErrMsg","Expired")
@@ -673,7 +673,7 @@ namespace ws_GetResult_RemoteSigning.Utils
                 return;
             }
             string strListId = string.Join(",", ListIdHS);
-            string TSQL = $"UPDATE HoSo_VNPT SET LastGet=@LastGet WHERE id IN ({strListId})";
+            string TSQL = $"UPDATE HoSo_RS SET LastGet=@LastGet WHERE id IN ({strListId})";
             var result = _dbService.ExecQuery(TSQL, "", new SqlParameter[]
             {
                 new SqlParameter("@LastGet", DateTime.Now)
@@ -692,7 +692,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             try
             {
                 //select trong bang HoSo_VNPT, chi select cac hoso ma tat ca to khai da dc ky(trang thai =2)
-                string TSQL = $"SELECT TOP {HSSignCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE GUID IN (SELECT GUID FROM HoSo_VNPT A JOIN ToKhai_VNPT B ON A.Guid = B.GuidHS GROUP BY A.Guid HAVING COUNT(*) = SUM(CASE WHEN B.TrangThai = 2 THEN 1 ELSE 0 END)) AND TrangThai=4 ORDER BY NgayGui";
+                string TSQL = $"SELECT TOP {HSSignCount} * FROM HoSo_RS WITH (NOLOCK) WHERE GUID IN (SELECT GUID FROM HoSo_RS A JOIN ToKhai_RS B ON A.Guid = B.GuidHS GROUP BY A.Guid HAVING COUNT(*) = SUM(CASE WHEN B.TrangThai = 2 THEN 1 ELSE 0 END)) AND TrangThai=4 AND CAProvider=1 ORDER BY NgayGui";
                 DataTable dtHS = _dbService.GetDataTable(TSQL);
                 if (dtHS.Rows.Count == 0) return;
                 foreach (DataRow dr in dtHS.Rows)
@@ -751,7 +751,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             try
             {
                 string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
-                DataTable dtToKhais = _dbService.GetDataTable("SELECT * FROM ToKhai_VNPT WITH (NOLOCK) WHERE GuidHS=@GuidHS", "", new SqlParameter[]
+                DataTable dtToKhais = _dbService.GetDataTable("SELECT * FROM ToKhai_RS WITH (NOLOCK) WHERE GuidHS=@GuidHS", "", new SqlParameter[]
                 {
                       new SqlParameter("@GuidHS", GuidHS)
                 });
@@ -821,7 +821,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             try
             {
                 string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
-                DataTable dtToKhais = _dbService.GetDataTable("SELECT * FROM ToKhai_VNPT WITH (NOLOCK) WHERE GuidHS=@GuidHS", "", new SqlParameter[]
+                DataTable dtToKhais = _dbService.GetDataTable("SELECT * FROM ToKhai_RS WITH (NOLOCK) WHERE GuidHS=@GuidHS", "", new SqlParameter[]
                 {
                       new SqlParameter("@GuidHS", GuidHS)
                 });
@@ -967,7 +967,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             List<string> ListHetHan = new List<string>();
             //lay cac ban ghi to khai da ky hash
             //sau khi lay ket qua thi 10s sau ms lay lai ket qua neu ko thanh cong
-            string TSQL = $"SELECT TOP {HoSoCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE TrangThai=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
+            string TSQL = $"SELECT TOP {HoSoCount} * FROM HoSo_RS WITH (NOLOCK) WHERE TrangThai=1 AND CAProvider=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
             try
             {
                 DataTable dt = _dbService.GetDataTable(TSQL);
@@ -1085,7 +1085,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             {
                 //voi cac ho so dang ky type 1 thi chi gom file xml ko can tao file tokhai ma ky thang vao file ho so 
                 //vi ko tao file xml hoso nen trangthai=4 (chua tao file) chi de select cac ho so moi, chu ko co y nghia nhu voi hsnghiepvu(typeDk=0) hay hosocapmalandau(typeDk=2)
-                string TSQL = $"SELECT TOP {_signHSDKCount} * FROM HoSo_VNPT WITH (NOLOCK) WHERE TrangThai=4 AND typeDK=1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui";
+                string TSQL = $"SELECT TOP {_signHSDKCount} * FROM HoSo_RS WITH (NOLOCK) WHERE TrangThai=4 AND typeDK=1 AND CAProvider=1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui";
                 DataTable dt = _dbService.GetDataTable(TSQL);
                 if(dt == null || dt.Rows.Count == 0)
                 {
@@ -1128,7 +1128,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             List<string> listHSLoi = new List<string>();    
             try
             {
-                string TSQL = "SELECT * FROM ToKhai_VNPT WHERE TrangThai=0";
+                string TSQL = "SELECT * FROM ToKhai_RS WHERE TrangThai=0";
                 DataTable dt = _dbService.GetDataTable(TSQL);
                 if (dt == null || dt.Rows.Count == 0)
                 {

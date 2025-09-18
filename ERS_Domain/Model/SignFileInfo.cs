@@ -40,6 +40,7 @@ namespace ERS_Domain.Model
     {
         VNPT =1,
         VietTel =2,
+        Intrust = 3,
     }
 
     public class RectanglePosition

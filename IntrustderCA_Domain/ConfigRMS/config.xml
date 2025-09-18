@@ -1,0 +1,52 @@
+<root>
+  <data_list>
+    <row>
+	  <stt>1</stt>
+      <id>MT_TEST</id>
+      <name>Môi trường test</name>
+	  <rs_link_api>https://164.132.82.154/idp/</rs_link_api>
+	  <sca_link_api>https://164.132.82.153/sca/</sca_link_api>
+	  <ect_link_api>https://esign-dev.intrustca.net/</ect_link_api>
+	  <crm_link_api>https://devcrm.intrustdss.xyz/api/service/signature/manager-certificate/v1/</crm_link_api>
+	  <crm_user_name>cm1zX3NpZ24=</crm_user_name>
+	  <crm_password>cm1zX3NpZ24xMjNhQUAh</crm_password>	  
+	  <rs_client_name>rs_client.p12</rs_client_name>
+	  <rs_client_pass>om96YrFp+BHNtYIFpOsiyw==</rs_client_pass>
+	  <sca_client_name>sca_client.p12</sca_client_name>
+	  <sca_client_pass>om96YrFp+BHNtYIFpOsiyw==</sca_client_pass>
+	  <rs_user_agent>mds_admin</rs_user_agent>
+	  <sca_user_agent>mds_admin</sca_user_agent>
+	  <key_pass>Um5dhKsPjkaP3PZ+dnzqAQ==</key_pass>
+	  <ca_name>INTRUSTCA</ca_name>
+	  <sp_id>econtract</sp_id>
+	  <sp_password>h4QaVvXhn6g+dZYbPhkrbQ==</sp_password>
+	  <is_active>False</is_active>
+	  <is_log>False</is_log>
+	  <is_authentication>True</is_authentication>
+    </row>
+	<row>
+	  <stt>2</stt>
+      <id>MT_ON</id>
+      <name>Bản online</name>
+	  <rs_link_api>https://idp.intrustca.vn/idp/</rs_link_api>
+	  <sca_link_api>https://sca.intrustca.vn/sca/</sca_link_api>
+	  <ect_link_api>https://esigner.intrustca.net/</ect_link_api>
+	  <crm_link_api>https://crm.intrustdss.vn/api/service/signature/manager-certificate/v1/</crm_link_api>
+	  <crm_user_name></crm_user_name>
+	  <crm_password></crm_password>	  
+	  <rs_client_name>prod_rs_client.p12</rs_client_name>
+	  <rs_client_pass>ra34DH8tKhtcV8NCvkSxbw==</rs_client_pass>
+	  <sca_client_name>prod_sca_client.p12</sca_client_name>
+	  <sca_client_pass>ra34DH8tKhtcV8NCvkSxbw==</sca_client_pass>
+	  <rs_user_agent>dss_signing</rs_user_agent>
+	  <sca_user_agent>dss_signing</sca_user_agent>
+	  <key_pass>Um5dhKsPjkaP3PZ+dnzqAQ==</key_pass>
+	  <ca_name>INTRUSTCA</ca_name>
+	  <sp_id>econtract</sp_id>
+	  <sp_password>h4QaVvXhn6g+dZYbPhkrbQ==</sp_password>
+	  <is_active>True</is_active>	 
+	  <is_log>False</is_log>
+	  <is_authentication>True</is_authentication>	  
+    </row>
+  </data_list>
+</root>
