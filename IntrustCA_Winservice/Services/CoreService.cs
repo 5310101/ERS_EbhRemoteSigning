@@ -14,5 +14,9 @@ namespace IntrustCA_Winservice.Services
         private readonly IntrustCAService _intrustCAService;
         private readonly DbService _dbService;
 
+        public CoreService()
+        {
+                
+        }
     }
 }

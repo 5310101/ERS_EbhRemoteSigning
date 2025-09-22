@@ -7,9 +7,11 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.Xml;
 using System.Text;
+using System.Web.SessionState;
 using System.Xml;
 using System.Xml.Serialization;
 using VnptHashSignatures.Interface;
@@ -255,6 +257,12 @@ namespace ERS_Domain.clsUtilities
                 //Utilities.logger.ErrorLog(ex, "SerializeToFile");
                 return false;
             }
+        }
+
+        public static byte[] GetBytesString(this object input)
+        {
+            string json = JsonConvert.SerializeObject(input);
+            return Encoding.UTF8.GetBytes(json);
         }
     }
 }

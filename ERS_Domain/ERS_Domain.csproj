@@ -81,6 +81,8 @@
     <Compile Include="CustomSigner\CustomSignerXml\CustomUltis.cs" />
     <Compile Include="CustomSigner\CustomSignerXml\CustomXmlDigSign.cs" />
     <Compile Include="CustomSigner\CustomSignerXml\CustomXmlSigner.cs" />
+    <Compile Include="Dtos\HoSoMessage.cs" />
+    <Compile Include="Dtos\ToKhaiMessage.cs" />
     <Compile Include="Exceptions\CustomException.cs" />
     <Compile Include="Model\BHXHDienTu.cs" />
     <Compile Include="Model\HSDKLanDau.cs" />

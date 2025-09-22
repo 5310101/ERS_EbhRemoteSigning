@@ -29,6 +29,7 @@ namespace ERS_Domain.Model
     {
         ChuaTaoFile =4,
         DaKyHash = 1,
+        DangXuLy = 12,
         DaKy = 2,
         HetHan = 3,
         DaLayKetQua = 5,
