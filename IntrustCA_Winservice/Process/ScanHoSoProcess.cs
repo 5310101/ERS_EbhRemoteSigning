@@ -1,11 +1,18 @@
-﻿using ERS_Domain.clsUtilities;
+﻿using ERS_Domain;
+using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
-using IntrustderCA_Domain.Dtos;
+using ERS_Domain.Exceptions;
+using ERS_Domain.Model;
+using IntrustCA_Winservice.Services;
 using RabbitMQ.Client;
+using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Data;
+using System.Diagnostics.SymbolStore;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace IntrustCA_Winservice.Process
 {
@@ -15,12 +22,13 @@ namespace IntrustCA_Winservice.Process
     public class ScanHoSoProcess
     {
         private readonly IChannel _channel;
-        private readonly DbService _dbService;
+        private readonly CoreService _coreService;
+        private readonly int NumberHSScan = int.Parse(ConfigurationManager.AppSettings["NumberHSScan"]);
 
-        public ScanHoSoProcess(IChannel channel)
+        public ScanHoSoProcess(IChannel channel, CoreService coreService)
         {
             _channel = channel;
-            _dbService = new DbService();
+            _coreService = coreService;
             _channel.QueueDeclareAsync(queue: "HSIntrust",
                                  durable: true,
                                  exclusive: false,
@@ -30,18 +38,48 @@ namespace IntrustCA_Winservice.Process
 
         public void Dowork()
         {
-            var dt = _dbService.GetDataTable("SELECT uid,Guid,SerialNumber,typeDK FROM HoSo_RS WHERE CAProvider = 2 AND TrangThai = 4 ORDER BY NgayGui DESC");
-            if (dt == null || dt.AsEnumerable().Any() == false) return;
             List<string> PublishedList = new List<string>();
-            foreach(DataRow row in dt.AsEnumerable())
+            try
             {
-                string guid = row["Guid"].SafeString();
-                var hs = new HoSoMessage{ guid = guid, uid = row["uid"].SafeString(), serialNumber = row["SerialNumber"].SafeString(), typeDK = row["typeDK"].SafeNumber<int>() }; 
-                _channel.BasicPublishAsync(exchange: "", routingKey: "",body: hs.GetBytesString()).GetAwaiter().GetResult();
-                //sau khi publish message thi update database cho hoso
-                PublishedList.Add(guid);
+                var dt = _coreService.GetHS(RemoteSigningProvider.Intrust, TrangThaiHoso.ChuaTaoFile, NumberHSScan);
+                if (dt == null || dt.AsEnumerable().Any() == false) return;
+                List<Task> tasks = new List<Task>();
+                foreach (DataRow row in dt.AsEnumerable())
+                {
+                    string guid = row["Guid"].SafeString();
+                    var hs = new HoSoMessage { guid = guid, uid = row["uid"].SafeString(), serialNumber = row["SerialNumber"].SafeString(), typeDK = row["typeDK"].SafeNumber<int>() };
+                    tasks.Add(_channel.BasicPublishAsync(exchange: "", routingKey: "HSIntrust", body: hs.GetBytesString()).AsTask());
+                    //sau khi publish message thi update database cho hoso
+                    PublishedList.Add(guid);
+                }
+                Task.WhenAll(tasks).GetAwaiter().GetResult();
             }
-            _dbService.ExecQuery("UPDATE HoSo_RS SET TrangThai=@TrangThai, LastGet=@LastGet WHERE Guid IN ")
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "Error when publishing message to queue HSIntrust");
+                return;
+            }
+
+            try
+            {
+                UpdateHoSoDto updateHS = new UpdateHoSoDto()
+                {
+                    ListId = PublishedList.ToArray(),
+                    TrangThai = TrangThaiHoso.DangXuLy
+                };
+                //update co trans de ko bi mat trang thai message
+                //neu update loi thi ko sao vi consumer sẽ check lai o bang roi moi consume
+                bool isUpdate = _coreService.UpdateHS(updateHS);
+                if (isUpdate == false)
+                {
+                    throw new Exception("Update database failed");
+                }
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "ScanHoSoProcess error");
+                return;
+            }
         }
     }
 }

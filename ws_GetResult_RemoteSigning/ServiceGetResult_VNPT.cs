@@ -9,7 +9,7 @@ namespace ws_GetResult_RemoteSigning
 {
     public partial class ServiceGetResult_VNPT : ServiceBase
     {
-        private readonly SigningService _service;
+        private SigningService _service;
 
         #region Timer ky to khai
         private Timer _signTKTimer;
@@ -44,7 +44,6 @@ namespace ws_GetResult_RemoteSigning
         public ServiceGetResult_VNPT()
         {
             InitializeComponent();
-            _service = new SigningService();
 
         }
 
@@ -64,6 +63,7 @@ namespace ws_GetResult_RemoteSigning
         protected override void OnStart(string[] args)
         {
             Utilities.logger.InfoLog("OnStart", "Service started");
+            _service = new SigningService();
             try
             {
                 _signTKTimer = new Timer();
