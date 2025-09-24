@@ -21,6 +21,7 @@ namespace ERS_Domain.Model
         TaoMoi = 6,
         KyLoi = 0,
         DaKyHash = 1,
+        DangXuLy = 12,
         DaKy = 2,
         HetHan = 3,
     }

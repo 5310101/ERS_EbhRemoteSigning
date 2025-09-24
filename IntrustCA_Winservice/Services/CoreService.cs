@@ -61,5 +61,27 @@ namespace IntrustCA_Winservice.Services
             };
             return _dbService.GetDataTable($"SELECT TOP {numberOfHS} uid,Guid,SerialNumber,typeDK FROM HoSo_RS WITH (UPDLOCK, READPAST, ROWLOCK) WHERE CAProvider = @CAProvider AND TrangThai = @TrangThai ORDER BY NgayGui", "" , sqlParams);
         }
+
+        public DataTable GetToKhai(string GuidHS)
+        {
+            string tsql = "SELECT * FROM ToKhai_RS WITH (UPDLOCK, READPAST, ROWLOCK) WHERE GuidHS=@GuidHS AND TrangThai = 6 AND typeDK<>1";
+            return _dbService.GetDataTable(tsql, "", new SqlParameter[]
+            {
+                new SqlParameter("@GuidHS", GuidHS)
+            });
+        }
+
+        public bool UpdateToKhai(UpdateToKhaiDto tkUpdate)
+        {
+            string tsql = "UPDATE ToKhai_RS SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, LastGet=@LastGet WHERE id=@Id";
+            SqlParameter[] sqlParams = new SqlParameter[]
+            {
+                new SqlParameter("@Id", SqlDbType.Int){Value =  tkUpdate.Id},
+                new SqlParameter("@TrangThai", SqlDbType.Int){Value = (int)tkUpdate.TrangThai},
+                new SqlParameter("@ErrMsg", tkUpdate.ErrMsg),
+                new SqlParameter("@LastGet", tkUpdate.LastGet)
+            };
+            return _dbService.ExecQuery_Tran(tsql,"", sqlParams);
+        }
     }
 }

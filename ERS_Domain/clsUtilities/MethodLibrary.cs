@@ -259,10 +259,15 @@ namespace ERS_Domain.clsUtilities
             }
         }
 
-        public static byte[] GetBytesString(this object input)
+        public static byte[] GetBytesStringFromJsonObject(this object input)
         {
             string json = JsonConvert.SerializeObject(input);
             return Encoding.UTF8.GetBytes(json);
+        }
+
+        public static T SerializeJsonTo<T>(this string jsonData)
+        {
+            return JsonConvert.DeserializeObject<T>(jsonData);
         }
     }
 }

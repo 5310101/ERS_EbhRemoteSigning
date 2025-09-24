@@ -82,7 +82,6 @@
     <Compile Include="CustomSigner\CustomSignerXml\CustomXmlDigSign.cs" />
     <Compile Include="CustomSigner\CustomSignerXml\CustomXmlSigner.cs" />
     <Compile Include="Dtos\HoSoMessage.cs" />
-    <Compile Include="Dtos\ToKhaiMessage.cs" />
     <Compile Include="Dtos\UpdateHoSoDto.cs" />
     <Compile Include="Dtos\UpdateToKhaiDto.cs" />
     <Compile Include="Exceptions\CustomException.cs" />

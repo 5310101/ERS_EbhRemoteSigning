@@ -1,4 +1,5 @@
 ﻿using ERS_Domain;
+using ERS_Domain.Exceptions;
 using IntrustCA_Winservice.Process;
 using IntrustCA_Winservice.Services;
 using System;
@@ -40,6 +41,13 @@ namespace IntrustCA_Winservice
 
                 //khoi tao process 
 
+            }
+            catch(DatabaseInteractException ex)
+            {
+                //luu lai cac guidHS ma update database loi
+                Utilities.logger.InfoLog("Unable to update list", string.Join(",",ex.listIdError));
+                Utilities.logger.ErrorLog(ex, "Error while updating database");
+                this.Stop();
             }
             catch (Exception ex)
             {

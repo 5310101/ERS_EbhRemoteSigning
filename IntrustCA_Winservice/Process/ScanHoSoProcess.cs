@@ -48,7 +48,35 @@ namespace IntrustCA_Winservice.Process
                 {
                     string guid = row["Guid"].SafeString();
                     var hs = new HoSoMessage { guid = guid, uid = row["uid"].SafeString(), serialNumber = row["SerialNumber"].SafeString(), typeDK = row["typeDK"].SafeNumber<int>() };
-                    tasks.Add(_channel.BasicPublishAsync(exchange: "", routingKey: "HSIntrust", body: hs.GetBytesString()).AsTask());
+                    var dtToKhai = _coreService.GetToKhai(guid);
+                    if(dtToKhai.Rows.Count == 0)
+                    {
+                        Utilities.logger.ErrorLog("File not found",guid);
+                        continue;
+                    }
+                    List<ToKhai> listTokhai = new List<ToKhai>();
+                    foreach (DataRow rowTK in dtToKhai.Rows)
+                    {
+                        var tkPublish = new ToKhai
+                        {
+                            Id = rowTK["Id"].SafeNumber<int>(),
+                            GuidHS = rowTK["GuidHS"].SafeString(),
+                            Uid = rowTK["uid"].SafeString(),
+                            SerialNumber = rowTK["SerialNumber"].SafeString(),
+                            FilePath = rowTK["FilePath"].SafeString(),
+                            LoaiFile = (FileType)rowTK["LoaiFile"].SafeNumber<int>(),
+                        };
+                        listTokhai.Add(tkPublish);
+                                              
+                    }
+
+                    hs.toKhais = listTokhai.ToArray();
+
+                    var properties = new BasicProperties()
+                    {
+                        Persistent = true
+                    };
+                    tasks.Add(_channel.BasicPublishAsync(exchange: "", routingKey: "HSIntrust", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).AsTask());
                     //sau khi publish message thi update database cho hoso
                     PublishedList.Add(guid);
                 }
@@ -59,26 +87,17 @@ namespace IntrustCA_Winservice.Process
                 Utilities.logger.ErrorLog(ex, "Error when publishing message to queue HSIntrust");
                 return;
             }
-
-            try
+            UpdateHoSoDto updateHS = new UpdateHoSoDto()
             {
-                UpdateHoSoDto updateHS = new UpdateHoSoDto()
-                {
-                    ListId = PublishedList.ToArray(),
-                    TrangThai = TrangThaiHoso.DangXuLy
-                };
-                //update co trans de ko bi mat trang thai message
-                //neu update loi thi ko sao vi consumer sẽ check lai o bang roi moi consume
-                bool isUpdate = _coreService.UpdateHS(updateHS);
-                if (isUpdate == false)
-                {
-                    throw new Exception("Update database failed");
-                }
-            }
-            catch (Exception ex)
+                ListId = PublishedList.ToArray(),
+                TrangThai = TrangThaiHoso.DangXuLy
+            };
+            //update co trans de ko bi mat trang thai message
+            //neu update loi thi dung luon service luu lai cac Guid HS update loi vi co the da duoc publish vao rabit mq
+            bool isUpdate = _coreService.UpdateHS(updateHS);
+            if (isUpdate == false)
             {
-                Utilities.logger.ErrorLog(ex, "ScanHoSoProcess error");
-                return;
+                throw new DatabaseInteractException("Update database failed", PublishedList.ToArray());
             }
         }
     }
