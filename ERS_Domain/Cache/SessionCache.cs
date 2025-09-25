@@ -1,6 +1,7 @@
 ﻿using IntrustCA_Domain;
 using IntrustCA_Domain.Dtos;
 using System.Runtime.Caching;
+using System.Web.SessionState;
 
 namespace ERS_Domain.Cache
 {
@@ -19,6 +20,11 @@ namespace ERS_Domain.Cache
             };
             _sessionCache.Add(uid, store, policy);
             return store;   
+        }
+
+        public static bool ExistStore(string uid)
+        {
+            return _sessionCache.Contains(uid);
         }
 
         public static void RemoveStore(string uid)

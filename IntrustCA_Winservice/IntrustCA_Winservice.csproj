@@ -81,7 +81,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Process\PublishToKhaiProcess.cs" />
+    <Compile Include="Process\CheckHSProcess.cs" />
     <Compile Include="Process\ScanHoSoProcess.cs" />
     <Compile Include="RabbitmqManager.cs" />
     <Compile Include="Services\CoreService.cs" />

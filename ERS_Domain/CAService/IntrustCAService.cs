@@ -35,6 +35,7 @@ namespace ERS_Domain.CAService
             return new IntrustRemoteSigningService(store);
         }
 
+
         public ICACertificate[] GetAccountCerts(string uid)
         {
             return IntrustRemoteSigningService.GetCertificate(uid);

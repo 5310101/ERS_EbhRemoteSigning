@@ -17,7 +17,5 @@ namespace ERS_Domain.Dtos
         public string GuidHS { get; set; }
         public string FilePath { get; set; }
         public FileType LoaiFile { get; set; }
-        public string Uid { get; set; }
-        public string SerialNumber { get; set; }
     }
 }

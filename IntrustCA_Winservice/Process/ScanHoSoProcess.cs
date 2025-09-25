@@ -29,11 +29,37 @@ namespace IntrustCA_Winservice.Process
         {
             _channel = channel;
             _coreService = coreService;
-            _channel.QueueDeclareAsync(queue: "HSIntrust",
+            //khai bao DLQ de xu ly cac message nack
+            //_channel.ExchangeDeclareAsync("ErrorHS.exc", ExchangeType.Direct, true).GetAwaiter().GetResult();
+            //_channel.QueueBindAsync("ErrorHS.dlq", "ErrorHS.exc", "ErrorHS.dlq");
+            _channel.QueueDeclareAsync(queue: "ErrorHS.dlq", durable: true, exclusive: false, autoDelete: false, arguments: null).GetAwaiter().GetResult();
+
+            //retry queue se retry sau moi 5s
+            var retryargs = new Dictionary<string, object>
+            {
+                { "x-message-ttl", 5000 },
+                { "x-dead-letter-exchange", "" },
+                { "x-dead-letter-routing-key", "HSIntrust.q" }
+            };
+
+            _channel.QueueDeclareAsync(queue: "HS.retry.q",
                                  durable: true,
                                  exclusive: false,
                                  autoDelete: false,
-                                 arguments: null).GetAwaiter().GetResult();
+                                 arguments: retryargs).GetAwaiter().GetResult();
+
+            var args = new Dictionary<string, object>
+            {
+                { "x-dead-letter-exchange", "" },
+                { "x-dead-letter-routing-key", "ErrorHS.dlq" }
+            };
+
+            _channel.QueueDeclareAsync(queue: "HSIntrust.q",
+                                 durable: true,
+                                 exclusive: false,
+                                 autoDelete: false,
+                                 arguments: args).GetAwaiter().GetResult();
+
         }
 
         public void Dowork()
@@ -59,24 +85,41 @@ namespace IntrustCA_Winservice.Process
                     {
                         var tkPublish = new ToKhai
                         {
-                            Id = rowTK["Id"].SafeNumber<int>(),
+                            Id = rowTK["id"].SafeNumber<int>(),
                             GuidHS = rowTK["GuidHS"].SafeString(),
-                            Uid = rowTK["uid"].SafeString(),
-                            SerialNumber = rowTK["SerialNumber"].SafeString(),
                             FilePath = rowTK["FilePath"].SafeString(),
                             LoaiFile = (FileType)rowTK["LoaiFile"].SafeNumber<int>(),
                         };
                         listTokhai.Add(tkPublish);
-                                              
-                    }
 
+                        try
+                        {
+                            var tkUpdate = new UpdateToKhaiDto
+                            {
+                                Id = row["id"].SafeNumber<int>(),
+                                TrangThai = TrangThaiFile.DangXuLy
+                            };
+                            //trong th update loi thi van cho chay tiep
+                            bool isUpdated = _coreService.UpdateToKhai(tkUpdate);
+                            if (isUpdated == false)
+                            {
+                                throw new DatabaseInteractException("File's status update failed");
+                            }
+                        }
+                        catch (DatabaseInteractException ex)
+                        {
+                            //loi van cho chay tiep vi day chi la loi khi ko update dc trang thai file trong bang ToKhai_RS
+                            Utilities.logger.ErrorLog(ex, $"Update database failed: ToKhai: {row["id"].ToString()}");
+                        }
+                    }
+                    
                     hs.toKhais = listTokhai.ToArray();
 
                     var properties = new BasicProperties()
                     {
                         Persistent = true
                     };
-                    tasks.Add(_channel.BasicPublishAsync(exchange: "", routingKey: "HSIntrust", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).AsTask());
+                    tasks.Add(_channel.BasicPublishAsync(exchange: "", routingKey: "HSIntrust.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).AsTask());
                     //sau khi publish message thi update database cho hoso
                     PublishedList.Add(guid);
                 }
