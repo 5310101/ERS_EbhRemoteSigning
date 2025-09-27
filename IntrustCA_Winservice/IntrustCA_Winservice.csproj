@@ -82,7 +82,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Process\CheckHSProcess.cs" />
+    <Compile Include="Process\CreateSessionStoreProcess.cs" />
     <Compile Include="Process\ScanHoSoProcess.cs" />
+    <Compile Include="Process\SignHSProcess.cs" />
+    <Compile Include="RabbitMQHelper.cs" />
     <Compile Include="RabbitmqManager.cs" />
     <Compile Include="Services\CoreService.cs" />
     <Compile Include="wsIntrustCA_RemoteSigning.cs">
@@ -102,6 +105,10 @@
     <ProjectReference Include="..\ERS_Domain\ERS_Domain.csproj">
       <Project>{c554164f-3a96-487e-9875-ea342ec95799}</Project>
       <Name>ERS_Domain</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\IntrustderCA_Domain\IntrustCA_Domain.csproj">
+      <Project>{6cfb174d-d6fb-4cc0-b417-7da09d6491d8}</Project>
+      <Name>IntrustCA_Domain</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

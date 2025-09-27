@@ -19,7 +19,7 @@ namespace ERS_Domain.CAService
 
         public IntrustCAService(string uid, string serial = "")
         {
-            _signingService = CreateOrGetService(uid);
+            _signingService = CreateOrGetService(uid, serial);
             _dbService = new DbService();
         }
 
@@ -27,21 +27,21 @@ namespace ERS_Domain.CAService
         /// check cache xem có phien ky chua, neu chua thi tao moi
         /// </summary>
         /// <returns></returns>
-        private IntrustRemoteSigningService CreateOrGetService(string uid, string serial = "")
+        private IntrustRemoteSigningService CreateOrGetService(string uid, string serial)
         {
             ICACertificate cert = GetAccountCert(uid, serial);
             if (cert == null) throw new Exception("Không tìm thấy chữ ký số");
+            //luu y: khi tao service nay thi chac chan hs can ky da duoc tao store trong cache vi chi o process SignHS moi khoi tao nen o day se get chu ko set nua
             SignSessionStore store = SessionCache.GetOrSetStore(uid,cert);
             return new IntrustRemoteSigningService(store);
         }
 
-
-        public ICACertificate[] GetAccountCerts(string uid)
+        public static ICACertificate[] GetAccountCerts(string uid)
         {
             return IntrustRemoteSigningService.GetCertificate(uid);
         }
 
-        public ICACertificate GetAccountCert(string uid, string serialNumber = "")
+        public static ICACertificate GetAccountCert(string uid, string serialNumber = "")
         {
             var certs = IntrustRemoteSigningService.GetCertificate(uid,serialNumber);
             if (!certs.Any()) return null; 

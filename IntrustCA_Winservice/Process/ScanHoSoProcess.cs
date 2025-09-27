@@ -9,9 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
-using System.Diagnostics.SymbolStore;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace IntrustCA_Winservice.Process
@@ -32,33 +30,24 @@ namespace IntrustCA_Winservice.Process
             //khai bao DLQ de xu ly cac message nack
             //_channel.ExchangeDeclareAsync("ErrorHS.exc", ExchangeType.Direct, true).GetAwaiter().GetResult();
             //_channel.QueueBindAsync("ErrorHS.dlq", "ErrorHS.exc", "ErrorHS.dlq");
-            _channel.QueueDeclareAsync(queue: "ErrorHS.dlq", durable: true, exclusive: false, autoDelete: false, arguments: null).GetAwaiter().GetResult();
+            _channel.QueueDeclareAsync(queue: "HSIntrust.dlq", durable: true, exclusive: false, autoDelete: false, arguments: null).GetAwaiter().GetResult();
 
             //retry queue se retry sau moi 5s
-            var retryargs = new Dictionary<string, object>
-            {
-                { "x-message-ttl", 5000 },
-                { "x-dead-letter-exchange", "" },
-                { "x-dead-letter-routing-key", "HSIntrust.q" }
-            };
+            var retryargs = RabbitMQHelper.CreateQueueArgument("", "HSIntrust.q", true);
 
-            _channel.QueueDeclareAsync(queue: "HS.retry.q",
+            _channel.QueueDeclareAsync(queue: "HSIntrust.retry.q",
                                  durable: true,
                                  exclusive: false,
                                  autoDelete: false,
                                  arguments: retryargs).GetAwaiter().GetResult();
 
-            var args = new Dictionary<string, object>
-            {
-                { "x-dead-letter-exchange", "" },
-                { "x-dead-letter-routing-key", "ErrorHS.dlq" }
-            };
+            var dlqargs = RabbitMQHelper.CreateQueueArgument("", "HSIntrust.dlq", false);
 
             _channel.QueueDeclareAsync(queue: "HSIntrust.q",
                                  durable: true,
                                  exclusive: false,
                                  autoDelete: false,
-                                 arguments: args).GetAwaiter().GetResult();
+                                 arguments: dlqargs).GetAwaiter().GetResult();
 
         }
 
@@ -86,6 +75,7 @@ namespace IntrustCA_Winservice.Process
                         var tkPublish = new ToKhai
                         {
                             Id = rowTK["id"].SafeNumber<int>(),
+                            TenToKhai = rowTK["TenToKhai"].SafeString(),
                             GuidHS = rowTK["GuidHS"].SafeString(),
                             FilePath = rowTK["FilePath"].SafeString(),
                             LoaiFile = (FileType)rowTK["LoaiFile"].SafeNumber<int>(),

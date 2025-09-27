@@ -1,6 +1,4 @@
-﻿using ERS_Domain.Model;
-
-namespace ERS_Domain.Dtos
+﻿namespace IntrustCA_Domain.Dtos
 {
     public class HoSoMessage
     {

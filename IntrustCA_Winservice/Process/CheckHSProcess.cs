@@ -6,11 +6,8 @@ using IntrustCA_Winservice.Services;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
-using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
-using System.Net.NetworkInformation;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -26,18 +23,45 @@ namespace IntrustCA_Winservice.Process
         {
             _channel = channel;
             _coreService = coreService;
+            //declare queue
+            var retryprops1 = RabbitMQHelper.CreateQueueArgument("", "HSReadyToSign.q", true);
+            _channel.QueueDeclareAsync(queue: "HSReadyToSign.retry.q",
+                                 durable: true,
+                                 exclusive: false,
+                                 autoDelete: false,
+                                 arguments: retryprops1).GetAwaiter().GetResult();
+            
+            _channel.QueueDeclareAsync(queue: "HSReadyToSign.dlq",
+                                 durable: true,
+                                 exclusive: false,
+                                 autoDelete: false,
+                                 arguments: null).GetAwaiter().GetResult();
+            var dlqProps1 = RabbitMQHelper.CreateQueueArgument("", "HSReadyToSign.dlq", false);
             _channel.QueueDeclareAsync("HSReadyToSign.q",
                         durable: true,
                         exclusive: false,
                         autoDelete: false,
-                        arguments: null
+                        arguments: dlqProps1
                         ).GetAwaiter().GetResult();
 
+            var retryprops2 = RabbitMQHelper.CreateQueueArgument("", "CreateSession.q", true);
+            _channel.QueueDeclareAsync(queue: "CreateSession.retry.q",
+                                 durable: true,
+                                 exclusive: false,
+                                 autoDelete: false,
+                                 arguments: retryprops2).GetAwaiter().GetResult();
+            
+            _channel.QueueDeclareAsync(queue: "CreateSession.dlq",
+                                 durable: true,
+                                 exclusive: false,
+                                 autoDelete: false,
+                                 arguments: null).GetAwaiter().GetResult();
+            var dlqProps2 = RabbitMQHelper.CreateQueueArgument("", "CreateSession.dlq", false);
             _channel.QueueDeclareAsync("CreateSession.q",
                 durable: true,
                 exclusive: false,
                 autoDelete: false,
-                arguments: null
+                arguments: dlqProps2
                 ).GetAwaiter().GetResult();
         }
         public void DoWork()
@@ -51,15 +75,15 @@ namespace IntrustCA_Winservice.Process
                 try
                 {
                     ProcessSendMessage(ea).GetAwaiter().GetResult();
+                    //manual ack message khi xu ly xong
                     _channel.BasicAckAsync(ea.DeliveryTag, false).GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {
                     Utilities.logger.ErrorLog(ex, "Process Message failed");
                     //xu ly nack
-                    HandleError(ea, 3).GetAwaiter().GetResult();
+                    RabbitMQHelper.HandleError(_channel,ea, 3, "HSIntrust.retry.q").GetAwaiter().GetResult();
                 }
-                
                 return Task.CompletedTask;
             };
             _channel.BasicConsumeAsync(queue: "HSIntrust.q",autoAck: false, consumer).GetAwaiter().GetResult();
@@ -71,8 +95,7 @@ namespace IntrustCA_Winservice.Process
             string jsonMessage = Encoding.UTF8.GetString(bytedata);
 
             //xu ly message
-            var hs = jsonMessage.SerializeJsonTo<HoSoMessage>();
-            //ky tung to khai
+            var hs = jsonMessage.DeserializeJsonTo<HoSoMessage>();
             if(hs == null || hs.toKhais.Any() == false)
             {
                 throw new Exception("Serialization failed or no file was found");
@@ -86,6 +109,7 @@ namespace IntrustCA_Winservice.Process
                     Persistent = true,
                 };
                 await _channel.BasicPublishAsync(exchange: "", routingKey: "CreateSession.q", mandatory: false, basicProperties: props1, body: bytedata);
+                
                 return;
             }
             var props2 = new BasicProperties
@@ -94,33 +118,5 @@ namespace IntrustCA_Winservice.Process
             };
             await _channel.BasicPublishAsync(exchange: "", routingKey: "HSReadyToSign.q", mandatory: false, basicProperties: props2, body: bytedata);
         } 
-
-        private async Task HandleError(BasicDeliverEventArgs ea, int maxTry)
-        {
-            int errorCount = 0;
-            if (ea.BasicProperties.Headers != null && ea.BasicProperties.Headers.ContainsKey("errorCount"))
-            {
-                errorCount = ea.BasicProperties.Headers["errorCount"].SafeNumber<int>();
-            }
-
-            errorCount++;
-            //retry 3 lan neu ko thanh cong thi se nack
-            if(errorCount < maxTry)
-            {
-                var retryProp = new BasicProperties
-                {
-                    Persistent = true,
-                    Headers = new Dictionary<string, object> { ["errorCount"] =  errorCount },
-                };
-
-                await _channel.BasicPublishAsync(exchange: "" , routingKey: "HS.retry.q", mandatory: false,basicProperties: retryProp, body: ea.Body.ToArray());
-                await _channel.BasicAckAsync(ea.DeliveryTag, false);
-            }
-            else
-            {
-                //qua 3 lan thi nack roi gui den dlq
-                await _channel.BasicNackAsync(ea.DeliveryTag, false, false);
-            }
-        }
     }
 }

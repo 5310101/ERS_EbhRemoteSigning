@@ -3,6 +3,7 @@ using Newtonsoft.Json;
 using RestSharp;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -265,7 +266,7 @@ namespace ERS_Domain.clsUtilities
             return Encoding.UTF8.GetBytes(json);
         }
 
-        public static T SerializeJsonTo<T>(this string jsonData)
+        public static T DeserializeJsonTo<T>(this string jsonData)
         {
             return JsonConvert.DeserializeObject<T>(jsonData);
         }

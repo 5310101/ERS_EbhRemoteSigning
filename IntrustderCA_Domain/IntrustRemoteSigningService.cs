@@ -3,19 +3,20 @@ using System;
 using System.Linq;
 using System.IO;
 using IntrustderCA_Domain;
+using System.Collections.Generic;
 
 namespace IntrustCA_Domain
 {
     /// <summary>
-    /// Chi dung hinh thuc ky qua app ko dung ma pin
+    /// Chi dung hinh thuc ky qua app, ko dung ma pin
     /// </summary>
     public class IntrustRemoteSigningService
     {
         private readonly SignSessionStore _signSessionStore;
 
         public IntrustRemoteSigningService(SignSessionStore store)
-        { 
-            _signSessionStore = store; 
+        {
+            _signSessionStore = store;
         }
 
         /// <summary>
@@ -23,85 +24,95 @@ namespace IntrustCA_Domain
         /// </summary>
         /// <param name="fileDic">dictionary voi key la inpath file va value la output file</param>
         /// <returns></returns>
-        //public FileSigned SignRemote(Dictionary<string, string> fileDic)
-        //{
-        //    List<FileToSignDto<FileProperties>> files = new List<FileToSignDto<FileProperties>>();
-        //    foreach (KeyValuePair<string, string> kvp in fileDic)
-        //    {
-        //        string inPath = kvp.Key;    
-        //        string outPath = kvp.Value;
-        //    }
-
-        //    var req = new SignRequest
-        //    {
-
-        //    };
-        //}
-
-        public bool SignRemoteOneFile(string input, string output, FileProperties properties = null)
+        public FileSigned[] SignRemote(string input, string output, FileToSignDto<FileProperties>[] lstFile)
         {
-            try
+            if (_signSessionStore.IsSessionValid == false)
             {
-                if(_signSessionStore.IsSessionValid == false)
-                {
-                    return false;
-                }
-                var file = new FileToSignDto<FileProperties>
-                {
-                    file_id = Guid.NewGuid().ToString(),
-                    file_name = System.IO.Path.GetFileName(input),
-                    content_file = Convert.ToBase64String(System.IO.File.ReadAllBytes(input)),
-                    extension = System.IO.Path.GetExtension(input).TrimStart('.').ToLower(),
-                };
-                if (properties != null)
-                {
-                    file.properties = properties;
-                }
-                else
-                {
-                    file.properties = CreatePropertiesDefault(file.extension);
-                }
-                var req = new SignRequest
-                {
-                    user_name = _signSessionStore.UserName,
-                    credentialID = _signSessionStore.Cert.key_id,
-                    certificate = _signSessionStore.Cert.cert_content,
-                    serial_number = _signSessionStore.Cert.cert_serial,
-                    signed_with_session = true,
-                    is_use_request_login = true,
-                    auth_data = _signSessionStore.AuthData,
-                    files = new FileToSignDto<FileProperties>[] { file }
-                };
-                var res = IntrustSigningCoreService.SignRemote(req);
-                if (res.status != "success")
-                {
-                    throw new Exception("Sign remote failed: " + res.error_desc);
-                }
-                if (res.files.Any() == false)
-                {
-                    throw new Exception("File cannot sign");
-                }
-                FileSigned fileSigned = res.files.First();
-                if(fileSigned.status != "success")
-                {
-                    throw new Exception($"Error happened when signing file: {fileSigned.error_message}");
-                }
-                string base64Str = fileSigned.content_file;
-                byte[] dataBytes = base64Str.Base64ToData();
-                File.WriteAllBytes(output, dataBytes);
-                return true;
+                throw new Exception("Cannot create valid sign session");
             }
-            catch (Exception ex)
+            var req = new SignRequest
             {
-                //log
-                return false;
+                user_name = _signSessionStore.UserName,
+                credentialID = _signSessionStore.Cert.key_id,
+                certificate = _signSessionStore.Cert.cert_content,
+                serial_number = _signSessionStore.Cert.cert_serial,
+                signed_with_session = true,
+                is_use_request_login = true,
+                auth_data = _signSessionStore.AuthData,
+                files = lstFile
+            };
+            var res = IntrustSigningCoreService.SignRemote(req);
+            if (res.status != "success")
+            {
+                throw new Exception("Sign remote failed: " + res.error_desc);
             }
-            
+            if (res.files.Any() == false)
+            {
+                throw new Exception("File cannot sign");
+            }
+            //tra ve result tung file de xu ly o service ngoai
+            return res.files;
         }
 
-        private FileProperties CreatePropertiesDefault(string extension)
+        //Ham test ky tung file
+        public bool SignRemoteOneFile(string input, string output, FileProperties properties = null)
         {
-            switch (extension) {
+
+            if (_signSessionStore.IsSessionValid == false)
+            {
+                return false;
+            }
+            var file = new FileToSignDto<FileProperties>
+            {
+                file_id = Guid.NewGuid().ToString(),
+                file_name = System.IO.Path.GetFileName(input),
+                content_file = Convert.ToBase64String(System.IO.File.ReadAllBytes(input)),
+                extension = System.IO.Path.GetExtension(input).TrimStart('.').ToLower(),
+            };
+            if (properties != null)
+            {
+                file.properties = properties;
+            }
+            else
+            {
+                file.properties = CreatePropertiesDefault(file.extension);
+            }
+            var req = new SignRequest
+            {
+                user_name = _signSessionStore.UserName,
+                credentialID = _signSessionStore.Cert.key_id,
+                certificate = _signSessionStore.Cert.cert_content,
+                serial_number = _signSessionStore.Cert.cert_serial,
+                signed_with_session = true,
+                is_use_request_login = true,
+                auth_data = _signSessionStore.AuthData,
+                files = new FileToSignDto<FileProperties>[] { file }
+            };
+            var res = IntrustSigningCoreService.SignRemote(req);
+            if (res.status != "success")
+            {
+                throw new Exception("Sign remote failed: " + res.error_desc);
+            }
+            if (res.files.Any() == false)
+            {
+                throw new Exception("File cannot sign");
+            }
+            FileSigned fileSigned = res.files.First();
+            if (fileSigned.status != "success")
+            {
+                throw new Exception($"Error happened when signing file: {fileSigned.error_message}");
+            }
+            string base64Str = fileSigned.content_file;
+            byte[] dataBytes = base64Str.Base64ToData();
+            File.WriteAllBytes(output, dataBytes);
+            return true;
+        }
+
+        private FileProperties CreatePropertiesDefault(string tenFile)
+        {
+            string extension = Path.GetExtension(tenFile);
+            switch (extension)
+            {
                 case "pdf":
                     return new PdfProperties
                     {
@@ -131,7 +142,7 @@ namespace IntrustCA_Domain
             }
         }
 
-        public static ICACertificate[] GetCertificate(string userName , string serial = "")
+        public static ICACertificate[] GetCertificates(string userName, string serial = "")
         {
             try
             {
@@ -156,6 +167,34 @@ namespace IntrustCA_Domain
             {
                 Logger.ErrorLog(ex, "GetCertificate", userName, serial);
                 return Array.Empty<ICACertificate>();
+            }
+        }
+
+        public static ICACertificate GetCertificate(string userName, string serial = "")
+        {
+            try
+            {
+                GetCertificateRequest req = new GetCertificateRequest
+                {
+                    user_id = userName,
+                    serial_number = serial
+                };
+
+                var res = IntrustSigningCoreService.GetCertificate(req);
+                if (res.status != "success")
+                {
+                    throw new Exception("Cannot connect to IntrustCA server");
+                }
+                if (!res.certificates.Any())
+                {
+                    throw new Exception("Certificates not found");
+                }
+                return res.certificates.First();
+            }
+            catch (Exception ex)
+            {
+                Logger.ErrorLog(ex, "GetCertificate", userName, serial);
+                return null;
             }
         }
     }
