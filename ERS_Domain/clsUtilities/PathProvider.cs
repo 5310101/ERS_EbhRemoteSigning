@@ -55,5 +55,5 @@ namespace ERS_Domain.clsUtilities
                 return _signedTempFolder;
             }
         }
-    }
+	}
 }

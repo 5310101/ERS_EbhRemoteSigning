@@ -68,7 +68,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Cache\SessionCache.cs" />
-    <Compile Include="CAService\IntrustCAService.cs" />
     <Compile Include="CAService\IRemoteSignService.cs" />
     <Compile Include="CAService\SmartCAService.cs" />
     <Compile Include="clsUtilities\DbService.cs" />

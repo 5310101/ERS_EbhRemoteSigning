@@ -1,12 +1,9 @@
 ﻿using IntrustCA_Domain;
+using IntrustCA_Domain.Dtos;
+using IntrustderCA_Domain.Dtos;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
 
 namespace TestRS_IntrustCA
 {
@@ -23,25 +20,29 @@ namespace TestRS_IntrustCA
             Console.InputEncoding = Encoding.UTF8;
             Console.OutputEncoding = Encoding.UTF8;
             Console.WriteLine("Test RemoteSigning by IntrustCA");
-            var certs = IntrustRemoteSigningService.GetCertificate(_userName, "");
+
+            var certs = IntrustRSHelper.GetCertificates(_userName, "");
             if (certs == null)
             {
                 Console.WriteLine("Khong tim thay certificate");
                 return;
             }
             var cert = certs[0];
-            IntrustRemoteSigningService rs = new IntrustRemoteSigningService(_userName, cert);
+            var session = new SignSessionStore(_userName, cert);
+            IntrustRemoteSigningService rs = new IntrustRemoteSigningService(session);
             while (true)
             {
                 var success = rs.SignRemoteOneFile(_pathPdfFile, Path.Combine(_saveDir, Path.GetFileName(_pathPdfFile)));
                 var success2 = rs.SignRemoteOneFile(_pathXmlFile, Path.Combine(_saveDir, Path.GetFileName(_pathXmlFile)));
+
                 if (success == true)
                 {
                     string a = Console.ReadLine();
                     if (a == "e") break;
                 }
             }
-            
+
+
 
             //string jsonData = File.ReadAllText("C:\\Users\\quanna\\Desktop\\signpdfdemo.json");
             //string jsonResponse = IntrustSigningCoreService.TestJsonRequestSign(jsonData);

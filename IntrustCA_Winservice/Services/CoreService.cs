@@ -73,13 +73,14 @@ namespace IntrustCA_Winservice.Services
 
         public bool UpdateToKhai(UpdateToKhaiDto tkUpdate)
         {
-            string tsql = "UPDATE ToKhai_RS SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, LastGet=@LastGet WHERE id=@Id";
+            string tsql = "UPDATE ToKhai_RS SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, LastGet=@LastGet, FilePath=@FilePath WHERE id=@Id";
             SqlParameter[] sqlParams = new SqlParameter[]
             {
                 new SqlParameter("@Id", SqlDbType.Int){Value =  tkUpdate.Id},
                 new SqlParameter("@TrangThai", SqlDbType.Int){Value = (int)tkUpdate.TrangThai},
                 new SqlParameter("@ErrMsg", tkUpdate.ErrMsg),
-                new SqlParameter("@LastGet", tkUpdate.LastGet)
+                new SqlParameter("@LastGet", tkUpdate.LastGet),
+                new SqlParameter("@FilePath", tkUpdate.FilePath)
             };
             return _dbService.ExecQuery_Tran(tsql,"", sqlParams);
         }

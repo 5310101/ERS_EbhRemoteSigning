@@ -2,8 +2,7 @@
 using System;
 using System.Linq;
 using System.IO;
-using IntrustderCA_Domain;
-using System.Collections.Generic;
+using IntrustderCA_Domain.Dtos;
 
 namespace IntrustCA_Domain
 {
@@ -20,11 +19,12 @@ namespace IntrustCA_Domain
         }
 
         /// <summary>
-        /// ky tu xa
+        /// Ky nhieu file trong 1 lan
         /// </summary>
-        /// <param name="fileDic">dictionary voi key la inpath file va value la output file</param>
+        /// <param name="lstFile">List file can ky</param>
         /// <returns></returns>
-        public FileSigned[] SignRemote(string input, string output, FileToSignDto<FileProperties>[] lstFile)
+        /// <exception cref="Exception"></exception>
+        public FileSigned[] SignRemote( FileToSignDto<FileProperties>[] lstFile)
         {
             if (_signSessionStore.IsSessionValid == false)
             {
@@ -75,7 +75,7 @@ namespace IntrustCA_Domain
             }
             else
             {
-                file.properties = CreatePropertiesDefault(file.extension);
+                file.properties = IntrustRSHelper.CreatePropertiesDefault(file.file_name);
             }
             var req = new SignRequest
             {
@@ -106,96 +106,6 @@ namespace IntrustCA_Domain
             byte[] dataBytes = base64Str.Base64ToData();
             File.WriteAllBytes(output, dataBytes);
             return true;
-        }
-
-        private FileProperties CreatePropertiesDefault(string tenFile)
-        {
-            string extension = Path.GetExtension(tenFile);
-            switch (extension)
-            {
-                case "pdf":
-                    return new PdfProperties
-                    {
-                        pageNo = "1",
-                        coorDinate = "0,0,200,100",
-                        signTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                        positionIdentifier = "",
-                        rectangleOffset = "50,50",
-                        rectangleSize = "200,100",
-                        showSignerInfo = true,
-                        showDatetime = true,
-                        showSignIcon = true,
-                        showReason = true,
-                    };
-                case "xml":
-                    {
-                        return new XmlProperties
-                        {
-                            option_xml_form = "B_H",
-                            date_sign = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                            tag_signature = "TK1-TS/Cky",
-                            tag_id = ""
-                        };
-                    }
-                default:
-                    throw new Exception("Only support PDF and XML file type");
-            }
-        }
-
-        public static ICACertificate[] GetCertificates(string userName, string serial = "")
-        {
-            try
-            {
-                GetCertificateRequest req = new GetCertificateRequest
-                {
-                    user_id = userName,
-                    serial_number = serial
-                };
-
-                var res = IntrustSigningCoreService.GetCertificate(req);
-                if (res.status != "success")
-                {
-                    throw new Exception("Cannot connect to IntrustCA server");
-                }
-                if (!res.certificates.Any())
-                {
-                    throw new Exception("Certificates not found");
-                }
-                return res.certificates;
-            }
-            catch (Exception ex)
-            {
-                Logger.ErrorLog(ex, "GetCertificate", userName, serial);
-                return Array.Empty<ICACertificate>();
-            }
-        }
-
-        public static ICACertificate GetCertificate(string userName, string serial = "")
-        {
-            try
-            {
-                GetCertificateRequest req = new GetCertificateRequest
-                {
-                    user_id = userName,
-                    serial_number = serial
-                };
-
-                var res = IntrustSigningCoreService.GetCertificate(req);
-                if (res.status != "success")
-                {
-                    throw new Exception("Cannot connect to IntrustCA server");
-                }
-                if (!res.certificates.Any())
-                {
-                    throw new Exception("Certificates not found");
-                }
-                return res.certificates.First();
-            }
-            catch (Exception ex)
-            {
-                Logger.ErrorLog(ex, "GetCertificate", userName, serial);
-                return null;
-            }
         }
     }
 }

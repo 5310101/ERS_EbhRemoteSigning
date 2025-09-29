@@ -4,6 +4,7 @@ using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
 using IntrustCA_Winservice.Services;
+using IntrustderCA_Domain.Dtos;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
@@ -52,7 +53,7 @@ namespace IntrustCA_Winservice.Process
                 throw new Exception("Deserialize error or incorrect message");
             }
             //lay cert
-            var cert = IntrustCAService.GetAccountCert(hs.uid, hs.serialNumber);
+            var cert = IntrustRSHelper.GetCertificate(hs.uid, hs.serialNumber);
             await SessionCache.GetOrSetStoreAsync(hs.uid, cert);
 
             //day message ve queue HoSo san sang ky

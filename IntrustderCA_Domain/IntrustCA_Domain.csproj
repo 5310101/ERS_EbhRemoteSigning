@@ -100,9 +100,9 @@
     <Compile Include="Dtos\FileSigned.cs" />
     <Compile Include="Dtos\FileToSignDto.cs" />
     <Compile Include="Dtos\GetCertificateResponse.cs" />
-    <Compile Include="Dtos\HoSoMessage.cs" />
     <Compile Include="Dtos\ICACertificate.cs" />
     <Compile Include="Dtos\GetCertificateRequest.cs" />
+    <Compile Include="IntrustRSHelper.cs" />
     <Compile Include="Dtos\SessionRegisterRequest.cs" />
     <Compile Include="Dtos\SessionRegisterResponse.cs" />
     <Compile Include="Dtos\SignResponse.cs" />
