@@ -62,7 +62,22 @@ namespace IntrustCA_Winservice.Process
                 foreach (DataRow row in dt.AsEnumerable())
                 {
                     string guid = row["Guid"].SafeString();
-                    var hs = new HoSoMessage { guid = guid, uid = row["uid"].SafeString(), serialNumber = row["SerialNumber"].SafeString(), typeDK = row["typeDK"].SafeNumber<int>() };
+                    var hs = new HoSoMessage 
+                    { 
+                        guid = guid, 
+                        uid = row["uid"].SafeString(),
+                        serialNumber = row["SerialNumber"].SafeString(),
+                        typeDK = row["typeDK"].SafeNumber<int>(),
+                        MST = row["FromMST"].SafeString(),
+                        MDV = row["FromMDV"].SafeString(),
+                        tenDV = row["TenDonVi"].SafeString(),
+                        loaiDoiTuong = row["LoaiDoiTuong"].SafeNumber<int>(),
+                        nguoiKy = row["NguoiKy"].SafeString(),
+                        dienThoai = row["DienThoai"].SafeString(),
+                        maCQBHXH = row["MaCQBH"].SafeString(),
+                        tenHS = row["TenHS"].SafeString(),
+                        maNV = row["MaNV"].SafeString()
+                    };
                     var dtToKhai = _coreService.GetToKhai(guid);
                     if(dtToKhai.Rows.Count == 0)
                     {
@@ -76,6 +91,7 @@ namespace IntrustCA_Winservice.Process
                         {
                             Id = rowTK["id"].SafeNumber<int>(),
                             TenToKhai = rowTK["TenToKhai"].SafeString(),
+                            MoTaToKhai = rowTK["MoTa"].SafeString(),
                             GuidHS = rowTK["GuidHS"].SafeString(),
                             FilePath = rowTK["FilePath"].SafeString(),
                             LoaiFile = (FileType)rowTK["LoaiFile"].SafeNumber<int>(),

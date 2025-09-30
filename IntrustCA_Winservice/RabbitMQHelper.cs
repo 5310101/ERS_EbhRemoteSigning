@@ -51,7 +51,7 @@ namespace IntrustCA_Winservice
             }
             else
             {
-                //qua 3 lan thi nack roi gui den dlq
+                //qua du lan retry thi nack roi gui den dlq
                 await channel.BasicNackAsync(ea.DeliveryTag, false, false);
             }
         }

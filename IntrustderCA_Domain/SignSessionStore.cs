@@ -95,7 +95,7 @@ namespace IntrustCA_Domain
                 ValidUntil = DateTime.Now.AddMinutes(SessionTime - 5);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 //log
                 return false;

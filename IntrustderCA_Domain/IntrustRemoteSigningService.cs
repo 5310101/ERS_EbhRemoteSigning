@@ -60,7 +60,7 @@ namespace IntrustCA_Domain
 
             if (_signSessionStore.IsSessionValid == false)
             {
-                return false;
+                throw new Exception("Cannot create valid sign session");
             }
             var file = new FileToSignDto<FileProperties>
             {
