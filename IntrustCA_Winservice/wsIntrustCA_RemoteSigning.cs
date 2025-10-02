@@ -18,6 +18,18 @@ namespace IntrustCA_Winservice
         private Timer _timer1;
         private ScanHoSoProcess _processScanHS;
 
+        //2 process phan loai ho so de chuan bi ky so
+        private Timer _timer2;
+        private CheckHSProcess _processCheckHS;
+
+        //3 process tao session ky so
+        private Timer _timer3;
+        private CreateSessionStoreProcess _processCreateSession;
+
+        //4 process ky so
+        private Timer _timer4;
+        private SignHSProcess _processSignHS;
+
         public wsIntrustCA_RemoteSigning()
         {
             InitializeComponent();
@@ -33,13 +45,18 @@ namespace IntrustCA_Winservice
                 _coreService = new CoreService();
 
                 //khoi tao process scan hs
+                //moi publisher, consumer dùng 1 channel rieng
                 _processScanHS = new ScanHoSoProcess(_rmqManager.CreateChanel(), _coreService);
                 _timer1 = new Timer();
                 _timer1.Interval = 100;
-                _timer1.Elapsed += ScanHS_Elapsed;
+                _timer1.Elapsed += GenerateHandler(_timer1, _processScanHS.DoWork);
                 _timer1.Enabled = true;
 
-                //khoi tao process 
+                //khoi tao process phan loai ho so
+                _processCheckHS = new CheckHSProcess(_rmqManager.CreateChanel(), _coreService);
+                _timer2 = new Timer();
+                _timer2.Interval = 100;
+                _timer2.Elapsed += GenerateHandler(_timer1, _processCheckHS.DoWork); ;
 
             }
             catch(DatabaseInteractException ex)
@@ -56,6 +73,7 @@ namespace IntrustCA_Winservice
             }
         }
 
+
         public void StartManual(string[] args)
         {
             this.OnStart(args);
@@ -66,11 +84,14 @@ namespace IntrustCA_Winservice
             this.Stop();
         }
 
-        private void ScanHS_Elapsed(object sender, ElapsedEventArgs e)
+        public ElapsedEventHandler GenerateHandler(Timer timer, Action Dowork)
         {
-            _timer1.Enabled = false;
-            _processScanHS.Dowork();
-            _timer1.Enabled = true;
+            return (sender, e) =>
+            {
+                timer.Enabled = false;
+                Dowork();
+                timer.Enabled = true;
+            };
         }
 
         protected override void OnStop()

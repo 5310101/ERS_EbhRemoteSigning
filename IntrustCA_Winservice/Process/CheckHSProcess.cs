@@ -10,16 +10,17 @@ using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Timers;
 
 namespace IntrustCA_Winservice.Process
 {
-    public class CheckProcess
+    public class CheckHSProcess
     {
         private readonly IChannel _channel;
         private readonly CoreService _coreService;
         private ushort hsCheckPerProcess = ushort.Parse(ConfigurationManager.AppSettings["HSCHECK_PER_PROCESS"]);
 
-        public CheckProcess(IChannel channel, CoreService coreService)
+        public CheckHSProcess(IChannel channel, CoreService coreService)
         {
             _channel = channel;
             _coreService = coreService;
@@ -117,6 +118,6 @@ namespace IntrustCA_Winservice.Process
                 Persistent = true,
             };
             await _channel.BasicPublishAsync(exchange: "", routingKey: "HSReadyToSign.q", mandatory: false, basicProperties: props2, body: bytedata);
-        } 
+        }
     }
 }
