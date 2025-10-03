@@ -56,15 +56,22 @@ namespace IntrustCA_Winservice
                 _processCheckHS = new CheckHSProcess(_rmqManager.CreateChanel(), _coreService);
                 _timer2 = new Timer();
                 _timer2.Interval = 100;
-                _timer2.Elapsed += GenerateHandler(_timer1, _processCheckHS.DoWork); ;
+                _timer2.Elapsed += GenerateHandler(_timer2, _processCheckHS.DoWork); ;
+                _timer2.Enabled = true;
 
-            }
-            catch(DatabaseInteractException ex)
-            {
-                //luu lai cac guidHS ma update database loi
-                Utilities.logger.InfoLog("Unable to update list", string.Join(",",ex.listIdError));
-                Utilities.logger.ErrorLog(ex, "Error while updating database");
-                this.Stop();
+                //khoi tao process tao session ky so
+                _processCreateSession = new CreateSessionStoreProcess(_rmqManager.CreateChanel());
+                _timer3 = new Timer();
+                _timer3.Interval = 100;
+                _timer3.Elapsed += GenerateHandler(_timer3, _processCreateSession.Dowork); ;
+                _timer3.Enabled = true;
+
+                //khoi tao process ky so
+                _processSignHS = new SignHSProcess(_rmqManager.CreateChanel(), _coreService);
+                _timer4 = new Timer();
+                _timer4.Interval = 100;
+                _timer4.Elapsed += GenerateHandler(_timer4, _processSignHS.DoWork); 
+                _timer4.Enabled = true;
             }
             catch (Exception ex)
             {
@@ -89,8 +96,25 @@ namespace IntrustCA_Winservice
             return (sender, e) =>
             {
                 timer.Enabled = false;
-                Dowork();
-                timer.Enabled = true;
+                try
+                {
+                    Dowork();
+                }
+                catch (DatabaseInteractException ex)
+                {
+                    //luu lai cac guidHS ma update database loi
+                    Utilities.logger.InfoLog("Unable to update list", string.Join(",", ex.listIdError));
+                    Utilities.logger.ErrorLog(ex, "Error while updating database");
+                    this.Stop();
+                }
+                catch (Exception ex)
+                {
+                    Utilities.logger.ErrorLog(ex, "OnStart");
+                }
+                finally
+                {
+                    timer.Enabled = true;
+                }
             };
         }
 

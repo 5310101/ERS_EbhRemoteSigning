@@ -3,6 +3,7 @@ using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
 using ERS_Domain.Model;
+using Microsoft.SqlServer.Server;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -59,16 +60,25 @@ namespace IntrustCA_Winservice.Services
                 new SqlParameter("@CAProvider",SqlDbType.Int){Value = (int)provider},
                 new SqlParameter("@TrangThai", SqlDbType.Int){Value = (int)trangThai}
             };
-            return _dbService.GetDataTable($"SELECT TOP {numberOfHS} uid,Guid,SerialNumber,typeDK FROM HoSo_RS WITH (UPDLOCK, READPAST, ROWLOCK) WHERE CAProvider = @CAProvider AND TrangThai = @TrangThai ORDER BY NgayGui", "" , sqlParams);
+            return _dbService.GetDataTable($"SELECT TOP {numberOfHS} * FROM HoSo_RS WITH (UPDLOCK, READPAST, ROWLOCK) WHERE CAProvider = @CAProvider AND TrangThai = @TrangThai ORDER BY NgayGui", "" , sqlParams);
         }
 
         public DataTable GetToKhai(string GuidHS)
         {
-            string tsql = "SELECT * FROM ToKhai_RS WITH (UPDLOCK, READPAST, ROWLOCK) WHERE GuidHS=@GuidHS AND TrangThai = 6 AND typeDK<>1";
+            string tsql = "SELECT * FROM ToKhai_RS WITH (UPDLOCK, READPAST, ROWLOCK) WHERE GuidHS=@GuidHS AND TrangThai = 6";
             return _dbService.GetDataTable(tsql, "", new SqlParameter[]
             {
                 new SqlParameter("@GuidHS", GuidHS)
             });
+        }
+
+        public DataTable GetHSDKLanDau(string GuidHS)
+        {
+            string tsql = "SELECT* FROM HSDKLanDau WHERE GuidHS = @Guid";
+            return _dbService.GetDataTable(tsql, "", new SqlParameter[]
+            {
+                new SqlParameter("@Guid", GuidHS)
+            }); 
         }
 
         public bool UpdateToKhai(UpdateToKhaiDto tkUpdate)

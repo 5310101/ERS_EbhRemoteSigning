@@ -67,7 +67,7 @@ namespace IntrustCA_Winservice.Process
                         guid = guid, 
                         uid = row["uid"].SafeString(),
                         serialNumber = row["SerialNumber"].SafeString(),
-                        typeDK = row["typeDK"].SafeNumber<int>(),
+                        typeDK = (TypeHS)row["typeDK"].SafeNumber<int>(),
                         MST = row["FromMST"].SafeString(),
                         MDV = row["FromMDV"].SafeString(),
                         tenDV = row["TenDonVi"].SafeString(),
@@ -79,9 +79,9 @@ namespace IntrustCA_Winservice.Process
                         maNV = row["MaNV"].SafeString()
                     };
                     var dtToKhai = _coreService.GetToKhai(guid);
+                    //hs dang ky se ko co file to khai
                     if(dtToKhai.Rows.Count == 0)
                     {
-                        Utilities.logger.ErrorLog("File not found",guid);
                         continue;
                     }
                     List<ToKhai> listTokhai = new List<ToKhai>();

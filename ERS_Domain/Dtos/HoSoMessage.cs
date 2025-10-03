@@ -9,7 +9,7 @@ namespace ERS_Domain.Dtos
         public string tenHS { get; set; }
         public string maNV { get; set; }
         public string serialNumber { get; set; }
-        public int typeDK { get; set; }
+        public TypeHS typeDK { get; set; }
         public string tenDV { get; set; }
         public string MST { get; set; }
         public string MDV { get; set; }
@@ -29,5 +29,12 @@ namespace ERS_Domain.Dtos
         public string FilePath { get; set; }
         public string MoTaToKhai { get; set; }
         public FileType LoaiFile { get; set; }
+    }
+
+    public enum  TypeHS
+    {
+        HSNV = 0,
+        HSDK = 1,
+        HSDKLanDau = 2,
     }
 }

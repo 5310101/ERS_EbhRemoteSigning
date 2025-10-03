@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using ERS_Domain.Dtos;
 using ERS_Domain.Model;
 using System.IO;
+using System.Data;
 
 namespace IntrustCA_Winservice.Process
 {
@@ -54,7 +55,7 @@ namespace IntrustCA_Winservice.Process
         {
             string jsonMessage = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
             var hs = jsonMessage.DeserializeJsonTo<HoSoMessage>();
-            if(hs == null || hs.toKhais.Any() == false)
+            if (hs == null)
             {
                 throw new Exception("Deserialize error or incorrect message");
             }
@@ -63,82 +64,103 @@ namespace IntrustCA_Winservice.Process
             if (cert == null) throw new Exception("Không tìm thấy chữ ký số");
             //luu y: khi tao service nay thi chac chan hs can ky da duoc tao store trong cache vi chi o process SignHS moi khoi tao nen o day se get chu ko set nua
             SignSessionStore store = SessionCache.GetOrSetStore(hs.uid, cert);
-            if(store == null) throw new Exception("Không tạo được phiên ký");
+            if (store == null) throw new Exception("Không tạo được phiên ký");
             var signService = new IntrustRemoteSigningService(store);
             //tao listfile de ky
-            FileToSignDto<FileProperties>[] listFiles = CreateListFileToSign(hs);   
-            //ky
-            FileSigned[] listSigned = signService.SignRemote(listFiles);
-            //xu ly ket qua va update vao db
-            bool isAllSigned = true;
-            //string hsPath = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid);
-            foreach (FileSigned signed in listSigned)
+            //chi 2 loai hs nay moi co to khai
+            if (hs.typeDK == TypeHS.HSNV || hs.typeDK == TypeHS.HSDKLanDau)
             {
-                if(signed.status != "success")
+                if (hs.toKhais.Any() == false)
                 {
-                    //loi to khai update database ho so trang thai loi ky luon
-                    var updateTKDTO = new UpdateToKhaiDto
-                    {
-                        TrangThai = TrangThaiFile.KyLoi,
-                        ErrMsg = signed.error_message,
-                    };
-                    _coreService.UpdateToKhai(updateTKDTO);
-                    isAllSigned = false;
-                    break;
+                    throw new Exception($"Cannot find any files to sign in {hs.guid}");
                 }
-                //ky thanh cong thi ghi ra file va update database
-                string fileId = signed.file_id;
-                ToKhai tk = hs.toKhais.FirstOrDefault(t => t.TransactionId == fileId);
-                try
+                FileToSignDto<FileProperties>[] listFiles = CreateListFileToSign(hs);
+                //ky
+                FileSigned[] listSigned = signService.SignRemote(listFiles);
+                //xu ly ket qua va update vao db
+                bool isAllSigned = true;
+                //string hsPath = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid);
+                foreach (FileSigned signed in listSigned)
                 {
-                    File.WriteAllBytes(tk.FilePath, signed.content_file.Base64ToData());
-                    var updateTKDTO = new UpdateToKhaiDto
+                    if (signed.status != "success")
                     {
-                        Id = tk.Id,
-                        TrangThai = TrangThaiFile.DaKy,
-                    };
-                    _coreService.UpdateToKhai(updateTKDTO);
+                        //loi to khai update database ho so trang thai loi ky luon
+                        var updateTKDTO = new UpdateToKhaiDto
+                        {
+                            TrangThai = TrangThaiFile.KyLoi,
+                            ErrMsg = signed.error_message,
+                        };
+                        _coreService.UpdateToKhai(updateTKDTO);
+                        isAllSigned = false;
+                        break;
+                    }
+                    //ky thanh cong thi ghi ra file va update database
+                    string fileId = signed.file_id;
+                    ToKhai tk = hs.toKhais.FirstOrDefault(t => t.TransactionId == fileId);
+                    try
+                    {
+                        File.WriteAllBytes(tk.FilePath, signed.content_file.Base64ToData());
+                        var updateTKDTO = new UpdateToKhaiDto
+                        {
+                            Id = tk.Id,
+                            TrangThai = TrangThaiFile.DaKy,
+                        };
+                        _coreService.UpdateToKhai(updateTKDTO);
+                    }
+                    catch (Exception ex)
+                    {
+                        Utilities.logger.ErrorLog(ex, "Failed to save signed file");
+                        var updateTKDTO = new UpdateToKhaiDto
+                        {
+                            Id = tk.Id,
+                            TrangThai = TrangThaiFile.KyLoi,
+                            ErrMsg = ex.Message,
+                        };
+                        _coreService.UpdateToKhai(updateTKDTO);
+                        isAllSigned = false;
+                        break;
+                    }
                 }
-                catch (Exception ex)
+                if (isAllSigned == false)
                 {
-                    Utilities.logger.ErrorLog(ex, "Failed to save signed file");
-                    var updateTKDTO = new UpdateToKhaiDto
-                    {
-                        Id = tk.Id,
-                        TrangThai = TrangThaiFile.KyLoi,
-                        ErrMsg = ex.Message,
-                    };
-                    _coreService.UpdateToKhai(updateTKDTO);
-                    isAllSigned = false;
-                    break;
+                    //tk ky loi thi se hs se ky loi luon throw excepttion de nack
+                    //hs ky loi sau so lan nhat dinh se chuyen sang dlq
+                    throw new Exception("Error while signing file");
                 }
             }
-            if(isAllSigned == false)
-            {
-                //tk ky loi thi se hs se ky loi luon throw excepttion de nack
-                //hs ky loi sau so lan nhat dinh se chuyen sang dlq
-                throw new Exception("Error while signing file");
-            }
+
             try
             {
-                //neu da ky xong het ho so thi tao file BHXHDienTu
-                string pathBHXHDT = CreateFileBHXHDienTu(hs);
-                if(pathBHXHDT == "")
+                //neu da ky xong het ho so thi tao file BHXHDienTu, hoac file dang ky lan dau
+                string pathFileHS = "";
+                string folderSignTemp = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid);
+                if (hs.typeDK == TypeHS.HSNV)
                 {
-                    throw new Exception("Error while creating file BHXHDienTu.xml");
+                    pathFileHS = Path.Combine(folderSignTemp, "BHXHDienTu.xml");
+                    CreateFileBHXHDienTu(hs, pathFileHS);
+                }
+                else if (hs.typeDK == TypeHS.HSDKLanDau)
+                {
+                    pathFileHS = Path.Combine(folderSignTemp, $"{hs.maNV}.xml");
+                    CreateFileHoSoDK_LanDau(hs, pathFileHS);
+                }
+                else if (hs.typeDK == TypeHS.HSDK)
+                {
+                    //HS dang ky thi chi co file xml hoso
+                    pathFileHS = Path.Combine(folderSignTemp, $"{hs.maNV}.xml");
                 }
                 //ky file BHXHDienTu
-                bool isSigned = signService.SignRemoteOneFile(pathBHXHDT, pathBHXHDT);
+                bool isSigned = signService.SignRemoteOneFile(pathFileHS, pathFileHS);
                 if (isSigned == false)
                 {
-                    throw new Exception("Sign BHXHDienTu.xml failed");
+                    throw new Exception("Sign file BHXHDienTu.xml failed");
                 }
                 //thanh cong thi update db ket thuc ky file
                 var updateHSDTO2 = new UpdateHoSoDto
                 {
                     ListId = new string[] { hs.guid },
                     TrangThai = TrangThaiHoso.DaKy,
-                    FilePath = pathBHXHDT,
+                    FilePath = pathFileHS,
                 };
                 _coreService.UpdateHS(updateHSDTO2);
             }
@@ -178,9 +200,8 @@ namespace IntrustCA_Winservice.Process
             return listFiles.ToArray();
         }
 
-        private string CreateFileBHXHDienTu(HoSoMessage hs)
+        private void CreateFileBHXHDienTu(HoSoMessage hs, string pathBHXHDienTu)
         {
-            string HSPath = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid);
             List<FileToKhai> listTK = new List<FileToKhai>();
             foreach (ToKhai signedTK in hs.toKhais)
             {
@@ -242,9 +263,62 @@ namespace IntrustCA_Winservice.Process
             {
                 NoiDung = noiDung,
             };
-            string pathBHXHDT = Path.Combine(HSPath, "BHXHDienTu.xml");
-            MethodLibrary.SerializeToFile(hoso, pathBHXHDT);
-            return pathBHXHDT;
+            MethodLibrary.SerializeToFile(hoso, pathBHXHDienTu);
+        }
+
+        private void CreateFileHoSoDK_LanDau(HoSoMessage hs, string pathFileHSDKLD)
+        {
+
+            string HSPath = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid);
+            string pathSaveHSDK = Path.Combine(HSPath, hs.maNV);
+            List<FileToKhai> listTK = new List<FileToKhai>();
+            foreach (ToKhai signed in hs.toKhais)
+            {
+                byte[] tkDaKy = File.ReadAllBytes(signed.FilePath);
+                string base64Data = Convert.ToBase64String(tkDaKy);
+                string tenFile = MethodLibrary.SafeString(signed.TenToKhai);
+
+                FileToKhai tk = new FileToKhai()
+                {
+                    MaToKhai = MethodLibrary.GetMaTK(tenFile),
+                    MoTaToKhai = signed.MoTaToKhai,
+                    TenFile = tenFile,
+                    LoaiFile = Path.GetExtension(tenFile),
+                    DoDaiFile = base64Data.Length,
+                    NoiDungFile = base64Data,
+                };
+                listTK.Add(tk);
+            }
+
+            //Load thong tin de tao file HSDK 04DK
+            DataTable dtHSDK = _coreService.GetHSDKLanDau(hs.guid);
+            if (dtHSDK.Rows.Count == 0) return;
+            DataRow row = dtHSDK.Rows[0];
+            HosoDKLanDauObjSerialize hsdk = new HosoDKLanDauObjSerialize()
+            {
+                NoiDung = new NoiDungDK()
+                {
+                    TenCoQuan = row["TenCoQuan"].SafeString(),
+                    MaCoQuan = row["MaCoQuan"].SafeString(),
+                    LoaiDoiTuong = row["LoaiDoiTuong"].SafeString(),
+                    TenDoiTuong = row["TenDoiTuong"].SafeString(),
+                    MaSoThue = row["MaSoThue"].SafeString(),
+                    DienThoai = row["DienThoai"].SafeString(),
+                    Email = row["Email"].SafeString(),
+                    NguoiLienHe = row["NguoiLienHe"].SafeString(),
+                    DiaChi = row["DiaChi"].SafeString(),
+                    DiaChiLienHe = row["DiaChiLienHe"].SafeString(),
+                    DienThoaiLienHe = row["DienThoaiLienHe"].SafeString(),
+                    NgayLap = row["NgayLap"].SafeDateTime().ToString("dd/MM/yyyy"),
+                    NgayDangKy = row["NgayDangKy"].SafeDateTime().ToString("dd/MM/yyyy"),
+                    PTNhanKetQua = row["PTNhanKetQua"].SafeString(),
+                    ToKhais = new ToKhais()
+                    {
+                        FileToKhai = listTK.ToArray()
+                    },
+                },
+            };
+            MethodLibrary.SerializeToFile(hsdk, pathFileHSDKLD);
         }
     }
 }

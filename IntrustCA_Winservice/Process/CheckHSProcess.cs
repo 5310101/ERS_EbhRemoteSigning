@@ -97,7 +97,7 @@ namespace IntrustCA_Winservice.Process
 
             //xu ly message
             var hs = jsonMessage.DeserializeJsonTo<HoSoMessage>();
-            if(hs == null || hs.toKhais.Any() == false)
+            if(hs == null)
             {
                 throw new Exception("Serialization failed or no file was found");
             }
