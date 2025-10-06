@@ -8,6 +8,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting;
 using System.Web.Services;
 using System.Web.Services.Protocols;
 
@@ -80,7 +81,7 @@ namespace EBH_RemoteSigning_ver2
 
         [WebMethod(Description = "Phương thức lấy chữ ký số từ server VNPT, truyền serial number để lấy chính xác chữ ký số nếu tài khoản có nhiều chữ ký số.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
-        public ERS_Response GetCertificate_VNPT(string uid, string serialNumber = "")
+        public ERS_Response GetCertificate_VNPT(RemoteSigningProvider provider ,string uid, string serialNumber = "")
         {
             try
             {
@@ -90,12 +91,26 @@ namespace EBH_RemoteSigning_ver2
                 //{
                 //    return auth;
                 //}
-
-                SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
-                //_coreService = new CoreService(smartCAService, _dbService);
-                UserCertificate[] certs = smartCAService.GetListAccountCert(VNPT_URI.uriGetCert, uid);
-                if (certs == null) return new ERS_Response("Không tìm thấy chữ ký số", false);
-                return new ERS_Response("Thành công", true, certs);
+                switch (provider)
+                {
+                    case RemoteSigningProvider.VNPT:
+                        {
+                            SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
+                            //_coreService = new CoreService(smartCAService, _dbService);
+                            UserCertificate[] certs = smartCAService.GetListAccountCert(VNPT_URI.uriGetCert, uid);
+                            if (certs == null) return new ERS_Response("Không tìm thấy chữ ký số", false);
+                            return new ERS_Response("Thành công", true, certs);
+                        }
+                    case RemoteSigningProvider.Intrust:
+                        {
+                            var certs = IntrustCAHelper.GetIntrustCertificates(uid, serialNumber);
+                            return new ERS_Response("Thành công", true, certs);
+                        }
+                    default:
+                        {
+                            return new ERS_Response("Nhà cung cấp dịch vụ không hợp lệ", false);
+                        }
+                }
             }
             catch (Exception ex)
             {
