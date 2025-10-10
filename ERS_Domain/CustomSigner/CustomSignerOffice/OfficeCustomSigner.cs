@@ -13,7 +13,6 @@ using System.Xml;
 using VnptHashSignatures.Common;
 using VnptHashSignatures.Interface;
 using ERS_Domain.clsUtilities;
-using iTextSharp.text;
 
 namespace ERS_Domain.CustomSigner.CustomSignerOffice
 {

@@ -57,21 +57,21 @@ namespace IntrustCA_Winservice
                 _timer2 = new Timer();
                 _timer2.Interval = 100;
                 _timer2.Elapsed += GenerateHandler(_timer2, _processCheckHS.DoWork); ;
-                _timer2.Enabled = true;
+                _timer2.Enabled = false;
 
                 //khoi tao process tao session ky so
                 _processCreateSession = new CreateSessionStoreProcess(_rmqManager.CreateChanel());
                 _timer3 = new Timer();
                 _timer3.Interval = 100;
                 _timer3.Elapsed += GenerateHandler(_timer3, _processCreateSession.Dowork); ;
-                _timer3.Enabled = true;
+                _timer3.Enabled = false;
 
                 //khoi tao process ky so
                 _processSignHS = new SignHSProcess(_rmqManager.CreateChanel(), _coreService);
                 _timer4 = new Timer();
                 _timer4.Interval = 100;
                 _timer4.Elapsed += GenerateHandler(_timer4, _processSignHS.DoWork); 
-                _timer4.Enabled = true;
+                _timer4.Enabled = false;
             }
             catch (Exception ex)
             {

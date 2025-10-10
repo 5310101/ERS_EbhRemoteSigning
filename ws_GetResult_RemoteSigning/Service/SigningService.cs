@@ -319,9 +319,9 @@ namespace ws_GetResult_RemoteSigning.Utils
             try
             {
                 //select ho so thoa man dieu kien 
-                string TSQL = $"WITH TopHoSo AS (SELECT TOP {_signTK_HSCount} Guid FROM HoSo_RS WHERE TrangThai = 4 AND typeDK<>1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui),ToKhaiChuaKy AS (SELECT GuidHS FROM ToKhai_VNPT WHERE GuidHS IN (SELECT Guid FROM TopHoSo) GROUP BY GuidHS HAVING COUNT(*) = SUM(CASE WHEN TrangThai = 6 THEN 1 ELSE 0 END)) SELECT * FROM ToKhai_VNPT WHERE GuidHS IN (SELECT GuidHS FROM ToKhaiChuaKy) AND CAProvider=1;";
+                string TSQL = $"WITH TopHoSo AS (SELECT TOP {_signTK_HSCount} Guid FROM HoSo_RS WHERE TrangThai = 4 AND typeDK<>1 AND CAProvider=1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui),ToKhaiChuaKy AS (SELECT GuidHS FROM ToKhai_RS WHERE GuidHS IN (SELECT Guid FROM TopHoSo) GROUP BY GuidHS HAVING COUNT(*) = SUM(CASE WHEN TrangThai = 6 THEN 1 ELSE 0 END)) SELECT * FROM ToKhai_RS WHERE GuidHS IN (SELECT GuidHS FROM ToKhaiChuaKy);";
                 DataTable dt = _dbService.GetDataTable(TSQL);
-                if (dt.Rows.Count == 0)
+                if ( dt.Rows.Count == 0)
                 {
                     return;
                 }
@@ -578,7 +578,7 @@ namespace ws_GetResult_RemoteSigning.Utils
         #region database interact
         private void UpdateStatusToKhai(int id, TrangThaiFile TrangThai, string errMsg = "", string FilePath = "", string SignerId = "", string transaction_id = "", string tran_code = "")
         {
-            bool result = _dbService.ExecQuery("UPDATE ToKhai_VNPT SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, FilePath=@FilePath, SignerId=@SignerId, transaction_id=@transaction_id, tran_code=@tran_code, LastGet=@LastGet WHERE id=@id", "", new SqlParameter[]
+            bool result = _dbService.ExecQuery("UPDATE ToKhai_RS SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, FilePath=@FilePath, SignerId=@SignerId, transaction_id=@transaction_id, tran_code=@tran_code, LastGet=@LastGet WHERE id=@id", "", new SqlParameter[]
                 {
                 new SqlParameter("@TrangThai", (int)TrangThai),
                 new SqlParameter("@ErrMsg", errMsg.SafeString()),
@@ -600,7 +600,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             if (listToKhaiId.Count > 0)
             {
                 string strListId = string.Join(",", listToKhaiId);
-                string TSQL = $"UPDATE ToKhai_VNPT SET LastGet=@LastGet WHERE id IN ({strListId})";
+                string TSQL = $"UPDATE ToKhai_RS SET LastGet=@LastGet WHERE id IN ({strListId})";
                 var result = _dbService.ExecQuery(TSQL, "", new SqlParameter[]
                 {
                         new SqlParameter("@LastGet", DateTime.Now)
@@ -691,7 +691,7 @@ namespace ws_GetResult_RemoteSigning.Utils
         {
             try
             {
-                //select trong bang HoSo_VNPT, chi select cac hoso ma tat ca to khai da dc ky(trang thai =2)
+                //select trong bang HoSo_RS, chi select cac hoso ma tat ca to khai da dc ky(trang thai =2)
                 string TSQL = $"SELECT TOP {HSSignCount} * FROM HoSo_RS WITH (NOLOCK) WHERE GUID IN (SELECT GUID FROM HoSo_RS A JOIN ToKhai_RS B ON A.Guid = B.GuidHS GROUP BY A.Guid HAVING COUNT(*) = SUM(CASE WHEN B.TrangThai = 2 THEN 1 ELSE 0 END)) AND TrangThai=4 AND CAProvider=1 ORDER BY NgayGui";
                 DataTable dtHS = _dbService.GetDataTable(TSQL);
                 if (dtHS.Rows.Count == 0) return;

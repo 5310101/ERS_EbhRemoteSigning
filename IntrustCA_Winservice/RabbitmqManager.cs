@@ -12,16 +12,16 @@ namespace IntrustCA_Winservice
 {
     public class RabbitmqManager : IDisposable
     {
-		private string _hostName;
-		public string HostName
-		{
+		private string _rabbitmqUri;
+		public string RabbitmqUri
+        {
 			get 
 			{
-				if (string.IsNullOrEmpty(_hostName))
+				if (string.IsNullOrEmpty(_rabbitmqUri))
                 {
-                    _hostName = ConfigurationManager.AppSettings["RMQ_HOSTNAME"];
+                    _rabbitmqUri = ConfigurationManager.AppSettings["RMQ_CONNECTION_URI"];
                 }   
-                return _hostName; 
+                return _rabbitmqUri; 
 			}
 		}
 
@@ -30,7 +30,7 @@ namespace IntrustCA_Winservice
 
         public RabbitmqManager()
         {
-            _conFactory = new ConnectionFactory() { HostName = HostName };
+            _conFactory = new ConnectionFactory() { Uri = new Uri(RabbitmqUri) };
             _connection = _conFactory.CreateConnectionAsync().GetAwaiter().GetResult();
         }
 
