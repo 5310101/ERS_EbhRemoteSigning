@@ -102,7 +102,7 @@ namespace IntrustCA_Winservice.Process
                         {
                             var tkUpdate = new UpdateToKhaiDto
                             {
-                                Id = row["id"].SafeNumber<int>(),
+                                Id = rowTK["id"].SafeNumber<int>(),
                                 TrangThai = TrangThaiFile.DangXuLy
                             };
                             //trong th update loi thi van cho chay tiep
@@ -125,11 +125,10 @@ namespace IntrustCA_Winservice.Process
                     {
                         Persistent = true
                     };
-                    tasks.Add(_channel.BasicPublishAsync(exchange: "", routingKey: "HSIntrust.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).AsTask());
+                    _channel.BasicPublishAsync(exchange: "", routingKey: "HSIntrust.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).GetAwaiter().GetResult();
                     //sau khi publish message thi update database cho hoso
                     PublishedList.Add(guid);
                 }
-                Task.WhenAll(tasks).GetAwaiter().GetResult();
             }
             catch (Exception ex)
             {

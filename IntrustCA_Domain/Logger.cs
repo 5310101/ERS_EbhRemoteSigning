@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IntrustderCA_Domain
+namespace IntrustCA_Domain
 {
     public static class Logger
     {

@@ -3,7 +3,7 @@ using System.Configuration;
 using System.IO;
 using System.Web;
 
-namespace IntrustderCA_Domain
+namespace IntrustCA_Domain
 {
     public static class GlobalVar
     {

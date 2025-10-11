@@ -1,10 +1,8 @@
-﻿using IntrustCA_Domain.Dtos;
-using IntrustCA_Domain;
-using System;
+﻿using System;
 using System.Linq;
 using System.IO;
 
-namespace IntrustderCA_Domain.Dtos
+namespace IntrustCA_Domain.Dtos
 {
     public static class IntrustRSHelper
     {

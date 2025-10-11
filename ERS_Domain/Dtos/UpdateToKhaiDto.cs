@@ -13,6 +13,5 @@ namespace ERS_Domain.Dtos
         public TrangThaiFile TrangThai { get; set; }
         public string ErrMsg { get; set; } = "";
         public DateTime LastGet { get; set; } = DateTime.Now;
-        public string FilePath { get; set; }
     }
 }

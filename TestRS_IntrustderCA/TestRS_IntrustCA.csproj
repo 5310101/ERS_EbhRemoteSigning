@@ -52,7 +52,7 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\IntrustderCA_Domain\IntrustCA_Domain.csproj">
+    <ProjectReference Include="..\IntrustCA_Domain\IntrustCA_Domain.csproj">
       <Project>{6cfb174d-d6fb-4cc0-b417-7da09d6491d8}</Project>
       <Name>IntrustCA_Domain</Name>
     </ProjectReference>

@@ -1,6 +1,6 @@
 ﻿using IntrustCA_Domain;
 using IntrustCA_Domain.Dtos;
-using IntrustderCA_Domain.Dtos;
+using IntrustCA_Domain.Dtos;
 using System;
 using System.IO;
 using System.Text;

@@ -1,10 +1,8 @@
 ﻿using ERS_Domain;
-using ERS_Domain.Cache;
-using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
-using IntrustCA_Winservice.Services;
-using IntrustderCA_Domain.Dtos;
+using IntrustCA_Domain.Cache;
+using IntrustCA_Domain.Dtos;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;

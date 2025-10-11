@@ -110,6 +110,10 @@
       <Project>{c554164f-3a96-487e-9875-ea342ec95799}</Project>
       <Name>ERS_Domain</Name>
     </ProjectReference>
+    <ProjectReference Include="..\IntrustCA_Domain\IntrustCA_Domain.csproj">
+      <Project>{6cfb174d-d6fb-4cc0-b417-7da09d6491d8}</Project>
+      <Name>IntrustCA_Domain</Name>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

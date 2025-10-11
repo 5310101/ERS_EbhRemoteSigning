@@ -127,7 +127,7 @@ namespace ERS_Domain.clsUtilities
                         try
                         {
                             int rowEffected = command.ExecuteNonQuery();
-                            if (rowEffected > 0)
+                            if (rowEffected >= 0)
                             {
                                 trans.Commit();
                                 isExecuted = true;

@@ -2,7 +2,7 @@
 using System;
 using System.Linq;
 using System.IO;
-using IntrustderCA_Domain.Dtos;
+using IntrustCA_Domain.Dtos;
 
 namespace IntrustCA_Domain
 {

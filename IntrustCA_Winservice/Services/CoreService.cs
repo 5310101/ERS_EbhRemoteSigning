@@ -31,11 +31,12 @@ namespace IntrustCA_Winservice.Services
                 {
                     throw new Exception("ListId cannot be empty");
                 }
-                string[] paramNames = hsUpdate.ListId.Select(id => $"@p{id}").ToArray();
+                string[] guids = hsUpdate.ListId.Select(id => $"@p{id}").ToArray();
+                string[] paramNames = guids.Select(p => p.Replace("-", "")).ToArray();
                 string inClause = string.Join(",", paramNames);
-                foreach (string pname in paramNames)
+                foreach (string pname in guids)
                 {
-                    SqlParameter param = new SqlParameter(pname, pname.Replace("@p", ""));
+                    SqlParameter param = new SqlParameter(pname.Replace("-",""), pname.Replace("@p", ""));
                     sqlparams.Add(param);
                 }
 
@@ -83,14 +84,13 @@ namespace IntrustCA_Winservice.Services
 
         public bool UpdateToKhai(UpdateToKhaiDto tkUpdate)
         {
-            string tsql = "UPDATE ToKhai_RS SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, LastGet=@LastGet, FilePath=@FilePath WHERE id=@Id";
+            string tsql = "UPDATE ToKhai_RS SET TrangThai=@TrangThai, ErrMsg=@ErrMsg, LastGet=@LastGet WHERE id=@Id";
             SqlParameter[] sqlParams = new SqlParameter[]
             {
                 new SqlParameter("@Id", SqlDbType.Int){Value =  tkUpdate.Id},
                 new SqlParameter("@TrangThai", SqlDbType.Int){Value = (int)tkUpdate.TrangThai},
                 new SqlParameter("@ErrMsg", tkUpdate.ErrMsg),
                 new SqlParameter("@LastGet", tkUpdate.LastGet),
-                new SqlParameter("@FilePath", tkUpdate.FilePath)
             };
             return _dbService.ExecQuery_Tran(tsql,"", sqlParams);
         }

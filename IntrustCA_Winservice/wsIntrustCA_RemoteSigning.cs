@@ -30,15 +30,18 @@ namespace IntrustCA_Winservice
         private Timer _timer4;
         private SignHSProcess _processSignHS;
 
+        //force stop
+        private volatile bool _forceStop = false;
+
         public wsIntrustCA_RemoteSigning()
         {
             InitializeComponent();
-           
+
         }
 
         protected override void OnStart(string[] args)
         {
-            Utilities.logger.InfoLog("OnStart","IntrustCA window service started");
+            Utilities.logger.InfoLog("OnStart", "IntrustCA window service started");
             try
             {
                 _rmqManager = new RabbitmqManager();
@@ -50,7 +53,7 @@ namespace IntrustCA_Winservice
                 _timer1 = new Timer();
                 _timer1.Interval = 100;
                 _timer1.Elapsed += GenerateHandler(_timer1, _processScanHS.DoWork);
-                _timer1.Enabled = true;
+                _timer1.Enabled = false;
 
                 //khoi tao process phan loai ho so
                 _processCheckHS = new CheckHSProcess(_rmqManager.CreateChanel(), _coreService);
@@ -64,13 +67,13 @@ namespace IntrustCA_Winservice
                 _timer3 = new Timer();
                 _timer3.Interval = 100;
                 _timer3.Elapsed += GenerateHandler(_timer3, _processCreateSession.Dowork); ;
-                _timer3.Enabled = false;
+                _timer3.Enabled = true;
 
                 //khoi tao process ky so
                 _processSignHS = new SignHSProcess(_rmqManager.CreateChanel(), _coreService);
                 _timer4 = new Timer();
                 _timer4.Interval = 100;
-                _timer4.Elapsed += GenerateHandler(_timer4, _processSignHS.DoWork); 
+                _timer4.Elapsed += GenerateHandler(_timer4, _processSignHS.DoWork);
                 _timer4.Enabled = false;
             }
             catch (Exception ex)
@@ -98,6 +101,7 @@ namespace IntrustCA_Winservice
                 timer.Enabled = false;
                 try
                 {
+                    if (_forceStop) return;
                     Dowork();
                 }
                 catch (DatabaseInteractException ex)
@@ -105,7 +109,8 @@ namespace IntrustCA_Winservice
                     //luu lai cac guidHS ma update database loi
                     Utilities.logger.InfoLog("Unable to update list", string.Join(",", ex.listIdError));
                     Utilities.logger.ErrorLog(ex, "Error while updating database");
-                    this.Stop();
+                    _forceStop = true;
+                    RequestStop(ex.Message);
                 }
                 catch (Exception ex)
                 {
@@ -113,11 +118,28 @@ namespace IntrustCA_Winservice
                 }
                 finally
                 {
-                    timer.Enabled = true;
+                    if (!_forceStop)
+                        timer.Enabled = true;
                 }
             };
         }
 
+        private void RequestStop(string reason)
+        {
+            try
+            {
+                Utilities.logger.InfoLog("Service stopping...", $"Reason: {reason}");
+                this._timer1.Enabled = false;
+                this._timer2.Enabled = false;
+                this._timer3.Enabled = false;
+                this._timer4.Enabled = false;
+                Stop();
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "Error during RequestStop()");
+            }
+        }
         protected override void OnStop()
         {
             Utilities.logger.InfoLog("OnStop", "IntrustCA window service stopped");

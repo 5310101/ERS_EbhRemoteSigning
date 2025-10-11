@@ -32,8 +32,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="itextsharp, Version=5.6.140.0, Culture=neutral, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
+    <Reference Include="itextsharp">
       <HintPath>..\libs\itextsharp.dll</HintPath>
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -67,12 +66,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Cache\SessionCache.cs" />
     <Compile Include="CAService\IRemoteSignService.cs" />
     <Compile Include="CAService\SmartCAService.cs" />
     <Compile Include="clsUtilities\DbService.cs" />
     <Compile Include="clsUtilities\GlobalVar.cs" />
-    <Compile Include="clsUtilities\IntrustCAHelper.cs" />
     <Compile Include="clsUtilities\Logger.cs" />
     <Compile Include="clsUtilities\MethodLibrary.cs" />
     <Compile Include="clsUtilities\PathProvider.cs" />
@@ -94,12 +91,6 @@
     <Compile Include="Response\ERS_Response.cs" />
     <Compile Include="Response\SmartCAResponse.cs" />
     <Compile Include="Utilities.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\IntrustderCA_Domain\IntrustCA_Domain.csproj">
-      <Project>{6cfb174d-d6fb-4cc0-b417-7da09d6491d8}</Project>
-      <Name>IntrustCA_Domain</Name>
-    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config">

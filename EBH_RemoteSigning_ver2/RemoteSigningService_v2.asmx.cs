@@ -3,12 +3,14 @@ using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
 using ERS_Domain.Model;
 using ERS_Domain.Response;
+using IntrustCA_Domain;
+using IntrustCA_Domain.Dtos;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
-using System.Runtime.Remoting;
 using System.Web.Services;
 using System.Web.Services.Protocols;
 
@@ -103,8 +105,31 @@ namespace EBH_RemoteSigning_ver2
                         }
                     case RemoteSigningProvider.Intrust:
                         {
-                            var certs = IntrustCAHelper.GetIntrustCertificates(uid, serialNumber);
-                            return new ERS_Response("Thành công", true, certs);
+                            GetCertificateRequest req = new GetCertificateRequest
+                            {
+                                user_id = uid,
+                                serial_number = serialNumber
+                            };
+                            var res = IntrustSigningCoreService.GetCertificate(req);
+                            if (res == null || res.status_code != 0 || res.certificates == null || res.certificates.Length == 0)
+                            {
+                                throw new Exception($"Get certificate error: {res?.error_desc ?? "No response from IntrustCA"}");
+                            }
+                            List<UserCertificate> lstCert = new List<UserCertificate>();
+                            foreach (ICACertificate IntrustCert in res.certificates)
+                            {
+                                UserCertificate cert = new UserCertificate
+                                {
+                                    serial_number = IntrustCert.cert_serial,
+                                    cert_valid_to = IntrustCert.cert_valid_to.SafeDateTime(),
+                                    cert_valid_from = IntrustCert.cert_valid_from.SafeDateTime(),
+                                    cert_subject = IntrustCert.cert_provider,
+                                    cert_status = IntrustCert.cert_valid_to.SafeDateTime() < DateTime.Now ? "Hết hạn" : "Đang hoạt động",
+                                };
+                                lstCert.Add(cert);
+                            }
+                            lstCert.ToArray();
+                            return new ERS_Response("Thành công", true, lstCert.ToArray());
                         }
                     default:
                         {

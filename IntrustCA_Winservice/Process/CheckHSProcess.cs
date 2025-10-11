@@ -1,16 +1,14 @@
 ﻿using ERS_Domain;
-using ERS_Domain.Cache;
 using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
+using IntrustCA_Domain.Cache;
 using IntrustCA_Winservice.Services;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Configuration;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Timers;
 
 namespace IntrustCA_Winservice.Process
 {

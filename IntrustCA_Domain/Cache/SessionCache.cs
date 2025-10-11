@@ -1,13 +1,10 @@
-﻿using IntrustCA_Domain;
-using IntrustCA_Domain.Dtos;
-using System;
+﻿using IntrustCA_Domain.Dtos;
 using System.Collections.Concurrent;
 using System.Runtime.Caching;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Web.SessionState;
 
-namespace ERS_Domain.Cache
+namespace IntrustCA_Domain.Cache
 {
     public static class SessionCache
     {
