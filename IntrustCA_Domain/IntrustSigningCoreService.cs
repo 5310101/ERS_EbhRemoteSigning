@@ -22,8 +22,8 @@ namespace IntrustCA_Domain
         public static SessionRegisterResponse RegisterSession(SessionRegisterRequest req)
         {
             string jsonData = JsonConvert.SerializeObject(req);
-            string jsonResponse = Signer.registerSessionPub(jsonData);
-            //string jsonResponse = ESDKCaller.Call("registerSessionPub", jsonData);
+            //string jsonResponse = Signer.registerSessionPub(jsonData);
+            string jsonResponse = ESDKCaller.Call("registerSessionPub", jsonData);
             return JsonConvert.DeserializeObject<SessionRegisterResponse>(jsonResponse);   
         }
 
@@ -35,8 +35,8 @@ namespace IntrustCA_Domain
         public static GetCertificateResponse GetCertificate(GetCertificateRequest req)
         {
             string jsonData = JsonConvert.SerializeObject(req);
-            string jsonstrResponse = Signer.ect_get_certificates(jsonData);
-            //string jsonstrResponse = ESDKCaller.Call("ect_get_certificates", jsonData);
+            //string jsonstrResponse = Signer.ect_get_certificates(jsonData);
+            string jsonstrResponse = ESDKCaller.Call("ect_get_certificates", jsonData);
             return JsonConvert.DeserializeObject<GetCertificateResponse>(jsonstrResponse);
         }
 
@@ -48,8 +48,8 @@ namespace IntrustCA_Domain
         public static SignResponse SignRemote(SignRequest req)
         {
             string jsonData = JsonConvert.SerializeObject(req, Formatting.Indented);
-            string jsonResponse = Signer.signRMS(jsonData);
-            //string jsonResponse = ESDKCaller.Call("signRMS",jsonData);
+            //string jsonResponse1 = Signer.signRMS(jsonData);
+            string jsonResponse = ESDKCaller.Call("signRMS",jsonData);
             return JsonConvert.DeserializeObject<SignResponse>(jsonResponse);
         }
 
@@ -61,8 +61,8 @@ namespace IntrustCA_Domain
         public static ExtendLoginResponse ExtendLogin(ExtendLoginRequest req)
         {
             string jsonData = JsonConvert.SerializeObject(req);
-            string jsonResponse = Signer.login(jsonData);
-            //string jsonResponse = ESDKCaller.Call("login",jsonData);
+            //string jsonResponse = Signer.login(jsonData);
+            string jsonResponse = ESDKCaller.Call("login",jsonData);
             return JsonConvert.DeserializeObject<ExtendLoginResponse>(jsonResponse);
         }   
     }

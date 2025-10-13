@@ -44,7 +44,7 @@ namespace IntrustCA_Winservice.Process
                 catch (Exception ex)
                 {
                     Utilities.logger.ErrorLog(ex, "Consume message error", "SignHSProcess");
-                    await RabbitMQHelper.HandleError(_channel, ea, 3, "HSReadyToSign.retry.q");
+                    await RabbitMQHelper.HandleError(_channel, ea, 3, "HSReadyToSign.retry.q", ex, _coreService.UpdateHS);
                 }
             };
             _channel.BasicConsumeAsync("HSReadyToSign.q", false, consumer).GetAwaiter().GetResult();
@@ -53,8 +53,7 @@ namespace IntrustCA_Winservice.Process
 
         private void ProcessMessage(BasicDeliverEventArgs ea)
         {
-            string jsonMessage = System.Text.Encoding.UTF8.GetString(ea.Body.ToArray());
-            var hs = jsonMessage.DeserializeJsonTo<HoSoMessage>();
+            var hs = ea.ProcessMessageToObject<HoSoMessage>();
             if (hs == null)
             {
                 throw new Exception("Deserialize error or incorrect message");

@@ -3,6 +3,7 @@ using ERS_Domain.Exceptions;
 using IntrustCA_Winservice.Process;
 using IntrustCA_Winservice.Services;
 using System;
+using System.Runtime.InteropServices;
 using System.ServiceProcess;
 using System.Timers;
 
@@ -53,17 +54,17 @@ namespace IntrustCA_Winservice
                 _timer1 = new Timer();
                 _timer1.Interval = 100;
                 _timer1.Elapsed += GenerateHandler(_timer1, _processScanHS.DoWork);
-                _timer1.Enabled = false;
+                _timer1.Enabled = true;
 
                 //khoi tao process phan loai ho so
                 _processCheckHS = new CheckHSProcess(_rmqManager.CreateChanel(), _coreService);
                 _timer2 = new Timer();
                 _timer2.Interval = 100;
                 _timer2.Elapsed += GenerateHandler(_timer2, _processCheckHS.DoWork); ;
-                _timer2.Enabled = false;
+                _timer2.Enabled = true;
 
                 //khoi tao process tao session ky so
-                _processCreateSession = new CreateSessionStoreProcess(_rmqManager.CreateChanel());
+                _processCreateSession = new CreateSessionStoreProcess(_rmqManager.CreateChanel(), _coreService);
                 _timer3 = new Timer();
                 _timer3.Interval = 100;
                 _timer3.Elapsed += GenerateHandler(_timer3, _processCreateSession.Dowork); ;
@@ -74,7 +75,7 @@ namespace IntrustCA_Winservice
                 _timer4 = new Timer();
                 _timer4.Interval = 100;
                 _timer4.Elapsed += GenerateHandler(_timer4, _processSignHS.DoWork);
-                _timer4.Enabled = false;
+                _timer4.Enabled = true;
             }
             catch (Exception ex)
             {

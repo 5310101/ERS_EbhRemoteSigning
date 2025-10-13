@@ -7,6 +7,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Configuration;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -69,32 +70,28 @@ namespace IntrustCA_Winservice.Process
             _channel.BasicQosAsync(0, hsCheckPerProcess, false).GetAwaiter().GetResult();
             //consume message
             var consumer = new AsyncEventingBasicConsumer(_channel);
-            consumer.ReceivedAsync += (model, ea) =>
+            consumer.ReceivedAsync += async (model, ea) =>
             {
                 try
                 {
-                    ProcessSendMessage(ea).GetAwaiter().GetResult();
+                    await ProcessSendMessage(ea);
                     //manual ack message khi xu ly xong
-                    _channel.BasicAckAsync(ea.DeliveryTag, false).GetAwaiter().GetResult();
+                     await _channel.BasicAckAsync(ea.DeliveryTag, false);
                 }
                 catch (Exception ex)
                 {
                     Utilities.logger.ErrorLog(ex, "Process Message failed");
                     //xu ly nack
-                    RabbitMQHelper.HandleError(_channel,ea, 3, "HSIntrust.retry.q").GetAwaiter().GetResult();
+                    await RabbitMQHelper.HandleError(_channel,ea, 3, "HSIntrust.retry.q", ex, _coreService.UpdateHS);
                 }
-                return Task.CompletedTask;
             };
             _channel.BasicConsumeAsync(queue: "HSIntrust.q",autoAck: false, consumer).GetAwaiter().GetResult();
         }
 
         public async Task ProcessSendMessage(BasicDeliverEventArgs ea)
         {
-            var bytedata = ea.Body.ToArray();
-            string jsonMessage = Encoding.UTF8.GetString(bytedata);
-
             //xu ly message
-            var hs = jsonMessage.DeserializeJsonTo<HoSoMessage>();
+            var hs = ea.ProcessMessageToObject<HoSoMessage>();
             if(hs == null)
             {
                 throw new Exception("Serialization failed or no file was found");

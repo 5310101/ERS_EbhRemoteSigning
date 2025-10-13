@@ -19,6 +19,13 @@ namespace IntrustCA_Winservice
             {
                 Console.WriteLine("Starting Service IntrustCA remote signing");
                 wsIntrustCA_RemoteSigning service = new wsIntrustCA_RemoteSigning();
+                //test
+                //var res = IntrustCA_Domain.IntrustSigningCoreService.GetCertificate(new IntrustCA_Domain.Dtos.GetCertificateRequest
+                //{
+                //    user_id = "DSS.001091055387",
+                //    serial_number = ""
+                //});
+
                 service.StartManual(args);
                 Console.WriteLine("Service started. Press any key to stop...");
                 Console.ReadKey();  

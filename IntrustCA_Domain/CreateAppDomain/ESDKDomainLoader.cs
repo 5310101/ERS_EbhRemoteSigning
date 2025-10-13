@@ -11,15 +11,31 @@ namespace IntrustCA_Domain.CreateAppDomain
         private Assembly _eSDKAssembly;
 
         /// <summary>
-        /// Khởi tạo loader: load rms.lib.common.dll + eSDK.dll, set path config
+        /// Khoi tao loader: load rms.lib.common.dll + eSDK.dll, set path config
+        /// trong appDomain này khi resolve thi chi lay  thu muc eSDKRuntimePath
         /// </summary>
         /// <param name="eSDKRuntimePath">Thư mục chứa eSDK.dll, rms.lib.common.dll và ConfigRMS</param>
         public void Initialize(string eSDKRuntimePath)
         {
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (asm.FullName.StartsWith("itextsharp", StringComparison.OrdinalIgnoreCase))
+                    Console.WriteLine($"[MAIN DOMAIN] Loaded iTextSharp: {asm.FullName}");
+            }
+
             if (!Directory.Exists(eSDKRuntimePath))
                 throw new DirectoryNotFoundException($"Không tìm thấy thư mục eSDKRuntime: {eSDKRuntimePath}");
 
-            // 1️⃣ Load rms.lib.common.dll
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+            {
+                string name = new AssemblyName(args.Name).Name + ".dll";
+                string path = Path.Combine(eSDKRuntimePath, name);
+                if (File.Exists(path))
+                    return Assembly.LoadFrom(path);
+                return null;
+            };
+
+            // Load rms.lib.common.dll
             string rmsLibPath = Path.Combine(eSDKRuntimePath, "rms.lib.common.dll");
             if (!File.Exists(rmsLibPath))
                 throw new FileNotFoundException("Không tìm thấy rms.lib.common.dll", rmsLibPath);
@@ -38,7 +54,7 @@ namespace IntrustCA_Domain.CreateAppDomain
                 }
             }
 
-            // 2️⃣ Load eSDK.dll
+            // Load eSDK.dll
             string eSDKPath = Path.Combine(eSDKRuntimePath, "eSDK.dll");
             if (!File.Exists(eSDKPath))
                 throw new FileNotFoundException("Không tìm thấy eSDK.dll", eSDKPath);
@@ -46,8 +62,9 @@ namespace IntrustCA_Domain.CreateAppDomain
             _eSDKAssembly = Assembly.LoadFrom(eSDKPath);
         }
 
+
         /// <summary>
-        /// Gọi method của eSDK
+        /// Goi method cua eSDK
         /// </summary>
         /// <param name="methodName">Tên method</param>
         /// <param name="jsonData">Dữ liệu JSON</param>
@@ -61,8 +78,15 @@ namespace IntrustCA_Domain.CreateAppDomain
             var method = signerType.GetMethod(methodName);
             if (method == null)
                 throw new Exception($"Không tìm thấy hàm '{methodName}' trong eSDK.Signer");
-
-            var result = method.Invoke(null, new object[] { jsonData });
+            object result = null;
+            if (methodName == "signRMS")
+            {
+                 result = method.Invoke(methodName, new object[] { jsonData, false });
+            }
+            else
+            {
+                result = method.Invoke(null, new object[] { jsonData });
+            }
             return result?.ToString();
         }
     }
@@ -73,10 +97,10 @@ namespace IntrustCA_Domain.CreateAppDomain
         {
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string binPath = Path.Combine(baseDir, "bin");
-            if (Directory.Exists(binPath))
-            {
-                baseDir = binPath;
-            }
+            //if (Directory.Exists(binPath))
+            //{
+            //    baseDir = binPath;
+            //}
             var setup = new AppDomainSetup
             {
                 ApplicationBase = baseDir,
@@ -94,7 +118,6 @@ namespace IntrustCA_Domain.CreateAppDomain
                 // Đường dẫn eSDK.dll
                 string eSDKPath = Path.Combine(baseDir, "eSDKRuntime");
                 loader.Initialize(eSDKPath);
-
                 return loader.InvokeSigner(methodName, jsonData);
             }
             catch (Exception ex)

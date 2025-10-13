@@ -3,6 +3,7 @@ using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
 using IntrustCA_Domain.Cache;
 using IntrustCA_Domain.Dtos;
+using IntrustCA_Winservice.Services;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
@@ -15,11 +16,13 @@ namespace IntrustCA_Winservice.Process
     public class CreateSessionStoreProcess
     {
         private readonly IChannel _channel;
+        private readonly CoreService _coreService;
 
         private readonly ushort numberOfSession = ushort.Parse(System.Configuration.ConfigurationManager.AppSettings["SESSIONCREATE_PERPROCESS"]);
-        public CreateSessionStoreProcess(IChannel channel)
+        public CreateSessionStoreProcess(IChannel channel, CoreService coreService)
         {
             _channel = channel;
+            _coreService = coreService;
         }
 
         public void Dowork()
@@ -36,7 +39,7 @@ namespace IntrustCA_Winservice.Process
                 catch (Exception ex)
                 {
                     Utilities.logger.ErrorLog(ex, "Consume message error", "CreateSessionStoreProcess");
-                    await RabbitMQHelper.HandleError(_channel, ea, 3, "CreateSession.retry.q");
+                    await RabbitMQHelper.HandleError(_channel, ea, 3, "CreateSession.retry.q", ex, _coreService.UpdateHS);
                 }
             };
             _channel.BasicConsumeAsync("CreateSession.q", false, consumer).GetAwaiter().GetResult();
@@ -44,8 +47,7 @@ namespace IntrustCA_Winservice.Process
 
         private async Task ProcessMessage(BasicDeliverEventArgs ea)
         {
-            string jsonMessage = Encoding.UTF8.GetString(ea.Body.ToArray());
-            var hs = jsonMessage.DeserializeJsonTo<HoSoMessage>();
+            var hs = ea.ProcessMessageToObject<HoSoMessage>();
             if (hs == null || hs.toKhais.Any() == false)
             {
                 throw new Exception("Deserialize error or incorrect message");
