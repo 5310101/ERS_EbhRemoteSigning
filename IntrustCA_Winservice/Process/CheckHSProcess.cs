@@ -104,7 +104,7 @@ namespace IntrustCA_Winservice.Process
                 {
                     Persistent = true,
                 };
-                await _channel.BasicPublishAsync(exchange: "", routingKey: "CreateSession.q", mandatory: false, basicProperties: props1, body: bytedata);
+                await _channel.BasicPublishAsync(exchange: "", routingKey: "CreateSession.q", mandatory: false, basicProperties: props1, body: ea.Body.ToArray());
                 
                 return;
             }
@@ -112,7 +112,7 @@ namespace IntrustCA_Winservice.Process
             {
                 Persistent = true,
             };
-            await _channel.BasicPublishAsync(exchange: "", routingKey: "HSReadyToSign.q", mandatory: false, basicProperties: props2, body: bytedata);
+            await _channel.BasicPublishAsync(exchange: "", routingKey: "HSReadyToSign.q", mandatory: false, basicProperties: props2, body: ea.Body.ToArray());
         }
     }
 }
