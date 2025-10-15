@@ -7,13 +7,13 @@ using IntrustCA_Domain;
 using IntrustCA_Winservice.Services;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using IntrustCA_Domain.Dtos;
 using System.Collections.Generic;
 using ERS_Domain.Dtos;
 using ERS_Domain.Model;
 using System.IO;
 using System.Data;
 using IntrustCA_Domain.Cache;
+using ERS_Domain.Exceptions;
 
 namespace IntrustCA_Winservice.Process
 {
@@ -128,45 +128,39 @@ namespace IntrustCA_Winservice.Process
                 }
             }
 
-            try
+            string pathFileHS = "";
+            string folderSignTemp = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid);
+            if (hs.typeDK == TypeHS.HSNV)
             {
-                //neu da ky xong het ho so thi tao file BHXHDienTu, hoac file dang ky lan dau
-                string pathFileHS = "";
-                string folderSignTemp = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid);
-                if (hs.typeDK == TypeHS.HSNV)
-                {
-                    pathFileHS = Path.Combine(folderSignTemp, "BHXHDienTu.xml");
-                    CreateFileBHXHDienTu(hs, pathFileHS);
-                }
-                else if (hs.typeDK == TypeHS.HSDKLanDau)
-                {
-                    pathFileHS = Path.Combine(folderSignTemp, $"{hs.maNV}.xml");
-                    CreateFileHoSoDK_LanDau(hs, pathFileHS);
-                }
-                else if (hs.typeDK == TypeHS.HSDK)
-                {
-                    //HS dang ky thi chi co file xml hoso
-                    pathFileHS = Path.Combine(folderSignTemp, $"{hs.maNV}.xml");
-                }
-                //ky file BHXHDienTu
-                bool isSigned = signService.SignRemoteOneFile(pathFileHS, pathFileHS);
-                if (isSigned == false)
-                {
-                    throw new Exception("Sign file BHXHDienTu.xml failed");
-                }
-                //thanh cong thi update db ket thuc ky file
-                var updateHSDTO2 = new UpdateHoSoDto
-                {
-                    ListId = new string[] { hs.guid },
-                    TrangThai = TrangThaiHoso.DaKy,
-                    FilePath = pathFileHS,
-                };
-                _coreService.UpdateHS(updateHSDTO2);
+                pathFileHS = Path.Combine(folderSignTemp, "BHXHDienTu.xml");
+                CreateFileBHXHDienTu(hs, pathFileHS);
             }
-            catch (Exception ex)
+            else if (hs.typeDK == TypeHS.HSDKLanDau)
             {
-                Utilities.logger.ErrorLog(ex, "Error while signing file BHXHDienTu.xml", hs.guid);
-                throw new Exception($"Error while signing file BHXHDienTu.xml of {hs.guid}");
+                pathFileHS = Path.Combine(folderSignTemp, $"{hs.maNV}.xml");
+                CreateFileHoSoDK_LanDau(hs, pathFileHS);
+            }
+            else if (hs.typeDK == TypeHS.HSDK)
+            {
+                //HS dang ky thi chi co file xml hoso
+                pathFileHS = Path.Combine(folderSignTemp, $"{hs.maNV}.xml");
+            }
+            //ky file BHXHDienTu
+            bool isSigned = signService.SignRemoteOneFile(pathFileHS, pathFileHS);
+            if (isSigned == false)
+            {
+                throw new Exception("Sign file BHXHDienTu.xml failed");
+            }
+            //thanh cong thi update db ket thuc ky file
+            var updateHSDTO2 = new UpdateHoSoDto
+            {
+                ListId = new string[] { hs.guid },
+                TrangThai = TrangThaiHoso.DaKy,
+                FilePath = pathFileHS,
+            };
+            if(_coreService.UpdateHS(updateHSDTO2) == false)
+            {
+                throw new DatabaseInteractException($"Có lỗi update trạng thái hồ sơ {hs.guid}");
             }
         }
 

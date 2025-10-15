@@ -41,7 +41,7 @@ namespace IntrustCA_Winservice.Process
 
         //Tam thoi chua biet lam gi voi cac message nay nen chi ghi ra file roi ack luon
         //trong tuong lai co the xay dung cac he thong monitor cung nhu co co che resend
-        public void Dowork()
+        public void DoWork()
         {
             foreach (var consumer in _dLQConsumers)
             {

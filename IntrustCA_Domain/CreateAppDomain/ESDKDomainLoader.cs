@@ -30,9 +30,14 @@ namespace IntrustCA_Domain.CreateAppDomain
             {
                 string name = new AssemblyName(args.Name).Name + ".dll";
                 string path = Path.Combine(eSDKRuntimePath, name);
-                if (File.Exists(path))
-                    return Assembly.LoadFrom(path);
-                return null;
+                if (args.Name.StartsWith("itextsharp"))
+                    return Assembly.LoadFrom($@"{eSDKRuntimePath}\itextsharp.dll");
+                else
+                {
+                    if (File.Exists(path))
+                        return Assembly.LoadFrom(path);
+                    return null;
+                }
             };
 
             // Load rms.lib.common.dll
@@ -59,7 +64,7 @@ namespace IntrustCA_Domain.CreateAppDomain
             if (!File.Exists(eSDKPath))
                 throw new FileNotFoundException("Không tìm thấy eSDK.dll", eSDKPath);
 
-            _eSDKAssembly = Assembly.LoadFrom(eSDKPath);
+            _eSDKAssembly = Assembly.LoadFile(eSDKPath);
         }
 
 

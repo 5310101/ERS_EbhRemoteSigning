@@ -58,7 +58,7 @@ namespace IntrustCA_Winservice.Process
             {
                 var dt = _coreService.GetHS(RemoteSigningProvider.Intrust, TrangThaiHoso.ChuaTaoFile, NumberHSScan);
                 if (dt == null || dt.AsEnumerable().Any() == false) return;
-                List<Task> tasks = new List<Task>();
+                //List<Task> tasks = new List<Task>();
                 foreach (DataRow row in dt.AsEnumerable())
                 {
                     string guid = row["Guid"].SafeString();
@@ -80,47 +80,45 @@ namespace IntrustCA_Winservice.Process
                     };
                     var dtToKhai = _coreService.GetToKhai(guid);
                     //hs dang ky se ko co file to khai
-                    if(dtToKhai.Rows.Count == 0)
+                    if(dtToKhai.AsEnumerable().Any() == true)
                     {
-                        continue;
-                    }
-                    List<ToKhai> listTokhai = new List<ToKhai>();
-                    foreach (DataRow rowTK in dtToKhai.Rows)
-                    {
-                        var tkPublish = new ToKhai
+                        List<ToKhai> listTokhai = new List<ToKhai>();
+                        foreach (DataRow rowTK in dtToKhai.Rows)
                         {
-                            Id = rowTK["id"].SafeNumber<int>(),
-                            TenToKhai = rowTK["TenToKhai"].SafeString(),
-                            MoTaToKhai = rowTK["MoTa"].SafeString(),
-                            GuidHS = rowTK["GuidHS"].SafeString(),
-                            FilePath = rowTK["FilePath"].SafeString(),
-                            LoaiFile = (FileType)rowTK["LoaiFile"].SafeNumber<int>(),
-                        };
-                        listTokhai.Add(tkPublish);
-
-                        try
-                        {
-                            var tkUpdate = new UpdateToKhaiDto
+                            var tkPublish = new ToKhai
                             {
                                 Id = rowTK["id"].SafeNumber<int>(),
-                                TrangThai = TrangThaiFile.DangXuLy
+                                TenToKhai = rowTK["TenToKhai"].SafeString(),
+                                MoTaToKhai = rowTK["MoTa"].SafeString(),
+                                GuidHS = rowTK["GuidHS"].SafeString(),
+                                FilePath = rowTK["FilePath"].SafeString(),
+                                LoaiFile = (FileType)rowTK["LoaiFile"].SafeNumber<int>(),
                             };
-                            //trong th update loi thi van cho chay tiep
-                            bool isUpdated = _coreService.UpdateToKhai(tkUpdate);
-                            if (isUpdated == false)
+                            listTokhai.Add(tkPublish);
+
+                            try
                             {
-                                throw new DatabaseInteractException("File's status update failed");
+                                var tkUpdate = new UpdateToKhaiDto
+                                {
+                                    Id = rowTK["id"].SafeNumber<int>(),
+                                    TrangThai = TrangThaiFile.DangXuLy
+                                };
+                                //trong th update loi thi van cho chay tiep
+                                bool isUpdated = _coreService.UpdateToKhai(tkUpdate);
+                                if (isUpdated == false)
+                                {
+                                    throw new DatabaseInteractException("File's status update failed");
+                                }
+                            }
+                            catch (DatabaseInteractException ex)
+                            {
+                                //loi van cho chay tiep vi day chi la loi khi ko update dc trang thai file trong bang ToKhai_RS
+                                Utilities.logger.ErrorLog(ex, $"Update database failed: ToKhai: {row["id"].ToString()}");
                             }
                         }
-                        catch (DatabaseInteractException ex)
-                        {
-                            //loi van cho chay tiep vi day chi la loi khi ko update dc trang thai file trong bang ToKhai_RS
-                            Utilities.logger.ErrorLog(ex, $"Update database failed: ToKhai: {row["id"].ToString()}");
-                        }
+                        hs.toKhais = listTokhai.ToArray();
                     }
                     
-                    hs.toKhais = listTokhai.ToArray();
-
                     var properties = new BasicProperties()
                     {
                         Persistent = true

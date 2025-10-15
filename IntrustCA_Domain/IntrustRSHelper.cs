@@ -59,9 +59,12 @@ namespace IntrustCA_Domain.Dtos
                     return "M05A-HSB/Cky";
                 case "D01-TS-595":
                     return "D01-TS/Cky";
-                case "TK3-TS-595":
+                case "TK3-TS":
                     return "TK3-TS/Cky";
                 case "BHXHDienTu":
+                case "04_DK-IVAN":
+                case "05_SD-IVAN":
+                case "06_NG-IVAN":
                     return "Hoso/CKy_Dvi";
                 default: throw new Exception($"Unknown file name {fileName}");
             }

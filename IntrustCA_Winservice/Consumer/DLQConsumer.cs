@@ -24,7 +24,7 @@ namespace IntrustCA_Winservice.Consumer
 
         public void ConsumeMessage()
         {
-            _channel.BasicQosAsync(0, _numberMessagePerProcess, false);
+            _channel.BasicQosAsync(0, _numberMessagePerProcess, false).GetAwaiter().GetResult();
             var consumer = new AsyncEventingBasicConsumer(_channel);
             consumer.ReceivedAsync += async (model, ea) =>
             {
@@ -43,7 +43,7 @@ namespace IntrustCA_Winservice.Consumer
                     Utilities.logger.ErrorLog(ex, "Consume dead letter message error", "HandleErrorProcess");
                 }
             };
-            _channel.BasicConsumeAsync("DeadLetter.dlq", false, consumer).GetAwaiter().GetResult();
+            _channel.BasicConsumeAsync(_queueName, false, consumer).GetAwaiter().GetResult();
         }
     }
 }

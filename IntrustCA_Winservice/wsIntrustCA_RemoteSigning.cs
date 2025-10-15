@@ -31,6 +31,10 @@ namespace IntrustCA_Winservice
         private Timer _timer4;
         private SignHSProcess _processSignHS;
 
+        //5 proceess xu ly dead letter queue
+        private Timer _timer5;
+        private HandleErrorProcess _processHandleError;
+
         //force stop
         private volatile bool _forceStop = false;
 
@@ -67,7 +71,7 @@ namespace IntrustCA_Winservice
                 _processCreateSession = new CreateSessionStoreProcess(_rmqManager.CreateChanel(), _coreService);
                 _timer3 = new Timer();
                 _timer3.Interval = 100;
-                _timer3.Elapsed += GenerateHandler(_timer3, _processCreateSession.Dowork); ;
+                _timer3.Elapsed += GenerateHandler(_timer3, _processCreateSession.DoWork); ;
                 _timer3.Enabled = true;
 
                 //khoi tao process ky so
@@ -76,6 +80,13 @@ namespace IntrustCA_Winservice
                 _timer4.Interval = 100;
                 _timer4.Elapsed += GenerateHandler(_timer4, _processSignHS.DoWork);
                 _timer4.Enabled = true;
+
+                //khoi tao process xu ly dead letter queue
+                _processHandleError = new HandleErrorProcess(_rmqManager, _coreService);
+                _timer5 = new Timer();
+                _timer5.Interval = 100;
+                _timer5.Elapsed += GenerateHandler(_timer5, _processHandleError.DoWork);
+                _timer5.Enabled = true;
             }
             catch (Exception ex)
             {

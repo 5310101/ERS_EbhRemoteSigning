@@ -25,7 +25,7 @@ namespace IntrustCA_Winservice.Process
             _coreService = coreService;
         }
 
-        public void Dowork()
+        public void DoWork()
         {
             _channel.BasicQosAsync(0, numberOfSession, false).GetAwaiter().GetResult();
             var consumer = new AsyncEventingBasicConsumer(_channel);
@@ -48,7 +48,7 @@ namespace IntrustCA_Winservice.Process
         private async Task ProcessMessage(BasicDeliverEventArgs ea)
         {
             var hs = ea.ProcessMessageToObject<HoSoMessage>();
-            if (hs == null || hs.toKhais.Any() == false)
+            if (hs == null)
             {
                 throw new Exception("Deserialize error or incorrect message");
             }
