@@ -32,7 +32,7 @@ namespace IntrustCA_Winservice.Consumer
                 {
                     //ghi log message loi ra file
                     var hs = ea.ProcessMessageToObject<HoSoMessage>();
-                    //xu ly
+                    //xu ly mesage
                     bool? isSuccess = _handleMessage?.Invoke(hs, _queueName);
                     if (isSuccess.HasValue && isSuccess == false) throw new Exception("Handle dead letter message error");
                     await _channel.BasicAckAsync(ea.DeliveryTag, false);

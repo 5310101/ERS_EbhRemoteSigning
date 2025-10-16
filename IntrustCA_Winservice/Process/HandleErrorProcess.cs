@@ -20,8 +20,8 @@ namespace IntrustCA_Winservice.Process
         private readonly RabbitmqManager _manager;
         private readonly CoreService _coreService;
         private readonly ushort numberDeadLetterPerProcess ;
-        private List<DLQConsumer> _dLQConsumers = new List<DLQConsumer>();
-        private string[] queueNames = { "HSIntrust.dlq", "CreateSession.dlq", "HSReadyToSign.dlq" };
+        private readonly List<DLQConsumer> _dLQConsumers = new List<DLQConsumer>();
+        private readonly string[] queueNames = { "HSIntrust.dlq", "CreateSession.dlq", "HSReadyToSign.dlq" };
 
         public HandleErrorProcess(RabbitmqManager manager, CoreService coreService)
         {
@@ -41,6 +41,7 @@ namespace IntrustCA_Winservice.Process
 
         //Tam thoi chua biet lam gi voi cac message nay nen chi ghi ra file roi ack luon
         //trong tuong lai co the xay dung cac he thong monitor cung nhu co co che resend
+        //Neu co thay doi trong cach xu ly thi thay doi ham HandleDLQMessage
         public void DoWork()
         {
             foreach (var consumer in _dLQConsumers)

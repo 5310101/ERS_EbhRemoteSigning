@@ -1,5 +1,4 @@
 ﻿using ERS_Domain;
-using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
 using IntrustCA_Domain.Cache;
 using IntrustCA_Winservice.Services;
@@ -7,8 +6,6 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Configuration;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace IntrustCA_Winservice.Process
@@ -66,7 +63,7 @@ namespace IntrustCA_Winservice.Process
         }
         public void DoWork()
         {
-            //1 service 1 lan chi lay ra 10 ho so de xu ly
+            //1 service 1 lan chi lay ra 10 ho so de xu ly 1 luc
             _channel.BasicQosAsync(0, hsCheckPerProcess, false).GetAwaiter().GetResult();
             //consume message
             var consumer = new AsyncEventingBasicConsumer(_channel);
