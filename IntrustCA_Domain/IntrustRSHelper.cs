@@ -111,7 +111,7 @@ namespace IntrustCA_Domain.Dtos
                 var res = IntrustSigningCoreService.GetCertificate(req);
                 if (res.status != "success")
                 {
-                    throw new Exception("Cannot connect to IntrustCA server");
+                    throw new Exception($"Cannot connect to IntrustCA server: {res.error_desc}");
                 }
                 if (!res.certificates.Any())
                 {

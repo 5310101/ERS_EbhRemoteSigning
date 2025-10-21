@@ -17,8 +17,8 @@ namespace IntrustCA_Domain.Cache
             var store = new SignSessionStore(uid, cert);
             var policy = new CacheItemPolicy
             {
-                //sau 30 phut session het han ma ko goi refresh session thi se bi xoa khoi cache    
-                AbsoluteExpiration = store.ValidUntil.AddMinutes(30),
+                //sau 5 phut session het han ma ko goi refresh session thi se bi xoa khoi cache    
+                AbsoluteExpiration = store.ValidUntil.AddMinutes(5),
             };
             _sessionCache.Add(uid, store, policy);
             return store;   
