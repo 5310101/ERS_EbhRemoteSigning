@@ -50,10 +50,10 @@ namespace ERS_Domain.Model
         public string NgayDangKy { get; set; }
 
         [XmlElement(ElementName = "MaIVan")]
-        public string MaIVan { get; set; }
+        public string MaIVan { get; set; } = "00040";
 
         [XmlElement(ElementName = "TenIVan")]
-        public string TenIVan { get; set; }
+        public string TenIVan { get; set; } = "THAISON";
 
         [XmlElement(ElementName = "PTNhanKetQua")]
         public string PTNhanKetQua { get; set; }

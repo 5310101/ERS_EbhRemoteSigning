@@ -1,6 +1,7 @@
 ﻿using ERS_Domain.CustomSigner;
 using Newtonsoft.Json;
 using RestSharp;
+using RestSharp.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
@@ -269,6 +270,11 @@ namespace ERS_Domain.clsUtilities
         public static T DeserializeJsonTo<T>(this string jsonData)
         {
             return JsonConvert.DeserializeObject<T>(jsonData);
+        }
+
+        public static string GetMaThuTuc(this string tenMaHS)
+        {
+            return tenMaHS.Replace("-595", "").Replace("-959", "").Replace("_959","").Replace("_595", "").Replace("_166","").Replace("-166","");
         }
     }
 }

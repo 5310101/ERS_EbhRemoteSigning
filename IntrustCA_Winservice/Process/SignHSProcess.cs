@@ -238,7 +238,7 @@ namespace IntrustCA_Winservice.Process
             ThongTinHoSo thongTinHoSo = new ThongTinHoSo()
             {
                 TenThuTuc = hs.tenHS,
-                MaThuTuc = hs.maNV,
+                MaThuTuc = hs.maNV.GetMaThuTuc(),
                 KyKeKhai = DateTime.Now.ToString("MM/yyyy"),
                 NgayLap = DateTime.Now.ToString("dd/MM/yyyy"),
                 SoLuongFile = listTK.Count(),
