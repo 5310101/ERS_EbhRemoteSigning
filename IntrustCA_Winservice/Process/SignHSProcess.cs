@@ -44,6 +44,25 @@ namespace IntrustCA_Winservice.Process
                 catch (Exception ex)
                 {
                     Utilities.logger.ErrorLog(ex, "Consume message error", "SignHSProcess");
+                    //neu tra ve loi do het han phiên ký thì do da huy phien ky tren app cua app Intrust, xoa phien ky tren cache
+                    if (ex.Message.Contains("Phiên ký chưa đăng ký hoặc đã hết hạn"))
+                    {
+                        var hs = ea.ProcessMessageToObject<HoSoMessage>();
+                        if (hs != null)
+                        {
+                            SessionCache.RemoveStore(hs.uid);
+                        }
+                        var props1 = new BasicProperties
+                        {
+                            Persistent = true,
+                        };
+                        //publish lai ve createsession de tao phien ky moi
+                        await _channel.BasicPublishAsync(exchange: "", routingKey: "CreateSession.q", mandatory: false, basicProperties: props1, body: ea.Body.ToArray());
+                        //ack message ko retry
+                        await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                        return;
+                    }
+
                     await RabbitMQHelper.HandleError(_channel, ea, 3, "HSReadyToSign.retry.q", ex, _coreService.UpdateHS);
                 }
             };

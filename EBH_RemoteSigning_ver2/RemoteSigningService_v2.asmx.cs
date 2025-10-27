@@ -83,7 +83,7 @@ namespace EBH_RemoteSigning_ver2
 
         [WebMethod(Description = "Phương thức lấy chữ ký số từ server VNPT, truyền serial number để lấy chính xác chữ ký số nếu tài khoản có nhiều chữ ký số.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
-        public ERS_Response GetCertificate_VNPT(RemoteSigningProvider provider ,string uid, string serialNumber = "")
+        public ERS_Response GetCertificate_VNPT(RemoteSigningProvider provider, string uid, string serialNumber = "")
         {
             try
             {
@@ -205,51 +205,51 @@ namespace EBH_RemoteSigning_ver2
                 //}
                 //tien hanh ky cac to khai neu ky dc ko loi thi luu hoso vao db
                 //chon nha cung cap dich vu
-                    //SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
-                    //_coreService = new CoreService( _dbService);
-                    string TSQL = "SELECT * FROM HoSo_RS WHERE Guid=@Guid";
-                    DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
-                    if (dt.Rows.Count > 0)
+                //SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
+                //_coreService = new CoreService( _dbService);
+                string TSQL = "SELECT * FROM HoSo_RS WHERE Guid=@Guid";
+                DataTable dt = _dbService.GetDataTable(TSQL, "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
+                if (dt.Rows.Count > 0)
+                {
+                    // neu da ton tai thi xoa ban ghi cu truoc khi insert ban ghi moi
+                    if (hsDK.ToKhais != null)
                     {
-                        // neu da ton tai thi xoa ban ghi cu truoc khi insert ban ghi moi
-                        if (hsDK.ToKhais != null)
-                        {
-                            _dbService.ExecQuery("DELETE FROM ToKhai_RS WHERE GuidHS=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
-                        }
-
-                        _dbService.ExecQuery("DELETE FROM HoSo_RS WHERE Guid=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
-                    }
-                    bool isSaveFile = true;
-                    //Loai dang ky 1 = 04,05,06, 2 la dk ma lan dau
-                    int typeDK = 1;
-                    // chi dk ma lan dau moi co to khai va file dinh kem
-                    if (hsDK.ToKhais is null || hsDK.ToKhais.Count > 0)
-                    {
-                        isSaveFile = _coreService.SaveToKhai(hsDK.ToKhais, hsDK.GuidHS, uid, serialNumber);
-                        bool isInsertHSDKLanDau = _coreService.InsertHSDKLanDau(hsDK);
-                        typeDK = 2;
-                    }
-                    else
-                    {
-                        //neu ko ton tai tokhais tuc la ky 04,05,06 gửi trực tiếp base64 của file .xml lên
-                        isSaveFile = _coreService.SaveHSDKFile(hsDK, base64DataDK);
+                        _dbService.ExecQuery("DELETE FROM ToKhai_RS WHERE GuidHS=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
                     }
 
-                    if (!isSaveFile)
-                    {
-                        return new ERS_Response("Không gửi file thành công", false);
-                    }
-                    //Tao moi hoso va insert vao database
-                    //Check xem hoso da ton tai chua, trong th ky lai
+                    _dbService.ExecQuery("DELETE FROM HoSo_RS WHERE Guid=@Guid", "", new SqlParameter[] { new SqlParameter("@Guid", hsDK.GuidHS) });
+                }
+                bool isSaveFile = true;
+                //Loai dang ky 1 = 04,05,06, 2 la dk ma lan dau
+                int typeDK = 1;
+                // chi dk ma lan dau moi co to khai va file dinh kem
+                if (hsDK.ToKhais is null || hsDK.ToKhais.Count > 0)
+                {
+                    isSaveFile = _coreService.SaveToKhai(hsDK.ToKhais, hsDK.GuidHS, uid, serialNumber);
+                    bool isInsertHSDKLanDau = _coreService.InsertHSDKLanDau(hsDK);
+                    typeDK = 2;
+                }
+                else
+                {
+                    //neu ko ton tai tokhais tuc la ky 04,05,06 gửi trực tiếp base64 của file .xml lên
+                    isSaveFile = _coreService.SaveHSDKFile(hsDK, base64DataDK);
+                }
 
-                    bool isSuccess = _coreService.InsertHoSoDKNew(hsDK, uid, serialNumber, typeDK, (int)signProvider);
-                    if (!isSuccess)
-                    {
-                        Utilities.logger.ErrorLog($"Hồ sơ lưu vào lỗi vào database: {hsDK.GuidHS}", "Hồ sơ lưu lỗi");
-                        return new ERS_Response("Có lỗi khi lưu dữ liệu hồ sơ trên server", false);
-                    }
-                    return new ERS_Response("Chờ xác thực trên app ký của nhà cung cấp dịch vụ CA", true);
-              
+                if (!isSaveFile)
+                {
+                    return new ERS_Response("Không gửi file thành công", false);
+                }
+                //Tao moi hoso va insert vao database
+                //Check xem hoso da ton tai chua, trong th ky lai
+
+                bool isSuccess = _coreService.InsertHoSoDKNew(hsDK, uid, serialNumber, typeDK, (int)signProvider);
+                if (!isSuccess)
+                {
+                    Utilities.logger.ErrorLog($"Hồ sơ lưu vào lỗi vào database: {hsDK.GuidHS}", "Hồ sơ lưu lỗi");
+                    return new ERS_Response("Có lỗi khi lưu dữ liệu hồ sơ trên server", false);
+                }
+                return new ERS_Response("Chờ xác thực trên app ký của nhà cung cấp dịch vụ CA", true);
+
             }
             catch (Exception ex)
             {
@@ -316,6 +316,29 @@ namespace EBH_RemoteSigning_ver2
             catch (Exception ex)
             {
                 Utilities.logger.ErrorLog(ex, "GetFileSigned", HoSoGuid);
+                return new ERS_Response(ex.Message, false);
+            }
+        }
+
+        [WebMethod(Description = "Phương thức hủy phiên ký.")]
+        [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
+        public ERS_Response CancelIntrustCASession(string username, string password, string uid)
+        {
+            try
+            {
+                //xac thuc
+                ERS_Response result = UserAuthorize(username, password);
+                if (!result.success)
+                {
+                    return result;
+                }
+
+                
+                
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, "GetFileSigned", uid);
                 return new ERS_Response(ex.Message, false);
             }
         }
