@@ -126,7 +126,7 @@ namespace IntrustCA_Winservice
                 }
                 catch (Exception ex)
                 {
-                    Utilities.logger.ErrorLog(ex, "OnStart");
+                    Utilities.logger.ErrorLog(ex, "GenerateHandler");
                 }
                 finally
                 {

@@ -9,26 +9,26 @@ namespace ERS_Domain.clsUtilities
 
     public class DbService
     {
-		private string _connStr;
+        private string _connStr;
 
-		public string ConnStr
-		{
-			get 
-			{
-				if (string.IsNullOrEmpty(_connStr))
-				{
-					_connStr = ConfigurationManager.ConnectionStrings["CONNECTION_STRING"].ConnectionString;
-				}
-				return _connStr; 
-			}
-		}
+        public string ConnStr
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_connStr))
+                {
+                    _connStr = ConfigurationManager.ConnectionStrings["CONNECTION_STRING"].ConnectionString;
+                }
+                return _connStr;
+            }
+        }
 
         private SqlConnection GetConnection(string connStr)
         {
             SqlConnection conn = new SqlConnection(connStr);
             if (conn.State != ConnectionState.Open)
             {
-                 conn.Open();
+                conn.Open();
             }
             return conn;
         }
@@ -49,13 +49,11 @@ namespace ERS_Domain.clsUtilities
                         {
                             adapter.SelectCommand.Parameters.AddRange(sqlParams);
                         }
-                        using (DataTable dt = new DataTable())
-                        {
-                            adapter.SelectCommand.CommandType = CommandType.Text;
-                            adapter.SelectCommand.CommandTimeout = 600;
-                            adapter.Fill(dt);
-                            return dt;
-                        }
+                        DataTable dt = new DataTable();
+                        adapter.SelectCommand.CommandType = CommandType.Text;
+                        adapter.SelectCommand.CommandTimeout = 600;
+                        adapter.Fill(dt);
+                        return dt;
                     }
                 }
             }
@@ -146,14 +144,14 @@ namespace ERS_Domain.clsUtilities
         }
 
         private async Task<SqlConnection> GetConnectionAsync(string connStr)
-		{
-			SqlConnection conn = new SqlConnection(connStr);
-			if(conn.State != ConnectionState.Open)
-			{
-				await conn.OpenAsync();
-			}
-			return conn;
-		}
+        {
+            SqlConnection conn = new SqlConnection(connStr);
+            if (conn.State != ConnectionState.Open)
+            {
+                await conn.OpenAsync();
+            }
+            return conn;
+        }
         public async Task<DataTable> GetDataTableAsync(string TSQL, string connectionString = "", SqlParameter[] sqlParams = null)
         {
             try
@@ -170,13 +168,11 @@ namespace ERS_Domain.clsUtilities
                         {
                             adapter.SelectCommand.Parameters.AddRange(sqlParams);
                         }
-                        using (DataTable dt = new DataTable())
-                        {
-                            adapter.SelectCommand.CommandType = CommandType.Text;
-                            adapter.SelectCommand.CommandTimeout = 600;
-                            await Task.Run(() => adapter.Fill(dt));
-                            return dt;
-                        }
+                        DataTable dt = new DataTable();
+                        adapter.SelectCommand.CommandType = CommandType.Text;
+                        adapter.SelectCommand.CommandTimeout = 600;
+                        await Task.Run(() => adapter.Fill(dt));
+                        return dt;
                     }
                 }
             }
