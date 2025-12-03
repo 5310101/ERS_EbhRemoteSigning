@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntrustCA_Winservice", "Int
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntrustCA_Domain", "IntrustCA_Domain\IntrustCA_Domain.csproj", "{6CFB174D-D6FB-4CC0-B417-7DA09D6491D8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestCA2RS", "TestCA2RS\TestCA2RS.csproj", "{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_woDrawing|Any CPU = Debug_woDrawing|Any CPU
@@ -131,6 +133,14 @@ Global
 		{6CFB174D-D6FB-4CC0-B417-7DA09D6491D8}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
 		{6CFB174D-D6FB-4CC0-B417-7DA09D6491D8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6CFB174D-D6FB-4CC0-B417-7DA09D6491D8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Debug_woDrawing|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Debug_woDrawing|Any CPU.Build.0 = Debug|Any CPU
+		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Release_woDrawing|Any CPU.ActiveCfg = Release|Any CPU
+		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
+		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

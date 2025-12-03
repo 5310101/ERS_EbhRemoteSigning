@@ -33,22 +33,42 @@ namespace ERS_Domain.clsUtilities
                 return configRequest;
             }
         }
+
+        
     }
 
-    public class ConfigRequest
+    public abstract class ConfigBase
     {
         public string sp_id { get; set; }
         public string sp_password { get; set; }
+        protected abstract void InitValue();
+        
+    }
 
-        public ConfigRequest()
+    public class ConfigRequest : ConfigBase
+    {
+        public ConfigRequest() : base()
         {
             InitValue();
         }
 
-        private void InitValue()
+        protected override void InitValue()
         {
             sp_id = ConfigurationManager.AppSettings["SP_ID"];
             sp_password = ConfigurationManager.AppSettings["SP_PASSWORD"];
+        }
+    }
+
+    public class CA2ConfigRequest : ConfigBase
+    {
+        public CA2ConfigRequest()
+        {
+            InitValue();
+        }
+        protected override void InitValue()
+        {
+            sp_id = ConfigurationManager.AppSettings["CA2_SP_ID"];
+            sp_password = ConfigurationManager.AppSettings["CA2_SP_PASSWORD"];
         }
     }
 
@@ -64,4 +84,14 @@ namespace ERS_Domain.clsUtilities
         public static readonly string uriGetResult = URI + "/v1/signatures/sign";
 
     }
+
+    public static class CA2_URI
+    {
+        public static readonly string URI = ConfigurationManager.AppSettings["CA2API_URI"];
+
+        public static readonly string uriGetCert = URI + "/get_certificate";
+        public static readonly string uriSign = URI + "/sign";
+        public static readonly string uriGetResult = URI + "/status";
+    }
+
 }

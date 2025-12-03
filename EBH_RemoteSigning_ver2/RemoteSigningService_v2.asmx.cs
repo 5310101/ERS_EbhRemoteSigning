@@ -320,27 +320,27 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        [WebMethod(Description = "Phương thức hủy phiên ký.")]
-        [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
-        public ERS_Response CancelIntrustCASession(string username, string password, string uid)
-        {
-            try
-            {
-                //xac thuc
-                ERS_Response result = UserAuthorize(username, password);
-                if (!result.success)
-                {
-                    return result;
-                }
+        //[WebMethod(Description = "Phương thức hủy phiên ký.")]
+        //[SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
+        //public ERS_Response CancelIntrustCASession(string username, string password, string uid)
+        //{
+        //    try
+        //    {
+        //        //xac thuc
+        //        ERS_Response result = UserAuthorize(username, password);
+        //        if (!result.success)
+        //        {
+        //            return result;
+        //        }
 
                 
                 
-            }
-            catch (Exception ex)
-            {
-                Utilities.logger.ErrorLog(ex, "GetFileSigned", uid);
-                return new ERS_Response(ex.Message, false);
-            }
-        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Utilities.logger.ErrorLog(ex, "GetFileSigned", uid);
+        //        return new ERS_Response(ex.Message, false);
+        //    }
+        //}
     }
 }

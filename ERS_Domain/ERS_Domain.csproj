@@ -66,6 +66,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CAService\CA2SigningService.cs" />
     <Compile Include="CAService\IRemoteSignService.cs" />
     <Compile Include="CAService\SmartCAService.cs" />
     <Compile Include="clsUtilities\DbService.cs" />
@@ -73,6 +74,8 @@
     <Compile Include="clsUtilities\Logger.cs" />
     <Compile Include="clsUtilities\MethodLibrary.cs" />
     <Compile Include="clsUtilities\PathProvider.cs" />
+    <Compile Include="CustomSigner\CA2CustomSigner\CA2PdfSigner.cs" />
+    <Compile Include="CustomSigner\CA2CustomSigner\CA2SignUtilities.cs" />
     <Compile Include="CustomSigner\CustomSignerOffice\OfficeCustomSigner.cs" />
     <Compile Include="CustomSigner\CustomSignerXml\CustomCanonicalXmlNodeList.cs" />
     <Compile Include="CustomSigner\CustomSignerXml\CustomUltis.cs" />
@@ -82,12 +85,15 @@
     <Compile Include="Dtos\UpdateHoSoDto.cs" />
     <Compile Include="Dtos\UpdateToKhaiDto.cs" />
     <Compile Include="Exceptions\CustomException.cs" />
+    <Compile Include="HttpSendRequest.cs" />
     <Compile Include="Model\BHXHDienTu.cs" />
     <Compile Include="Model\HSDKLanDau.cs" />
     <Compile Include="Model\SignFileInfo.cs" />
     <Compile Include="Model\TSDHashSigner.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Request\CA2Request.cs" />
     <Compile Include="Request\SmartCARequest.cs" />
+    <Compile Include="Response\CA2Response.cs" />
     <Compile Include="Response\ERS_Response.cs" />
     <Compile Include="Response\SmartCAResponse.cs" />
     <Compile Include="Utilities.cs" />
@@ -98,5 +104,6 @@
     </None>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -233,6 +233,11 @@ namespace ERS_Domain.clsUtilities
             }
         }
 
+        public static string ToBase64String(this byte[] data)
+        {
+            return Convert.ToBase64String(data); 
+        }
+
         public static bool SerializeToFile<T>(T obj, string filePath)
         {
             try
