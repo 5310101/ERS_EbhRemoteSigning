@@ -39,54 +39,54 @@ namespace ERS_Domain
             Header = headers;
         }
 
-        public async Task<TRes> SendRequestAsync<TRes>(HttpMethodType method,string url, object body = null, CancellationToken cancellationToken = default) 
+        public async Task<TRes> SendRequestAsync<TRes>(HttpMethodType method, string url, object body = null, CancellationToken cancellationToken = default)
         {
-            try
+            //try
+            //{
+            string bodyJson = JsonConvert.SerializeObject(body);
+            var bodyContent = new StringContent(bodyJson, Encoding.UTF8, "application/json");
+
+            if (Header.Count > 0)
             {
-                string bodyJson = JsonConvert.SerializeObject(body);
-                var bodyContent = new StringContent(bodyJson, Encoding.UTF8, "application/json");
-
-                if (Header.Count > 0)
+                _client.DefaultRequestHeaders.Clear();
+                foreach (KeyValuePair<string, string> pair in Header)
                 {
-                    _client.DefaultRequestHeaders.Clear();
-                    foreach (KeyValuePair<string, string> pair in Header)
-                    {
-                        _client.DefaultRequestHeaders.Add(pair.Key, pair.Value);
-                    }
+                    _client.DefaultRequestHeaders.Add(pair.Key, pair.Value);
                 }
-                if (!string.IsNullOrEmpty(AuthorizeToken))
-                {
-                    _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AuthorizeToken);
-                }
-
-                HttpResponseMessage res = null;
-                switch (method)
-                {
-                    case HttpMethodType.get:
-                        res = await _client.GetAsync(url, cancellationToken);
-                        break;
-                    case HttpMethodType.post:
-                        res = await _client.PostAsync(url, bodyContent, cancellationToken);
-                        break;
-                    case HttpMethodType.put:
-                        res = await _client.PutAsync(url, bodyContent, cancellationToken);
-                        break;
-                    case HttpMethodType.delete:
-                        res = await _client.DeleteAsync(url, cancellationToken);
-                        break;
-                    default:
-                        throw new Exception("Phương thức không được hỗ trợ");
-                }
-
-                res.EnsureSuccessStatusCode();
-                string resJson = await res.Content.ReadAsStringAsync();
-                return JsonConvert.DeserializeObject<TRes>(resJson);
             }
-            catch (Exception ex)
+            if (!string.IsNullOrEmpty(AuthorizeToken))
             {
-                //ghi log
-                return default(TRes);
+                _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AuthorizeToken);
             }
+
+            HttpResponseMessage res = null;
+            switch (method)
+            {
+                case HttpMethodType.get:
+                    res = await _client.GetAsync(url, cancellationToken);
+                    break;
+                case HttpMethodType.post:
+                    res = await _client.PostAsync(url, bodyContent, cancellationToken);
+                    break;
+                case HttpMethodType.put:
+                    res = await _client.PutAsync(url, bodyContent, cancellationToken);
+                    break;
+                case HttpMethodType.delete:
+                    res = await _client.DeleteAsync(url, cancellationToken);
+                    break;
+                default:
+                    throw new Exception("Phương thức không được hỗ trợ");
+            }
+
+            res.EnsureSuccessStatusCode();
+            string resJson = await res.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<TRes>(resJson);
         }
+        //catch (Exception ex)
+        //{
+        //    //ghi log
+        //    return default(TRes);
+        //}
+
     }
 }

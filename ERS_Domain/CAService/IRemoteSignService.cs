@@ -10,7 +10,7 @@ namespace ERS_Domain.CAService
     {
         UserCertificate[] GetListAccountCert(string uri, string uid);
         UserCertificate GetAccountCert(String uri, string uid, string serialNumber = "");
-        DataSign Sign(  string uri, string data_to_be_signed, string serialNumber, string uid, string fileType);
+        DataSign Sign( string uri, string data_to_be_signed, string serialNumber, string uid, string fileType);
         ResStatus GetStatus(string uri);
 
     }

@@ -1,16 +1,25 @@
-﻿using ERS_Domain.clsUtilities;
+﻿using com.itextpdf.text.pdf.security;
+using ERS_Domain.CAService;
+using ERS_Domain.clsUtilities;
 using ERS_Domain.Model;
+using iTextSharp.text.pdf;
+using iTextSharp.text.pdf.security;
 using Microsoft.SqlServer.Server;
+using Newtonsoft.Json;
 using Org.BouncyCastle.Asn1.Pkcs;
 using Org.BouncyCastle.X509;
 using System;
 using System.IO;
 using System.Runtime.ConstrainedExecution;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Security.Cryptography.Xml;
 using System.Xml;
 using System.Xml.Linq;
+using VnptHashSignatures.Common;
+using VnptHashSignatures.Interface;
+using VnptHashSignatures.Pdf;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
 {
@@ -22,28 +31,50 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
         private static string sha256NamespaceUrl = "http://www.w3.org/2001/04/xmlenc#sha256";
 
         /// <summary>
-        /// method nay se doc file , sau do chuan hoa tao SignedInf, tao hash cua SignedInfo roi tra ve dang base64
+        /// method nay se doc file, sau do chuan hoa tao SignedInf, tao hash cua SignedInfo roi tra ve dang base64
         /// </summary>
         /// <param name="fileType"></param>
         /// <param name="filePath"></param>
         /// <returns></returns>
-        public static string CreateHashToSign(FileType fileType ,XmlElement signedInfo)
+        public static string CreateHashXmlToSign(XmlElement signedInfo = null)
         {
-            if(fileType == FileType.XML)
-            {
-                byte[] signedInfoHash = signedInfo.Canonicalize().Hash();
-                string hashToSignBase64 = signedInfoHash.ToBase64String();
-                return hashToSignBase64;
-            }
-            else if (fileType == FileType.PDF)
-            {
+            byte[] signedInfoHash = signedInfo.Canonicalize().Hash();
+            string hashToSignBase64 = signedInfoHash.ToBase64String();
+            return hashToSignBase64;
+        }
 
-                return "";
-            }
-            else
+        public static string CreateHashPdfToSign(string certRaw, string filePath)
+        {
+            X509Certificate2 cert =  new X509Certificate2( Convert.FromBase64String(certRaw));
+            byte[] pdfUnsign = File.ReadAllBytes(filePath);
+            PdfReader reader = new PdfReader(filePath);
+            MemoryStream ms = new MemoryStream();
+            PdfStamper stamper = PdfStamper.CreateSignature(reader, ms, '\0');
+            PdfSignatureAppearance appearance = stamper.SignatureAppearance;
+
+            #region Optional -----------------------------------
+            appearance.Reason = "Xác nhận tài liệu";
+            appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.DESCRIPTION;
+            string subject = cert.Subject;
+            string nguoiKy = subject.GetSubjectValue("CN=");
+            string noiKy = subject.GetSubjectValue("S=");
+            appearance.Layer2Text = $"Ngày ký: {DateTime.Now.Date} \n Người ký: {nguoiKy} \n Nơi ký: {noiKy}";
+            appearance.Layer2Font = new iTextSharp.text.Font(iTextSharp.text.Font.FontFamily.HELVETICA, 10, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.RED);
+            var rectangle = new iTextSharp.text.Rectangle(10, 10, 250, 100);
+            appearance.SetVisibleSignature(rectangle, 1, "ebhSignature1");
+            #endregion
+
+            IExternalSignatureContainer empty = new ExternalBlankSignatureContainer(PdfName.ADOBE_PPKLITE, PdfName.ADBE_PKCS7_DETACHED);
+            int estimatedSize = 8192;   
+            MakeSignature.SignExternalContainer(appearance, empty, estimatedSize);
+            Stream stream = appearance.GetRangeStream();
+            SHA256 hasher = SHA256.Create();
+            byte[] hashValue = hasher.ComputeHash(stream);
+            if (hashValue == null) 
             {
-                throw new Exception("Không hỗ trợ ký loại file này");
-            }
+                 throw new Exception("Không thể hash file");
+            } 
+            return hashValue.ToBase64String();
         }
 
         public static XmlElement CreateSignedInfoNode(string filePath, string xmlNodeReferencePath = "")
@@ -63,7 +94,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
         /// <returns></returns>
         private static XmlElement CreateSignedInfo_BHXH(string digestBase64)
         {
-            XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true};
+            XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
             XmlElement nodeSignedInfo = xDoc.CreateElement("SignedInfo");
 
             XmlElement nodeCanonicalizationMethod = xDoc.CreateElement("CanonicalizationMethod");
@@ -98,7 +129,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
 
         private static XmlElement FindNode(this XmlDocument xDoc, string xmlNodeReferencePath)
         {
-            if(xmlNodeReferencePath == "")
+            if (xmlNodeReferencePath == "")
             {
                 return xDoc.DocumentElement;
             }
@@ -115,7 +146,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
         {
             var xDoc = new XmlDocument { PreserveWhitespace = true };
             xDoc.AppendChild(xDoc.ImportNode(elementToSign, true));
-            return xDoc;    
+            return xDoc;
         }
 
         private static byte[] Canonicalize(this XmlElement elementToSign)
@@ -175,22 +206,34 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             nodeX509Certificate.InnerText = rawCertData.Replace("\r", "").Replace("\n", "");
             nodeX509Data.AppendChild(nodeX509Certificate);
             nodeSignature.AppendChild(nodeX509Data);
-            
+
 
             XmlDocument nodeObject = CreateSigningTime(signTime, "proid");
             nodeSignature.AppendChild(xDoc.ImportNode(nodeObject.DocumentElement, true));
             return nodeSignature;
         }
 
-        public static void AddSignature(string filePath, XmlElement nodeSignedInfo, string signatureValue , string certRaw, DateTime signTime, string xPathSignNode)
+        public static void AddSignatureXml(string filePath, XmlElement nodeSignedInfo, string signatureValue, string certRaw, DateTime signTime, string xPathSignNode)
         {
-            X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));    
+            X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
             XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, signatureValue, cert, certRaw, signTime);
-            XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true }; 
+            XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
             xDoc.Load(filePath);
             XmlNode nodeSign = xDoc.SelectSingleNode(xPathSignNode);
             nodeSign.AppendChild(xDoc.ImportNode(nodeSignature, true));
             xDoc.Save(filePath);
+        }
+
+        public static void AddSignaturePdf(string inputPath, string outputPath, string base64SignatureValue)
+        {
+            byte[] cmsData = Convert.FromBase64String(base64SignatureValue);
+            IExternalSignatureContainer externalSignature = new CA2RSExternalSignatureContainer(cmsData);
+
+            using (PdfReader reader = new PdfReader(inputPath))
+            using (FileStream fs = new FileStream(outputPath, FileMode.Create))
+            {
+                MakeSignature.SignDeferred(reader, "ebhSignature1", fs, externalSignature);
+            }
         }
     }
 }

@@ -28,6 +28,7 @@ namespace TestCA2RS
                 //doc file roi tao hash ky
                 string url_sign_hash = "https://rmsca2.nacencomm.vn/api/data/sign";
                 string pathfilePDF = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf.pdf";
+                string pathfilePDFTemp = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf_temp.pdf";
                 string pathfileXML = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595.xml";
 
                 Console.WriteLine("Choose File Type");
@@ -36,15 +37,15 @@ namespace TestCA2RS
                 {
                     //ky test xml
                     XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathfileXML, "");
-                    string hash_to_sign_xml = CA2SignUtilities.CreateHashToSign(FileType.XML, signedInfo);
+                    string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
                     var listFiles = new FileToSign[]
                     {
-                    new FileToSign
-                    {
-                    doc_id = "EBHTEST_XML",
-                    file_type = "xml",
-                    data_to_be_signed = hash_to_sign_xml,
-                    }
+                        new FileToSign
+                        {
+                            doc_id = "EBHTEST_XML",
+                            file_type = "xml",
+                            data_to_be_signed = hash_to_sign_xml,
+                        }
                     };
                     string transaction_id = Guid.NewGuid().ToString().Replace("-", "");
                     DateTime signTime = DateTime.Now;
@@ -57,15 +58,33 @@ namespace TestCA2RS
                     {
                         //signature value sample: O6jN+4fGUP6v6ZunAQ0WKKknGn4rvIdipAJ6ZDBbx6JX08vYIh9niM0PypXRpH/45g9qpuzv6Vwgl1jO52SieASzPX52hBJuse0eqYrTWsISyENbIFlKbtr7KzxWL+FMyZmfSfrt2mpq/1STzh16+R+hzCzmwJAW0FmqFsc/b66QRtTrZbwz1ANx5zJgTh7+MU3rD+S62AVTyeZL4reh2AAT4b/npB71/UPfQNy6KbTj2KNyS+K8SF/EOfvT6y+1U8vBfloH7vZQUOU2XrOPX0SWb76RhShyDH59B+ku74BXjXJJzruQ1wwPltK61hjKkxIWhvdLcP4xYO7VCt+DgQ==
                         string res_value = res2.data.signatures[0].signature_value;
-                        CA2SignUtilities.AddSignature(pathfileXML, signedInfo, res_value, certRaw, signTime, "//D02-TS/Cky");
-
+                        CA2SignUtilities.AddSignatureXml(pathfileXML, signedInfo, res_value, certRaw, signTime, "//D02-TS/Cky");
                     }
                 }
-                else if(type == "pdf")
+                else if (type == "pdf")
                 {
                     //ky test pdf
-                    string hash_to_sign_pdf = CA2SignUtilities.CreateHashToSign(FileType.PDF, );
-
+                    string hash_to_sign_pdf = CA2SignUtilities.CreateHashPdfToSign(certRaw, pathfilePDF);
+                    var listFiles = new FileToSign[]
+                    {
+                        new FileToSign
+                        {
+                            doc_id = "EBHTEST_PDF",
+                            file_type = "pdf",
+                            data_to_be_signed = hash_to_sign_pdf,
+                        }
+                    };
+                    string transaction_id = Guid.NewGuid().ToString().Replace("-", "");
+                    DateTime signTime = DateTime.Now;
+                    var res = CA2Service.SignHashValue(user_id, transaction_id, listFiles, serial_number, signTime).GetAwaiter().GetResult();
+                    Console.WriteLine("GetResult");
+                    Console.ReadLine();
+                    var reskq = CA2Service.GetSignedResult(user_id, transaction_id).GetAwaiter().GetResult();
+                    //Ghep cks vao pdf
+                    if (reskq != null && reskq.status_code == 200)
+                    {
+                        CA2SignUtilities.AddSignaturePdf(pathfilePDF,pathfilePDFTemp ,reskq.data.signatures[0].signature_value);
+                    }
                 }
 
 
@@ -76,6 +95,7 @@ namespace TestCA2RS
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
+                Console.ReadLine();
             }
 
         }
