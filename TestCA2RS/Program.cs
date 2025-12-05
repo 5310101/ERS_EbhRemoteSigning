@@ -1,4 +1,5 @@
 ﻿using ERS_Domain.CAService;
+using ERS_Domain.clsUtilities;
 using ERS_Domain.CustomSigner.CA2CustomSigner;
 using ERS_Domain.Model;
 using ERS_Domain.Request;
@@ -64,14 +65,14 @@ namespace TestCA2RS
                 else if (type == "pdf")
                 {
                     //ky test pdf
-                    string hash_to_sign_pdf = CA2SignUtilities.CreateHashPdfToSign(certRaw, pathfilePDF);
+                    var profile = CA2SignUtilities.CreateHashPdfToSign(certRaw, pathfilePDF, DateTime.Now);
                     var listFiles = new FileToSign[]
                     {
                         new FileToSign
                         {
                             doc_id = "EBHTEST_PDF",
                             file_type = "pdf",
-                            data_to_be_signed = hash_to_sign_pdf,
+                            data_to_be_signed = profile.HashValue.ToBase64String(),
                         }
                     };
                     string transaction_id = Guid.NewGuid().ToString().Replace("-", "");
@@ -83,7 +84,7 @@ namespace TestCA2RS
                     //Ghep cks vao pdf
                     if (reskq != null && reskq.status_code == 200)
                     {
-                        CA2SignUtilities.AddSignaturePdf(pathfilePDF,pathfilePDFTemp ,reskq.data.signatures[0].signature_value);
+                        CA2SignUtilities.AddSignaturePdf(profile, pathfilePDFTemp, reskq.data.signatures[0].signature_value);
                     }
                 }
 
