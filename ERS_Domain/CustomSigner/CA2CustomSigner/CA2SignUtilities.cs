@@ -1,31 +1,18 @@
 ﻿using com.itextpdf.text.pdf.security;
-using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
-using ERS_Domain.Model;
-using iTextSharp.text.io;
 using iTextSharp.text.pdf;
 using iTextSharp.text.pdf.security;
-using Microsoft.SqlServer.Server;
-using Newtonsoft.Json;
-using Org.BouncyCastle.Asn1.Pkcs;
+using Org.BouncyCastle.Asn1.Cms;
+using Org.BouncyCastle.Cms;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq.Expressions;
-using System.Runtime.ConstrainedExecution;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography.Xml;
 using System.Xml;
-using System.Xml.Linq;
-using VnptHashSignatures.Common;
-using VnptHashSignatures.Interface;
-using VnptHashSignatures.Pdf;
-using static iTextSharp.text.pdf.codec.TiffWriter;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
 {
@@ -35,8 +22,8 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
         private static string excC14NNamespaceUrl = "http://www.w3.org/2001/10/xml-exc-c14n#";
         private static string rsaSha256NamespaceUrl = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
         private static string sha256NamespaceUrl = "http://www.w3.org/2001/04/xmlenc#sha256";
-  
 
+        #region XML
         /// <summary>
         /// method nay se doc file, sau do chuan hoa tao SignedInf, tao hash cua SignedInfo roi tra ve dang base64
         /// </summary>
@@ -48,19 +35,6 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             byte[] signedInfoHash = signedInfo.Canonicalize().Hash();
             string hashToSignBase64 = signedInfoHash.ToBase64String();
             return hashToSignBase64;
-        }
-
-        public static void SetSignatureAppearance(PdfSignatureAppearance appearance, X509Certificate2 cert, string fieldName)
-        {
-            appearance.Reason = "Xác nhận tài liệu";
-            appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.DESCRIPTION;
-            string subject = cert.Subject;
-            string nguoiKy = subject.GetSubjectValue("CN=");
-            string noiKy = subject.GetSubjectValue("S=");
-            appearance.Layer2Text = $"Ngày ký: {DateTime.Now.Date} \n Người ký: {nguoiKy} \n Nơi ký: {noiKy}";
-            appearance.Layer2Font = new iTextSharp.text.Font(iTextSharp.text.Font.FontFamily.HELVETICA, 10, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.RED);
-            var rectangle = new iTextSharp.text.Rectangle(10, 10, 250, 100);
-            appearance.SetVisibleSignature(rectangle, 1, fieldName);
         }
 
         public static XmlElement CreateSignedInfoNode(string filePath, string xmlNodeReferencePath = "")
@@ -210,6 +184,9 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             xDoc.Save(filePath);
         }
 
+        #endregion
+        #region PDF 
+
         public static Org.BouncyCastle.X509.X509Certificate[] GetCertChain(X509Certificate2 cert)
         {
             X509Chain chain = new X509Chain();
@@ -231,7 +208,9 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             {
                 PdfPKCS7 pdfpkcs7 = new PdfPKCS7(null, profile.CertChain, "SHA-256", false);
                 pdfpkcs7.SetExternalDigest(cmsData, null, "RSA");
-                byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(profile.HashValue, null, null, null, CryptoStandard.CMS);
+                //byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(profile.HashValue, null, null, null, CryptoStandard.CMS);
+                //o day ko dung secondary digest vi da co san cmsData tu CA2 tra ve
+                byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(null, null, null, null, CryptoStandard.CMS);
                 IExternalSignatureContainer externalSignature = new CA2RSExternalSignatureContainer(encodedPKCS);
                 MakeSignature.SignDeferred(reader, profile.Fieldname, fs, externalSignature);
             }
@@ -240,14 +219,14 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
         public static CA2PDFSignProfile CreateHashPdfToSign(string certRaw, string filePath, DateTime signDate, string fieldName = "ebhSignature1")
         {
             X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
-            byte[] pdfUnsign = File.ReadAllBytes(filePath);
+            var certChain = GetCertChain(cert);
             MemoryStream ms = new MemoryStream();
             PdfReader reader = new PdfReader(filePath);
             PdfStamper stamper = PdfStamper.CreateSignature(reader, ms, '\0');
             PdfSignatureAppearance appearance = stamper.SignatureAppearance;
             SetSignatureAppearance(appearance, cert, fieldName);
             IExternalSignatureContainer empty = new ExternalBlankSignatureContainer(PdfName.ADOBE_PPKLITE, PdfName.ADBE_PKCS7_DETACHED);
-            var certChain = GetCertChain(cert);
+            
             int estimatedSize = CalculateEstimatedSignatureSize(certChain, null, null, null);
            
             PdfSignature sig = new PdfSignature(PdfName.ADOBE_PPKLITE, PdfName.ADBE_PKCS7_DETACHED)
@@ -273,23 +252,43 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             }
             byte[] hash1 = new byte[digist.GetDigestSize()];
             digist.DoFinal(hash1, 0);
-
+            //CA2 ko can dung authenticated attribute
             //PdfPKCS7 pdfpkcs7 = new PdfPKCS7(null, certChain, "SHA-256", false);
             //byte[] hash2 = pdfpkcs7.getAuthenticatedAttributeBytes(hash1, null, null, CryptoStandard.CMS);
-
-            if (hash1 == null)
+            stamper.Close();
+            reader.Close();
+            if (hash1.Length == 0)
             {
                 throw new Exception("Không thể hash file");
             }
-            stamper.Close();
-            reader.Close();
+          
             return new CA2PDFSignProfile
             {
-                PDFToSign = ms.ToArray(),
+                PDFToSign = tempdata,
                 HashValue = hash1,
                 Fieldname = fieldName,
                 CertChain = certChain,
             };
+        }
+        public static void SetSignatureAppearance(PdfSignatureAppearance appearance, X509Certificate2 cert, string fieldName)
+        {
+            appearance.Reason = "Xác nhận tài liệu";
+            appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.DESCRIPTION;
+            string subject = cert.Subject;
+            string nguoiKy = subject.GetSubjectValue("CN=");
+            string noiKy = subject.GetSubjectValue("S=");
+            appearance.Layer2Text = $"Ngày ký: {DateTime.Now} \nNgười ký: {nguoiKy} \nNơi ký: {noiKy}";
+            BaseFont fontBase = BaseFont.CreateFont(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"times.ttf"), BaseFont.IDENTITY_H, BaseFont.EMBEDDED); 
+            var itextFont = new iTextSharp.text.Font(fontBase, 10, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.RED);   
+            appearance.Layer2Font = new iTextSharp.text.Font(itextFont);
+            var rectangle = new iTextSharp.text.Rectangle(10, 10, 250, 100);
+            appearance.SetVisibleSignature(rectangle, 1, fieldName);
+        }
+
+        public static bool ValidSignaturePDF(string base64StringValue, byte[] hashValue)
+        {
+            CmsSignedData cmsSignedData = new CmsSignedData(Convert.FromBase64String(base64StringValue));
+            
         }
 
         public static int CalculateEstimatedSignatureSize(Org.BouncyCastle.X509.X509Certificate[] certChain, ITSAClient tsc, byte[] ocsp, ICollection<byte[]> crlList)
@@ -302,29 +301,25 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
                     num += ((x509Certificate != null) ? x509Certificate.GetEncoded().Length : 0);
                 }
             }
-
             num += 2000;
             if (ocsp != null)
             {
                 num += ocsp.Length;
             }
-
             if (tsc != null)
             {
                 num += 4096;
             }
-
             if (crlList != null)
             {
                 foreach (byte[] crl in crlList)
                 {
                     num += ((crl != null) ? crl.Length : 0);
                 }
-
                 num += 100;
             }
-
             return num;
         }
+        #endregion
     }
 }
