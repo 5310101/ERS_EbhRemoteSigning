@@ -25,7 +25,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
 
         #region XML
         /// <summary>
-        /// method nay se doc file, sau do chuan hoa tao SignedInf, tao hash cua SignedInfo roi tra ve dang base64
+        /// method nay se doc file, sau do chuan hoa tao SignedInfo, tao hash cua SignedInfo roi tra ve dang base64
         /// </summary>
         /// <param name="fileType"></param>
         /// <param name="filePath"></param>
@@ -185,6 +185,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
         }
 
         #endregion
+
         #region PDF 
 
         public static Org.BouncyCastle.X509.X509Certificate[] GetCertChain(X509Certificate2 cert)
@@ -285,10 +286,13 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             appearance.SetVisibleSignature(rectangle, 1, fieldName);
         }
 
-        public static bool ValidSignaturePDF(string base64StringValue, byte[] hashValue)
+        //CA2 chi ky hash1 (PKCS#1)
+        public static bool ValidSignaturePDF(string base64StringValue, byte[] hashValue, X509Certificate2 cert)
         {
-            CmsSignedData cmsSignedData = new CmsSignedData(Convert.FromBase64String(base64StringValue));
-            
+            using (var rsa = cert.GetRSAPublicKey())
+            {
+                return rsa.VerifyHash(hashValue, Convert.FromBase64String(base64StringValue), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            }
         }
 
         public static int CalculateEstimatedSignatureSize(Org.BouncyCastle.X509.X509Certificate[] certChain, ITSAClient tsc, byte[] ocsp, ICollection<byte[]> crlList)

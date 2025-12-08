@@ -27,7 +27,6 @@ namespace TestCA2RS
 
                 //Ky thu
                 //doc file roi tao hash ky
-                string url_sign_hash = "https://rmsca2.nacencomm.vn/api/data/sign";
                 string pathfilePDF = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf.pdf";
                 string pathfilePDFTemp = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf_temp.pdf";
                 string pathfileXML = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595.xml";
@@ -84,11 +83,15 @@ namespace TestCA2RS
                     //Ghep cks vao pdf
                     if (reskq != null && reskq.status_code == 200)
                     {
-                        CA2SignUtilities.AddSignaturePdf(profile, pathfilePDFTemp, reskq.data.signatures[0].signature_value);
+                        string signatureValue = reskq.data.signatures[0].signature_value;
+                        if (CA2SignUtilities.ValidSignaturePDF(signatureValue, profile.HashValue, cert) == false)
+                        {
+                            Console.WriteLine("Signature invalid");
+                            return;
+                        }
+                        CA2SignUtilities.AddSignaturePdf(profile, pathfilePDFTemp, signatureValue);
                     }
                 }
-
-
 
                 Console.ReadLine();
 

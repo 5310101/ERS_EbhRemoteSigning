@@ -29,6 +29,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IntrustCA_Domain", "Intrust
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestCA2RS", "TestCA2RS\TestCA2RS.csproj", "{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CA2_Winservice", "CA2_Winservice\CA2_Winservice.csproj", "{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_woDrawing|Any CPU = Debug_woDrawing|Any CPU
@@ -141,6 +143,14 @@ Global
 		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
 		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E0BF8D71-BC08-4E74-92A7-51FD6DBE8A85}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Debug_woDrawing|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Debug_woDrawing|Any CPU.Build.0 = Debug|Any CPU
+		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Release_woDrawing|Any CPU.ActiveCfg = Release|Any CPU
+		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
+		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

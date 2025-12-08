@@ -5,12 +5,15 @@ using ERS_Domain.Model;
 using ERS_Domain.Response;
 using IntrustCA_Domain;
 using IntrustCA_Domain.Dtos;
+using Org.BouncyCastle.Asn1.Pkcs;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Web.Services;
 using System.Web.Services.Protocols;
 
@@ -32,11 +35,15 @@ namespace EBH_RemoteSigning_ver2
         public Authorize AuthorizeHeader;
         private CoreService _coreService;
         private DbService _dbService;
+        private SmartCAService _smartCAService;
+        private CA2SigningService _ca2Service;
 
         public RemoteSigningService_v2()
         {
             _dbService = new DbService();
             _coreService = new CoreService(_dbService);
+            _smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
+            _ca2Service = new CA2SigningService();
         }
 
         [WebMethod(Description = "Phương thức xác thực cho SOAP service.")]
@@ -93,13 +100,12 @@ namespace EBH_RemoteSigning_ver2
                 //{
                 //    return auth;
                 //}
+                List<UserCertificate> lstCert = new List<UserCertificate>();
                 switch (provider)
                 {
                     case RemoteSigningProvider.VNPT:
                         {
-                            SmartCAService smartCAService = new SmartCAService(Utilities.glbVar.ConfigRequest);
-                            //_coreService = new CoreService(smartCAService, _dbService);
-                            UserCertificate[] certs = smartCAService.GetListAccountCert(VNPT_URI.uriGetCert, uid);
+                            UserCertificate[] certs = _smartCAService.GetListAccountCert(VNPT_URI.uriGetCert, uid);
                             if (certs == null) return new ERS_Response("Không tìm thấy chữ ký số", false);
                             return new ERS_Response("Thành công", true, certs);
                         }
@@ -108,14 +114,13 @@ namespace EBH_RemoteSigning_ver2
                             GetCertificateRequest req = new GetCertificateRequest
                             {
                                 user_id = uid,
-                                serial_number = serialNumber
+                                serial_number = serialNumber,
                             };
                             var res = IntrustSigningCoreService.GetCertificate(req);
                             if (res == null || res.status_code != 0 || res.certificates == null || res.certificates.Length == 0)
                             {
                                 throw new Exception($"Get certificate error: {res?.error_desc ?? "No response from IntrustCA"}");
                             }
-                            List<UserCertificate> lstCert = new List<UserCertificate>();
                             foreach (ICACertificate IntrustCert in res.certificates)
                             {
                                 UserCertificate cert = new UserCertificate
@@ -129,6 +134,28 @@ namespace EBH_RemoteSigning_ver2
                                 lstCert.Add(cert);
                             }
                             lstCert.ToArray();
+                            return new ERS_Response("Thành công", true, lstCert.ToArray());
+                        }
+                    case RemoteSigningProvider.CA2:
+                        {
+                            CA2Response<CA2Certificates> res = _ca2Service.GetCertificates(uid, Guid.NewGuid().ToString(), serialNumber).GetAwaiter().GetResult();
+                            if(res == null || res?.status_code != 200)
+                            {
+                                return new ERS_Response($"Get certificate error: {res?.message ?? "No response from IntrustCA"}");  
+                            }
+                            foreach(CA2Certificate ca2Cert in res.data.user_certificates)
+                            {
+                                X509Certificate2 certX509 = new X509Certificate2(Convert.FromBase64String(ca2Cert.cert_data));
+                                UserCertificate cert = new UserCertificate
+                                {
+                                    serial_number = ca2Cert.serial_number,
+                                    cert_valid_to = certX509.NotAfter.SafeDateTime(),
+                                    cert_valid_from = certX509.NotBefore.SafeDateTime(),
+                                    cert_subject = certX509.Subject,
+                                    cert_status = certX509.NotAfter.SafeDateTime() < DateTime.Now ? "Hết hạn" : "Đang hoạt động",
+                                };
+                                lstCert.Add(cert);
+                            }
                             return new ERS_Response("Thành công", true, lstCert.ToArray());
                         }
                     default:
@@ -319,28 +346,5 @@ namespace EBH_RemoteSigning_ver2
                 return new ERS_Response(ex.Message, false);
             }
         }
-
-        //[WebMethod(Description = "Phương thức hủy phiên ký.")]
-        //[SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
-        //public ERS_Response CancelIntrustCASession(string username, string password, string uid)
-        //{
-        //    try
-        //    {
-        //        //xac thuc
-        //        ERS_Response result = UserAuthorize(username, password);
-        //        if (!result.success)
-        //        {
-        //            return result;
-        //        }
-
-                
-                
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Utilities.logger.ErrorLog(ex, "GetFileSigned", uid);
-        //        return new ERS_Response(ex.Message, false);
-        //    }
-        //}
     }
 }
