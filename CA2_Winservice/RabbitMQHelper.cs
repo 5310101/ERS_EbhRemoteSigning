@@ -9,14 +9,14 @@ using ERS_Domain.Dtos;
 using System.Text;
 using ERS_Domain.Model;
 
-namespace IntrustCA_Winservice
+namespace CA2_Winservice
 {
     public delegate bool UpdateHoSoLoi(UpdateHoSoDto updateHSDto);
     public static class RabbitMQHelper
     {
-        public static Dictionary<string, object> CreateQueueArgument(string exchange, string routingKey, bool isRetry = false)
+        public static Dictionary<string, object> CreateQueueArgument(string exchange, string routingKey, bool isRetry = false, int ttl = 0)
         {
-            int ttl = int.Parse(ConfigurationManager.AppSettings["RABBITMQ_TTL"]);
+            if (ttl == 0) { ttl = int.Parse(ConfigurationManager.AppSettings["RABBITMQ_TTL"]) };
             if (!isRetry)
             {
                 return new Dictionary<string, object>

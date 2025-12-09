@@ -1,17 +1,13 @@
 ﻿using iTextSharp.text.pdf;
 using iTextSharp.text.pdf.security;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
 {
     public class CA2PDFSignProfile
     {
+        public string TransactionId { get; set; }
+        public string DocId { get; set; }   
         public byte[] PDFToSign { get; set; }
         public byte[] HashValue { get; set; }
         public string Fieldname { get; set; }

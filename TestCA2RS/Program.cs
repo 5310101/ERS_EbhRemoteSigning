@@ -4,6 +4,7 @@ using ERS_Domain.CustomSigner.CA2CustomSigner;
 using ERS_Domain.Model;
 using ERS_Domain.Request;
 using System;
+using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml;
 
@@ -30,6 +31,7 @@ namespace TestCA2RS
                 string pathfilePDF = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf.pdf";
                 string pathfilePDFTemp = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf_temp.pdf";
                 string pathfileXML = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595.xml";
+                string pathfileXMLTemp = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595_temp.xml";
 
                 Console.WriteLine("Choose File Type");
                 string type = Console.ReadLine();
@@ -58,23 +60,26 @@ namespace TestCA2RS
                     {
                         //signature value sample: O6jN+4fGUP6v6ZunAQ0WKKknGn4rvIdipAJ6ZDBbx6JX08vYIh9niM0PypXRpH/45g9qpuzv6Vwgl1jO52SieASzPX52hBJuse0eqYrTWsISyENbIFlKbtr7KzxWL+FMyZmfSfrt2mpq/1STzh16+R+hzCzmwJAW0FmqFsc/b66QRtTrZbwz1ANx5zJgTh7+MU3rD+S62AVTyeZL4reh2AAT4b/npB71/UPfQNy6KbTj2KNyS+K8SF/EOfvT6y+1U8vBfloH7vZQUOU2XrOPX0SWb76RhShyDH59B+ku74BXjXJJzruQ1wwPltK61hjKkxIWhvdLcP4xYO7VCt+DgQ==
                         string res_value = res2.data.signatures[0].signature_value;
-                        CA2SignUtilities.AddSignatureXml(pathfileXML, signedInfo, res_value, certRaw, signTime, "//D02-TS/Cky");
+                        var signedInfo1 = CA2SignUtilities.CreateSignedInfoNode(pathfileXML, "");   
+                        byte[] data = CA2SignUtilities.AddSignatureXmlWithData(pathfileXML, signedInfo1, res_value, certRaw, signTime, "//D02-TS/Cky");
+                        File.WriteAllBytes(pathfileXMLTemp, data);
                     }
                 }
                 else if (type == "pdf")
                 {
                     //ky test pdf
-                    var profile = CA2SignUtilities.CreateHashPdfToSign(certRaw, pathfilePDF, DateTime.Now);
+                    string transaction_id = Guid.NewGuid().ToString().Replace("-", "");
+                    var profile = CA2SignUtilities.CreateHashPdfToSign(certRaw, pathfilePDF, DateTime.Now, transaction_id, Guid.NewGuid().ToString().Replace("-", ""));
                     var listFiles = new FileToSign[]
                     {
                         new FileToSign
                         {
-                            doc_id = "EBHTEST_PDF",
+                            doc_id = profile.DocId,
                             file_type = "pdf",
                             data_to_be_signed = profile.HashValue.ToBase64String(),
                         }
                     };
-                    string transaction_id = Guid.NewGuid().ToString().Replace("-", "");
+                    
                     DateTime signTime = DateTime.Now;
                     var res = CA2Service.SignHashValue(user_id, transaction_id, listFiles, serial_number, signTime).GetAwaiter().GetResult();
                     Console.WriteLine("GetResult");
@@ -89,7 +94,9 @@ namespace TestCA2RS
                             Console.WriteLine("Signature invalid");
                             return;
                         }
-                        CA2SignUtilities.AddSignaturePdf(profile, pathfilePDFTemp, signatureValue);
+                         //CA2SignUtilities.AddSignaturePdf(profile, pathfilePDFTemp, signatureValue);
+                        byte[] data = CA2SignUtilities.AddSignaturePdfWithData(profile, signatureValue);
+                        System.IO.File.WriteAllBytes(pathfilePDFTemp, data);    
                     }
                 }
 

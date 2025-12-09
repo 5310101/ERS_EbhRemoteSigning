@@ -44,4 +44,20 @@ namespace ERS_Domain.Exceptions
         {
         }
     }
+
+    public class CA2ServerSignException : Exception
+    {
+
+        public CA2ServerSignException()
+        {
+        }
+
+        public CA2ServerSignException(string message) : base(message)
+        {
+        }
+
+        public CA2ServerSignException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+    }
 }

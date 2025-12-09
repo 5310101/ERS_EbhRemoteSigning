@@ -12,6 +12,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Xml;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
@@ -184,6 +185,17 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             xDoc.Save(filePath);
         }
 
+        public static byte[] AddSignatureXmlWithData(string filePath, XmlElement nodeSignedInfo, string signatureValue, string certRaw, DateTime signTime, string xPathSignNode)
+        {
+            X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
+            XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, signatureValue, cert, certRaw, signTime);
+            XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
+            xDoc.Load(filePath);
+            XmlNode nodeSign = xDoc.SelectSingleNode(xPathSignNode);
+            nodeSign.AppendChild(xDoc.ImportNode(nodeSignature, true));
+            return Encoding.UTF8.GetBytes(xDoc.OuterXml);
+        }
+
         #endregion
 
         #region PDF 
@@ -217,7 +229,22 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             }
         }
 
-        public static CA2PDFSignProfile CreateHashPdfToSign(string certRaw, string filePath, DateTime signDate, string fieldName = "ebhSignature1")
+        public static byte[] AddSignaturePdfWithData(CA2PDFSignProfile profile, string base64SignatureValue)
+        {
+            byte[] cmsData = Convert.FromBase64String(base64SignatureValue);
+            using (PdfReader reader = new PdfReader(profile.PDFToSign))
+            using (MemoryStream ms = new MemoryStream())
+            {
+                PdfPKCS7 pdfpkcs7 = new PdfPKCS7(null, profile.CertChain, "SHA-256", false);
+                pdfpkcs7.SetExternalDigest(cmsData, null, "RSA");
+                byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(null, null, null, null, CryptoStandard.CMS);
+                IExternalSignatureContainer externalSignature = new CA2RSExternalSignatureContainer(encodedPKCS);
+                MakeSignature.SignDeferred(reader, profile.Fieldname, ms, externalSignature);
+                return ms.ToArray();
+            }
+        }
+
+        public static CA2PDFSignProfile CreateHashPdfToSign(string certRaw, string filePath, DateTime signDate, string transactionId, string docId,string fieldName = "ebhSignature1")
         {
             X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
             var certChain = GetCertChain(cert);
@@ -269,6 +296,8 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
                 HashValue = hash1,
                 Fieldname = fieldName,
                 CertChain = certChain,
+                DocId = docId, 
+                TransactionId = transactionId,
             };
         }
         public static void SetSignatureAppearance(PdfSignatureAppearance appearance, X509Certificate2 cert, string fieldName)

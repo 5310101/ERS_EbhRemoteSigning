@@ -281,5 +281,39 @@ namespace ERS_Domain.clsUtilities
         {
             return tenMaHS.Replace("-595", "").Replace("-959", "").Replace("_959","").Replace("_595", "").Replace("_166","").Replace("-166","");
         }
+
+        public static string GenGuidStr(this string prefix)
+        {
+            return prefix + Guid.NewGuid().ToString("").Replace("-","");    
+        }
+
+        public static string GetNodeSignXml(this string fileName)
+        {
+            switch (fileName)
+            {
+                case "TK1-TS-595":
+                    return "TK1-TS/Cky";
+                case "D02-TS-595":
+                    return "D02-TS/Cky";
+                case "D03-TS-595":
+                    return "D03-TS/Cky";
+                case "D05-TS-595":
+                    return "D05-TS/Cky";
+                case "M01B-HSB":
+                    return "M01B-HSB/Cky";
+                case "05A-HSB":
+                    return "M05A-HSB/Cky";
+                case "D01-TS-595":
+                    return "D01-TS/Cky";
+                case "TK3-TS":
+                    return "TK3-TS/Cky";
+                case "BHXHDienTu":
+                case "04_DK-IVAN":
+                case "05_SD-IVAN":
+                case "06_NG-IVAN":
+                    return "Hoso/CKy_Dvi";
+                default: throw new Exception($"Unknown file name {fileName}");
+            }
+        }
     }
 }

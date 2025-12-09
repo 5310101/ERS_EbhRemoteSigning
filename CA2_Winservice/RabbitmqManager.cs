@@ -2,7 +2,7 @@
 using System;
 using System.Configuration;
 
-namespace IntrustCA_Winservice
+namespace CA2_Winservice
 {
     public class RabbitmqManager : IDisposable
     {

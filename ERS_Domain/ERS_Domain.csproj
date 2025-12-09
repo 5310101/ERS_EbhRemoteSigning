@@ -74,8 +74,9 @@
     <Compile Include="clsUtilities\Logger.cs" />
     <Compile Include="clsUtilities\MethodLibrary.cs" />
     <Compile Include="clsUtilities\PathProvider.cs" />
-    <Compile Include="CustomSigner\CA2CustomSigner\CA2PdfSigner.cs" />
+    <Compile Include="CustomSigner\CA2CustomSigner\CA2PDFSignProfile.cs" />
     <Compile Include="CustomSigner\CA2CustomSigner\CA2SignUtilities.cs" />
+    <Compile Include="CustomSigner\CA2CustomSigner\CA2XMlSignerProfile.cs" />
     <Compile Include="CustomSigner\CustomSignerOffice\OfficeCustomSigner.cs" />
     <Compile Include="CustomSigner\CustomSignerXml\CustomCanonicalXmlNodeList.cs" />
     <Compile Include="CustomSigner\CustomSignerXml\CustomUltis.cs" />
