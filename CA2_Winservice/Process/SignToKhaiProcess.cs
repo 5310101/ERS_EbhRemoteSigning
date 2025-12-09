@@ -7,15 +7,10 @@ using ERS_Domain.CustomSigner.CA2CustomSigner;
 using ERS_Domain.Dtos;
 using ERS_Domain.Exceptions;
 using ERS_Domain.Model;
-using ERS_Domain.Response;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
-using System.Collections.Generic;
-using System.Configuration;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CA2_Winservice.Process
@@ -123,6 +118,8 @@ namespace CA2_Winservice.Process
 
                 }
             }
+            //Tao file BHXH dien tu
+
         }
     }
 }
