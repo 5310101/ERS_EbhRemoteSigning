@@ -33,7 +33,7 @@ namespace CA2_Winservice.Process
 
             //declare queue
             _channel.QueueDeclareAsync("HSCA2.ToKhai.dlq",true, false, false, null).GetAwaiter().GetResult();
-            //Ky hash loi van cho retry, nhung khi lay ket qua thi ko cho retry nua
+            //Ky hash loi van cho retry, nhung khi lay ket qua signature value thi ko cho retry nua
             _channel.QueueDeclareAsync("HSCA2.ToKhai.retry.q", true, false,false,
                 RabbitMQHelper.CreateQueueArgument("","HSCA2.ToKhai.q",true));
             _channel.QueueDeclareAsync("HSCA2.ToKhai.q", true, false, false,
@@ -57,7 +57,7 @@ namespace CA2_Winservice.Process
                     await RabbitMQHelper.HandleError(_channel, ea, 3, "HSCA2.retry.q", ex, _coreService.UpdateHS);
                 }
             };
-            _channel.BasicConsumeAsync("HSCA2.q", false, null).GetAwaiter().GetResult();
+            _channel.BasicConsumeAsync("HSCA2.q", false, consumer).GetAwaiter().GetResult();
         }
 
         public async Task ProcessMessage(BasicDeliverEventArgs ea)
@@ -85,9 +85,11 @@ namespace CA2_Winservice.Process
                 }
                 foreach (ToKhai tk in hs.toKhais)
                 {
+                    
                     switch (tk.LoaiFile)
                     {
                         case FileType.PDF:
+                            tk.TransactionId = "pdf".GenGuidStr();
                             var profilePDF = CA2SignUtilities.CreateHashPdfToSign(cert.cert_data, tk.FilePath, signDate, hs.guid, tk.TransactionId );
                             //luu profile
                             ProfileCache.SetProfileCache(profilePDF.DocId, profilePDF);
@@ -99,6 +101,7 @@ namespace CA2_Winservice.Process
                             });
                             break;
                         case FileType.XML:
+                            tk.TransactionId = "xml".GenGuidStr();
                             XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(tk.FilePath, "");
                             string hashToSignXml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
                             CA2XMlSignerProfile profileXML = new CA2XMlSignerProfile
@@ -137,10 +140,10 @@ namespace CA2_Winservice.Process
                         TrangThai = TrangThaiFile.DaKyHash
                     };
                     _coreService.UpdateToKhai(updateTK);
-                    _channel.BasicPublishAsync("", "HSCA2.ToKhai.q", false, new BasicProperties
+                    await _channel.BasicPublishAsync("", "HSCA2.ToKhai.q", false, new BasicProperties
                     {
-                        Persistent = true
-                    }, ea.Body.ToArray()).GetAwaiter().GetResult();
+                       DeliveryMode = DeliveryModes.Persistent,
+                    }, hs.GetBytesStringFromJsonObject());
                 }
             }
             else if(hs.typeDK == TypeHS.HSDK)

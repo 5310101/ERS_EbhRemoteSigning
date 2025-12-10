@@ -71,6 +71,7 @@
     <Compile Include="CAService\SmartCAService.cs" />
     <Compile Include="clsUtilities\DbService.cs" />
     <Compile Include="clsUtilities\GlobalVar.cs" />
+    <Compile Include="clsUtilities\HosoBHXHHelper.cs" />
     <Compile Include="clsUtilities\Logger.cs" />
     <Compile Include="clsUtilities\MethodLibrary.cs" />
     <Compile Include="clsUtilities\PathProvider.cs" />

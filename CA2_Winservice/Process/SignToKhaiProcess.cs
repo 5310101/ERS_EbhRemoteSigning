@@ -7,11 +7,17 @@ using ERS_Domain.CustomSigner.CA2CustomSigner;
 using ERS_Domain.Dtos;
 using ERS_Domain.Exceptions;
 using ERS_Domain.Model;
+using ERS_Domain.Request;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
+using System.Collections.Generic;
+using System.Data;
+using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Xml;
 
 namespace CA2_Winservice.Process
 {
@@ -24,7 +30,7 @@ namespace CA2_Winservice.Process
         private readonly CA2SigningService _ca2Service;
         private readonly IChannel _channel;
 
-        public SignToKhaiProcess(CoreService coreService, CA2SigningService ca2Service, IChannel chanel)
+        public SignToKhaiProcess(IChannel chanel, CoreService coreService, CA2SigningService ca2Service)
         {
             _coreService = coreService;
             _ca2Service = ca2Service;
@@ -97,6 +103,8 @@ namespace CA2_Winservice.Process
                             TrangThai = TrangThaiFile.DaKy,
                         };
                         _coreService.UpdateToKhai(updateTk);
+                        // xoa profile khoi cache
+                        ProfileCache.RemoveProfile(tk.TransactionId);
                         break;
                     case FileType.XML:
                         var profileXML = ProfileCache.GetProfileCache<CA2XMlSignerProfile>(tk.TransactionId);
@@ -112,6 +120,8 @@ namespace CA2_Winservice.Process
                             TrangThai = TrangThaiFile.DaKy,
                         };
                         _coreService.UpdateToKhai(updateTk1);
+                        //xoa profile khoi cache
+                        ProfileCache.RemoveProfile(tk.TransactionId);   
                         break;
                     default:
                         throw new Exception($"Unsupported file type {tk.LoaiFile} in HoSo {hs.guid}");
@@ -119,7 +129,64 @@ namespace CA2_Winservice.Process
                 }
             }
             //Tao file BHXH dien tu
+            string filePathHS;
+            switch (hs.typeDK)
+            {
+                case TypeHS.HSNV:
+                    filePathHS = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid, "BHXHDienTu.xml");
+                    break;
+                case TypeHS.HSDK:
+                    filePathHS = Path.Combine(Utilities.globalPath.SignedTempFolder, $"{hs.maNV}.xml");
+                    DataTable dtHSDK = _coreService.GetHSDKLanDau(hs.guid);
+                    hs.CreateFileHoSoDK_LanDau(filePathHS, dtHSDK);
+                    break;
+                default:
+                    throw new Exception($"{hs.typeDK} is not supported");
+            }
 
+            var res1 = await _ca2Service.GetCertificates(hs.uid, "EBH".GenGuidStr(), hs.serialNumber);
+            if (res1 == null || res1?.status_code != 200)
+            {
+                throw new Exception("Cannot get certificate from CA2 service");
+            }
+            var cert = res1.data.user_certificates[0];
+            //ky hash
+            XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(filePathHS, "");
+            string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
+            CA2XMlSignerProfile profile = new CA2XMlSignerProfile
+            {
+                DocId = hs.guid,
+                SignedInfo = signedInfo,    
+                CertData = cert.cert_data,
+            };
+            //them profile vao profile cache
+            ProfileCache.SetProfileCache(profile.DocId, profile);
+            FileToSign fts = new FileToSign
+            {
+                data_to_be_signed = hash_to_sign_xml,
+                doc_id = profile.DocId,
+                file_type = "xml",
+            };
+            
+            var res3 = await _ca2Service.SignHashValue(hs.uid, hs.guid, new FileToSign[] {fts},hs.serialNumber, DateTime.Now);
+            if(res3 == null || res3?.status_code != 200)
+            {
+                throw new Exception("File cannot be signed hash by the server");
+            }
+            //neu ky thanh cong thi update trang thai ho so
+            var hsUpdateDto = new UpdateHoSoDto
+            {
+                ListId = new string[] { hs.guid },
+                TrangThai = TrangThaiHoso.DaKyHash,
+                FilePath = filePathHS,
+            };
+            _coreService.UpdateHS(hsUpdateDto);
+            hs.filePathHS = filePathHS;
+            //publish sang queue readyToSign
+            await _channel.BasicPublishAsync("", "HSCA2.ReadyToSign.q", false, new BasicProperties
+            {
+               DeliveryMode = DeliveryModes.Persistent
+            }, hs.GetBytesStringFromJsonObject());
         }
     }
 }

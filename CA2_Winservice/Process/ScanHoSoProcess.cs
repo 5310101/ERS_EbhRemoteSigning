@@ -138,8 +138,6 @@ namespace CA2_Winservice.Process
             {
                 throw new DatabaseInteractException("Update database failed", PublishedList.ToArray());
             }
-
         }
-
     }
 }

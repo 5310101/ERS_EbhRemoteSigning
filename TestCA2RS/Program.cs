@@ -21,8 +21,8 @@ namespace TestCA2RS
 
                 //get cert
                 var response_getcert = CA2Service.GetCertificates(user_id, Guid.NewGuid().ToString().Replace("-", "")).GetAwaiter().GetResult();
-                string serial_number = response_getcert.data.user_certificates[1].serial_number;
-                string certRaw = response_getcert.data.user_certificates[1].cert_data;
+                string serial_number = response_getcert.data.user_certificates[2].serial_number;
+                string certRaw = response_getcert.data.user_certificates[2].cert_data;
                 X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
 
 

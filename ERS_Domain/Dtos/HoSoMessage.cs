@@ -18,7 +18,7 @@ namespace ERS_Domain.Dtos
         public string maCQBHXH { get; set; }
         public int loaiDoiTuong { get; set; }
         public ToKhai[] toKhais { get; set; }
-
+        public string filePathHS { get; set; }  
     }
     public class ToKhai
     {
