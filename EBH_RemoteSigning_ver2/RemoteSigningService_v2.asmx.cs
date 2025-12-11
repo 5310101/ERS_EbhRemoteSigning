@@ -14,6 +14,8 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web.Services;
 using System.Web.Services.Protocols;
 
@@ -94,12 +96,7 @@ namespace EBH_RemoteSigning_ver2
         {
             try
             {
-                //Lay cks ko can xac thuc ivan
-                //ERS_Response auth = UserAuthorize(userName, password);
-                //if (!auth.success)
-                //{
-                //    return auth;
-                //}
+                //lay cks ko can xac thuc ivan
                 List<UserCertificate> lstCert = new List<UserCertificate>();
                 switch (provider)
                 {
@@ -138,12 +135,15 @@ namespace EBH_RemoteSigning_ver2
                         }
                     case RemoteSigningProvider.CA2:
                         {
-                            CA2Response<CA2Certificates> res = _ca2Service.GetCertificates(uid, Guid.NewGuid().ToString(), serialNumber).GetAwaiter().GetResult();
-                            if(res == null || res?.status_code != 200)
+                            //ko dc block thread cua request soapservice
+                            CA2Response<CA2Certificates> res =Task.Run(() =>
+                                _ca2Service.GetCertificates(uid, Guid.NewGuid().ToString(), serialNumber)
+                            ).Result;
+                            if (res == null || res?.status_code != 200)
                             {
-                                return new ERS_Response($"Get certificate error: {res?.message ?? "No response from IntrustCA"}");  
+                                return new ERS_Response($"Get certificate error: {res?.message ?? "No response from IntrustCA"}");
                             }
-                            foreach(CA2Certificate ca2Cert in res.data.user_certificates)
+                            foreach (CA2Certificate ca2Cert in res.data.user_certificates)
                             {
                                 X509Certificate2 certX509 = new X509Certificate2(Convert.FromBase64String(ca2Cert.cert_data));
                                 UserCertificate cert = new UserCertificate

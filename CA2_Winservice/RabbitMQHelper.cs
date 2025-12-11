@@ -8,6 +8,7 @@ using System;
 using ERS_Domain.Dtos;
 using System.Text;
 using ERS_Domain.Model;
+using System.Threading.Channels;
 
 namespace CA2_Winservice
 {
@@ -65,6 +66,44 @@ namespace CA2_Winservice
                         ListId = new string[] { hs.guid },
                         TrangThai = TrangThaiHoso.KyLoi,
                         ErrMsg = ex.Message 
+                    };
+                    updateHSLoi(updateHSDto);
+                }
+                await channel.BasicNackAsync(ea.DeliveryTag, false, false);
+            }
+        }
+
+        public static async Task RetryMessage(IChannel channel, BasicDeliverEventArgs ea, int maxTry, string retryRoutingKey, Exception ex, UpdateHoSoLoi updateHSLoi)
+        {
+            int retryCount = 0;
+            if (ea.BasicProperties.Headers != null && ea.BasicProperties.Headers.ContainsKey("retryCount"))
+            {
+                retryCount = ea.BasicProperties.Headers["retryCount"].SafeNumber<int>();
+            }
+
+            retryCount++;
+            if (retryCount < maxTry)
+            {
+                var retryProp = new BasicProperties
+                {
+                    Persistent = true,
+                    Headers = new Dictionary<string, object> { ["retryCount"] = retryCount },
+                };
+
+                await channel.BasicPublishAsync(exchange: "", routingKey: retryRoutingKey, mandatory: false, basicProperties: retryProp, body: ea.Body.ToArray());
+                await channel.BasicAckAsync(ea.DeliveryTag, false);
+            }
+            else
+            {
+                //qua du lan retry thi nack roi gui den dlq, update trang thai hoso loi
+                var hs = ea.ProcessMessageToObject<HoSoMessage>();
+                if (hs != null && updateHSLoi != null)
+                {
+                    UpdateHoSoDto updateHSDto = new UpdateHoSoDto
+                    {
+                        ListId = new string[] { hs.guid },
+                        TrangThai = TrangThaiHoso.KyLoi,
+                        ErrMsg = ex.Message
                     };
                     updateHSLoi(updateHSDto);
                 }

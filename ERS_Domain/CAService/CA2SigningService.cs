@@ -3,6 +3,7 @@ using ERS_Domain.Request;
 using ERS_Domain.Response;
 using System;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace ERS_Domain.CAService
@@ -17,7 +18,7 @@ namespace ERS_Domain.CAService
             _sendService = new HttpSendRequest();   
         }
 
-        public async Task<CA2Response<CA2Certificates>> GetCertificates(string userId, string transactionId, string serialNumber = "")
+        public async Task<CA2Response<CA2Certificates>> GetCertificates(string userId, string transactionId, string serialNumber = "", CancellationToken cancellationToken = default)
         {
             CA2GetCertRequest request = new CA2GetCertRequest
             {
@@ -27,7 +28,7 @@ namespace ERS_Domain.CAService
                 serial_number = serialNumber,
                 transaction_id = transactionId,
             };
-            return await _sendService.SendRequestAsync<CA2Response<CA2Certificates>>(HttpMethodType.post ,CA2_URI.uriGetCert, request);
+            return await _sendService.SendRequestAsync<CA2Response<CA2Certificates>>(HttpMethodType.post ,CA2_URI.uriGetCert, request, cancellationToken);
         } 
 
         public async Task<CA2Response<FileSigned>> SignHashValue(string userId, string transactionId, FileToSign[] lstFile, string serialNumber, DateTime signTime)

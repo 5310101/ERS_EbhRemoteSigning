@@ -38,6 +38,11 @@ namespace CA2_Winservice.Process
                 RabbitMQHelper.CreateQueueArgument("","HSCA2.ToKhai.q",true));
             _channel.QueueDeclareAsync("HSCA2.ToKhai.q", true, false, false,
                 RabbitMQHelper.CreateQueueArgument("", "HSCA2.ToKhai.dlq", false)).GetAwaiter().GetResult();
+
+            //queue dung de day lai to khai khi nguoi dung chua ky tren app
+            _channel.QueueDeclareAsync(
+                "HSCA2.ToKhai.GetResult.retry.q", true, false, false, RabbitMQHelper.CreateQueueArgument("", "HSCA2.ToKhai.q", true)
+                ).GetAwaiter().GetResult();
         }
 
         public void DoWork()
@@ -121,30 +126,28 @@ namespace CA2_Winservice.Process
                         default:
                             throw new Exception("File type is not supported");
                     }
-
-                    var result = await _ca2Service.SignHashValue(hs.uid, hs.guid, lstTK.ToArray(), hs.serialNumber, signDate);
-                    if(result == null || result?.status_code != 200)
-                    {
-                        //ko ky hash dc tren server thi loai bo profile
-                        foreach(var tokhai in lstTK)
-                        {
-                            ProfileCache.RemoveProfile(tokhai.doc_id);
-                        }
-                        throw new Exception("Cannot sign hash value from CA2 service");
-                    }
-                    //Neu ko loi push message sang queue tiep theo
-                    //da ky hash thanh cong thi update trang thai to khai
+                }
+                var result = await _ca2Service.SignHashValue(hs.uid, hs.guid, lstTK.ToArray(), hs.serialNumber, signDate);
+                if (result == null || result?.status_code != 200)
+                {
+                    throw new Exception("Cannot sign hash value from CA2 service");
+                }
+                //Neu ko loi push message sang queue tiep theo
+                //da ky hash thanh cong thi update trang thai to khai
+                foreach (var tk in hs.toKhais)
+                {
                     var updateTK = new UpdateToKhaiDto
                     {
-                        Id= tk.Id,
+                        Id = tk.Id,
                         TrangThai = TrangThaiFile.DaKyHash
                     };
                     _coreService.UpdateToKhai(updateTK);
-                    await _channel.BasicPublishAsync("", "HSCA2.ToKhai.q", false, new BasicProperties
-                    {
-                       DeliveryMode = DeliveryModes.Persistent,
-                    }, hs.GetBytesStringFromJsonObject());
                 }
+                //day sang queue tiep theo
+                await _channel.BasicPublishAsync("", "HSCA2.ToKhai.q", false, new BasicProperties
+                {
+                    DeliveryMode = DeliveryModes.Persistent,
+                }, hs.GetBytesStringFromJsonObject());
             }
             else if(hs.typeDK == TypeHS.HSDK)
             {

@@ -11,7 +11,6 @@ using ERS_Domain.Request;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
@@ -40,8 +39,11 @@ namespace CA2_Winservice.Process
                 RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.dlq", false)).GetAwaiter().GetResult();
             //ko lay dc ket qa thi sau 5s se retry
             _channel.QueueDeclareAsync("HSCA2.ReadyToSign.retry.q", true, false, false,
-                RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.q", true, 5)).GetAwaiter().GetResult();
+                RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.q", true)).GetAwaiter().GetResult();
             _channel.QueueDeclareAsync("HSCA2.ReadyToSign.dlq", true, false, false, null).GetAwaiter().GetResult();
+            //chi dinh queue retry hs khi chua ky tu nguoi dung
+            _channel.QueueDeclareAsync("HSCA2.ReadyToSign.GetResult.retry.q", true, false, false,
+                RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.q", true)).GetAwaiter().GetResult();
         }
 
         public void DoWork()
@@ -53,6 +55,12 @@ namespace CA2_Winservice.Process
                 {
                     await ProcessMessage(ea);
                     await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                }
+                catch (NotSigningFromUserException ex)
+                {
+                    //push lai vao queue de retry de thoi gian 5s va ko tang lan retry
+                    await RabbitMQHelper.RetryMessage(_channel, ea, 30, "HSCA2.ToKhai.GetResult.retry.q", ex, _coreService.UpdateHS);
+
                 }
                 catch (CA2ServerSignException ex)
                 {
@@ -78,9 +86,14 @@ namespace CA2_Winservice.Process
                 throw new Exception("Deserialize error or incorrect message");
             }
             var res = await _ca2Service.GetSignedResult(hs.uid, hs.guid);
-            if (res == null || res.status_code != 200)
+            if (res == null || res.status_code != 200 )
             {
                 throw new Exception("Cannot get result from CA2 server");
+            }
+            //Cho du chu ky tu server ms ky
+            if (res.data.signatures.Any(s => s.signature_value == ""))
+            {
+                throw new NotSigningFromUserException("Waiting user to sign");
             }
             //lay profile ky
             var lstSign = res.data.signatures;
@@ -113,7 +126,7 @@ namespace CA2_Winservice.Process
                         {
                             throw new CA2ServerSignException($"server cannot sign file {tk.TenToKhai} ,id: {tk.TransactionId}");
                         }
-                        CA2SignUtilities.AddSignatureXml(tk.FilePath, profileXML.SignedInfo, sigValue1, profileXML.CertData, DateTime.Now, tk.TenToKhai.GetNodeSignXml());
+                        CA2SignUtilities.AddSignatureXml(tk.FilePath, profileXML.SignedInfo, sigValue1, profileXML.CertData, DateTime.Now, Path.GetFileNameWithoutExtension(tk.TenToKhai).GetNodeSignXml());
                         var updateTk1 = new UpdateToKhaiDto
                         {
                             Id = tk.Id,
@@ -134,6 +147,7 @@ namespace CA2_Winservice.Process
             {
                 case TypeHS.HSNV:
                     filePathHS = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid, "BHXHDienTu.xml");
+                    hs.CreateFileBHXHDienTu(filePathHS);
                     break;
                 case TypeHS.HSDK:
                     filePathHS = Path.Combine(Utilities.globalPath.SignedTempFolder, $"{hs.maNV}.xml");

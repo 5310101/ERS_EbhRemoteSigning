@@ -60,4 +60,20 @@ namespace ERS_Domain.Exceptions
         {
         }
     }
+
+    public class NotSigningFromUserException : Exception
+    {
+
+        public NotSigningFromUserException()
+        {
+        }
+
+        public NotSigningFromUserException(string message) : base(message)
+        {
+        }
+
+        public NotSigningFromUserException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+    }
 }

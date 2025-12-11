@@ -5,6 +5,7 @@ using ERS_Domain.CAService;
 using ERS_Domain.clsUtilities;
 using ERS_Domain.CustomSigner.CA2CustomSigner;
 using ERS_Domain.Dtos;
+using ERS_Domain.Exceptions;
 using ERS_Domain.Model;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -37,6 +38,10 @@ namespace CA2_Winservice.Process
                     await ProcessMessage(ea);
                     await _channel.BasicAckAsync(ea.DeliveryTag, false);
                 }
+                catch(NotSigningFromUserException ex)
+                {
+                    await RabbitMQHelper.RetryMessage(_channel, ea, 30, "HSCA2.ReadyToSign.GetResult.retry.q", ex, _coreService.UpdateHS);
+                }
                 catch (Exception ex)
                 {
                     Utilities.logger.ErrorLog(ex, "Consume message error", "SignHSBHXHProcess");
@@ -59,6 +64,11 @@ namespace CA2_Winservice.Process
             {
                 throw new Exception("Cannot get signature value from server");
             }
+            //ho so thi chi co 1 file HS
+            if (res.data.signatures[0].signature_value == "")
+            {
+                throw new NotSigningFromUserException("User is not signing");
+            }
 
             var profile = ProfileCache.GetProfileCache<CA2XMlSignerProfile>(hs.guid);
             if (profile == null)
@@ -66,7 +76,8 @@ namespace CA2_Winservice.Process
                 throw new Exception("Cannot get signing profile from cache");
             }
             //Them cks vao file
-            string signatureValue = res.data.signatures[0].signature_value;
+            //luon lay gia tri cuoi cung
+            string signatureValue = res.data.signatures[res.data.signatures.Length -1].signature_value;
             string nodeKy =Path.GetFileNameWithoutExtension(hs.filePathHS).GetNodeSignXml();
             CA2SignUtilities.AddSignatureXml(hs.filePathHS, profile.SignedInfo, signatureValue, profile.CertData, DateTime.Now, nodeKy);
             //ky xong xoa profile va update trang thai hs

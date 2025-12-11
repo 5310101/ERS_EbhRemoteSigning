@@ -60,26 +60,35 @@ namespace ERS_Domain
             }
 
             HttpResponseMessage res = null;
-            switch (method)
+            try
             {
-                case HttpMethodType.get:
-                    res = await _client.GetAsync(url, cancellationToken);
-                    break;
-                case HttpMethodType.post:
-                    res = await _client.PostAsync(url, bodyContent, cancellationToken);
-                    break;
-                case HttpMethodType.put:
-                    res = await _client.PutAsync(url, bodyContent, cancellationToken);
-                    break;
-                case HttpMethodType.delete:
-                    res = await _client.DeleteAsync(url, cancellationToken);
-                    break;
-                default:
-                    throw new Exception("Phương thức không được hỗ trợ");
+                switch (method)
+                {
+                    case HttpMethodType.get:
+                        res = await _client.GetAsync(url, cancellationToken).ConfigureAwait(false);
+                        break;
+                    case HttpMethodType.post:
+                        res = await _client.PostAsync(url, bodyContent, cancellationToken).ConfigureAwait(false);
+                        break;
+                    case HttpMethodType.put:
+                        res = await _client.PutAsync(url, bodyContent, cancellationToken).ConfigureAwait(false);
+                        break;
+                    case HttpMethodType.delete:
+                        res = await _client.DeleteAsync(url, cancellationToken).ConfigureAwait(false);
+                        break;
+                    default:
+                        throw new Exception("Phương thức không được hỗ trợ");
+                }
             }
+            catch (OperationCanceledException)
+            {
+                Utilities.logger.ErrorLog(new Exception("Request timeout"), "HttpSendRequest");
+                return default;
+            }
+            
 
             res.EnsureSuccessStatusCode();
-            string resJson = await res.Content.ReadAsStringAsync();
+            string resJson = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<TRes>(resJson);
         }
         //catch (Exception ex)
