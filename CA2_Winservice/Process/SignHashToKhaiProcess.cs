@@ -11,6 +11,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml;
@@ -38,11 +39,20 @@ namespace CA2_Winservice.Process
                 RabbitMQHelper.CreateQueueArgument("","HSCA2.ToKhai.q",true));
             _channel.QueueDeclareAsync("HSCA2.ToKhai.q", true, false, false,
                 RabbitMQHelper.CreateQueueArgument("", "HSCA2.ToKhai.dlq", false)).GetAwaiter().GetResult();
-
             //queue dung de day lai to khai khi nguoi dung chua ky tren app
             _channel.QueueDeclareAsync(
                 "HSCA2.ToKhai.GetResult.retry.q", true, false, false, RabbitMQHelper.CreateQueueArgument("", "HSCA2.ToKhai.q", true)
                 ).GetAwaiter().GetResult();
+
+            _channel.QueueDeclareAsync("HSCA2.ReadyToSign.q", true, false, false,
+               RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.dlq", false)).GetAwaiter().GetResult();
+            //ko lay dc ket qa thi sau 5s se retry
+            _channel.QueueDeclareAsync("HSCA2.ReadyToSign.retry.q", true, false, false,
+                RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.q", true)).GetAwaiter().GetResult();
+            _channel.QueueDeclareAsync("HSCA2.ReadyToSign.dlq", true, false, false, null).GetAwaiter().GetResult();
+            //chi dinh queue retry hs khi chua ky tu nguoi dung
+            _channel.QueueDeclareAsync("HSCA2.ReadyToSign.GetResult.retry.q", true, false, false,
+                RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.q", true)).GetAwaiter().GetResult();
         }
 
         public void DoWork()
@@ -127,7 +137,9 @@ namespace CA2_Winservice.Process
                             throw new Exception("File type is not supported");
                     }
                 }
-                var result = await _ca2Service.SignHashValue(hs.uid, hs.guid, lstTK.ToArray(), hs.serialNumber, signDate);
+                //tao 1 ma transactionId cho giao dich ky
+                hs.transactionId = "".GenGuidStr();
+                var result = await _ca2Service.SignHashValue(hs.uid, hs.transactionId, lstTK.ToArray(), hs.serialNumber, signDate);
                 if (result == null || result?.status_code != 200)
                 {
                     throw new Exception("Cannot sign hash value from CA2 service");
@@ -152,6 +164,42 @@ namespace CA2_Winservice.Process
             else if(hs.typeDK == TypeHS.HSDK)
             {
                 //hs dang ky se ko co to khai
+                //ky hash cho hoso dang ky
+                string pathFileHSDK = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid, $"{hs.maNV}.xml");
+                hs.transactionId = "HSDK".GenGuidStr();
+                hs.filePathHS = pathFileHSDK;
+                XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathFileHSDK, "");
+                string hashToSignXml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
+                CA2XMlSignerProfile profileXML = new CA2XMlSignerProfile
+                {
+                    DocId = hs.transactionId,
+                    SignedInfo = signedInfo,
+                    CertData = cert.cert_data,
+                };
+                ProfileCache.SetProfileCache(profileXML.DocId, profileXML);
+                FileToSign fts = new FileToSign
+                {
+                    doc_id = profileXML.DocId,
+                    file_type = "xml",
+                    data_to_be_signed = hashToSignXml,
+                };
+                var resHSDK = await _ca2Service.SignHashValue(hs.uid, hs.transactionId, new FileToSign[] { fts }, hs.serialNumber, signDate);
+                if(resHSDK == null || res?.status_code != 200)
+                {
+                    throw new Exception("Cannot sign hash value of HSDK from CA2 service");
+                }
+                //da ky hash thanh cong thi update trang thai hoso
+                var hsUpdateDto = new UpdateHoSoDto
+                {
+                    ListId = new string[] { hs.guid },
+                    TrangThai = TrangThaiHoso.DaKyHash,
+                    FilePath = pathFileHSDK,
+                };
+                _coreService.UpdateHS(hsUpdateDto);
+                await _channel.BasicPublishAsync("", "HSCA2.ReadyToSign.q", false, new BasicProperties
+                {
+                    DeliveryMode = DeliveryModes.Persistent,
+                }, hs.GetBytesStringFromJsonObject());  
             }
             else
             {

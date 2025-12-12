@@ -59,7 +59,7 @@ namespace CA2_Winservice.Process
                 throw new Exception("Deserialize error or incorrect message");
             }
             //Lay ket qua ky tu server
-            var res = await _ca2Service.GetSignedResult(hs.uid, hs.guid);
+            var res = await _ca2Service.GetSignedResult(hs.uid, hs.transactionId);
             if(res == null || res?.status_code != 200)
             {
                 throw new Exception("Cannot get signature value from server");
@@ -70,14 +70,13 @@ namespace CA2_Winservice.Process
                 throw new NotSigningFromUserException("User is not signing");
             }
 
-            var profile = ProfileCache.GetProfileCache<CA2XMlSignerProfile>(hs.guid);
+            var profile = ProfileCache.GetProfileCache<CA2XMlSignerProfile>(hs.transactionId);
             if (profile == null)
             {
                 throw new Exception("Cannot get signing profile from cache");
             }
             //Them cks vao file
-            //luon lay gia tri cuoi cung
-            string signatureValue = res.data.signatures[res.data.signatures.Length -1].signature_value;
+            string signatureValue = res.data.signatures[0].signature_value;
             string nodeKy =Path.GetFileNameWithoutExtension(hs.filePathHS).GetNodeSignXml();
             CA2SignUtilities.AddSignatureXml(hs.filePathHS, profile.SignedInfo, signatureValue, profile.CertData, DateTime.Now, nodeKy);
             //ky xong xoa profile va update trang thai hs
@@ -86,7 +85,8 @@ namespace CA2_Winservice.Process
                 ListId = new string[] {hs.guid},
                 TrangThai = TrangThaiHoso.DaKy,
                 FilePath = hs.filePathHS
-            };  
+            };
+            _coreService.UpdateHS(hsUpdate);
             ProfileCache.RemoveProfile(hs.guid);
 
         }

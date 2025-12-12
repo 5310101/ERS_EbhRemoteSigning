@@ -34,16 +34,6 @@ namespace CA2_Winservice.Process
             _coreService = coreService;
             _ca2Service = ca2Service;
             _channel = chanel;
-
-            _channel.QueueDeclareAsync("HSCA2.ReadyToSign.q", true, false, false,
-                RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.dlq", false)).GetAwaiter().GetResult();
-            //ko lay dc ket qa thi sau 5s se retry
-            _channel.QueueDeclareAsync("HSCA2.ReadyToSign.retry.q", true, false, false,
-                RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.q", true)).GetAwaiter().GetResult();
-            _channel.QueueDeclareAsync("HSCA2.ReadyToSign.dlq", true, false, false, null).GetAwaiter().GetResult();
-            //chi dinh queue retry hs khi chua ky tu nguoi dung
-            _channel.QueueDeclareAsync("HSCA2.ReadyToSign.GetResult.retry.q", true, false, false,
-                RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.q", true)).GetAwaiter().GetResult();
         }
 
         public void DoWork()
@@ -85,7 +75,7 @@ namespace CA2_Winservice.Process
             {
                 throw new Exception("Deserialize error or incorrect message");
             }
-            var res = await _ca2Service.GetSignedResult(hs.uid, hs.guid);
+            var res = await _ca2Service.GetSignedResult(hs.uid, hs.transactionId);
             if (res == null || res.status_code != 200 )
             {
                 throw new Exception("Cannot get result from CA2 server");
@@ -149,8 +139,8 @@ namespace CA2_Winservice.Process
                     filePathHS = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid, "BHXHDienTu.xml");
                     hs.CreateFileBHXHDienTu(filePathHS);
                     break;
-                case TypeHS.HSDK:
-                    filePathHS = Path.Combine(Utilities.globalPath.SignedTempFolder, $"{hs.maNV}.xml");
+                case TypeHS.HSDKLanDau:
+                    filePathHS = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid,$"{hs.maNV}.xml");
                     DataTable dtHSDK = _coreService.GetHSDKLanDau(hs.guid);
                     hs.CreateFileHoSoDK_LanDau(filePathHS, dtHSDK);
                     break;
@@ -165,11 +155,13 @@ namespace CA2_Winservice.Process
             }
             var cert = res1.data.user_certificates[0];
             //ky hash
+            //tao 1 transactionId khac de ky ho so
+            hs.transactionId = "HS".GenGuidStr();
             XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(filePathHS, "");
             string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
             CA2XMlSignerProfile profile = new CA2XMlSignerProfile
             {
-                DocId = hs.guid,
+                DocId = hs.transactionId,
                 SignedInfo = signedInfo,    
                 CertData = cert.cert_data,
             };
@@ -181,8 +173,7 @@ namespace CA2_Winservice.Process
                 doc_id = profile.DocId,
                 file_type = "xml",
             };
-            
-            var res3 = await _ca2Service.SignHashValue(hs.uid, hs.guid, new FileToSign[] {fts},hs.serialNumber, DateTime.Now);
+            var res3 = await _ca2Service.SignHashValue(hs.uid, hs.transactionId, new FileToSign[] {fts},hs.serialNumber, DateTime.Now);
             if(res3 == null || res3?.status_code != 200)
             {
                 throw new Exception("File cannot be signed hash by the server");
