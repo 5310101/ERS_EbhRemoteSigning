@@ -42,7 +42,7 @@ namespace IntrustCA_Winservice.Process
         //Tam thoi chua biet lam gi voi cac message nay nen chi ghi ra file roi ack luon
         //trong tuong lai co the xay dung cac he thong monitor cung nhu co co che resend
         //Neu co thay doi trong cach xu ly thi thay doi ham HandleDLQMessage
-        public void DoWork()
+        public void StartProcess()
         {
             foreach (var consumer in _dLQConsumers)
             {

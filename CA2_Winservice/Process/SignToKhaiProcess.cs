@@ -36,7 +36,7 @@ namespace CA2_Winservice.Process
             _channel = chanel;
         }
 
-        public void DoWork()
+        public void StartProcess()
         {
             var consumer = new AsyncEventingBasicConsumer(_channel);
             consumer.ReceivedAsync += async (model, ea) =>

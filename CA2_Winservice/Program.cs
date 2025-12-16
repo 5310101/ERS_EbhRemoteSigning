@@ -38,7 +38,7 @@ namespace CA2_Winservice
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
             {
-                new wsIntrustCA_RemoteSigning()
+                new wsCA2_RemoteSigning()
             };
             ServiceBase.Run(ServicesToRun);
 

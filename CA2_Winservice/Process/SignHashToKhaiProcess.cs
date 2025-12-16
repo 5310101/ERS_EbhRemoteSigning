@@ -55,7 +55,7 @@ namespace CA2_Winservice.Process
                 RabbitMQHelper.CreateQueueArgument("", "HSCA2.ReadyToSign.q", true)).GetAwaiter().GetResult();
         }
 
-        public void DoWork()
+        public void StartProcess()
         {
             _channel.BasicQosAsync(0, _numberHSPerProcess, false).GetAwaiter().GetResult();
             var consumer = new AsyncEventingBasicConsumer(_channel);

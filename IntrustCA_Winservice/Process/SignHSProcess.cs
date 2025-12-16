@@ -30,7 +30,7 @@ namespace IntrustCA_Winservice.Process
             _coreService = coreService;
         }
 
-        public void DoWork()
+        public void StartProcess()
         {
             _channel.BasicQosAsync(0, numHSSignPerProcess, false);
             var consumer = new AsyncEventingBasicConsumer(_channel);

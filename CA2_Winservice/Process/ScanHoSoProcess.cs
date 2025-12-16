@@ -39,7 +39,7 @@ namespace CA2_Winservice.Process
 
         }
 
-        public void DoWork()
+        public void StartProcess()
         {
             //lay du lieu ho so chua ky
             List<string> PublishedList = new List<string>();

@@ -83,6 +83,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BackgroundWorker\ScanHoSoWorker.cs" />
     <Compile Include="Cache\ProfileCache.cs" />
     <Compile Include="Consumer\DLQConsumer.cs" />
     <Compile Include="Process\HandleErrorProcess.cs" />

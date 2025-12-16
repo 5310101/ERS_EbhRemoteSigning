@@ -51,7 +51,7 @@ namespace IntrustCA_Winservice.Process
 
         }
 
-        public void DoWork()
+        public void StartProcess()
         {
             List<string> PublishedList = new List<string>();
             try

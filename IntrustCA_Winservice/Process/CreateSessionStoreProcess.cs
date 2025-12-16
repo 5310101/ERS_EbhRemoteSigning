@@ -22,7 +22,7 @@ namespace IntrustCA_Winservice.Process
             _coreService = coreService;
         }
 
-        public void DoWork()
+        public void StartProcess()
         {
             _channel.BasicQosAsync(0, numberOfSession, false).GetAwaiter().GetResult();
             var consumer = new AsyncEventingBasicConsumer(_channel);

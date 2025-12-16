@@ -166,7 +166,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             XmlElement nodeX509Certificate = xDoc.CreateElement("X509Certificate");
             nodeX509Certificate.InnerText = rawCertData.Replace("\r", "").Replace("\n", "");
             nodeX509Data.AppendChild(nodeX509Certificate);
-            nodeSignature.AppendChild(nodeX509Data);
+            nodeKeyInfo.AppendChild(nodeX509Data);
 
 
             XmlDocument nodeObject = CreateSigningTime(signTime, "proid");

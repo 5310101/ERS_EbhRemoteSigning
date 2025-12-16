@@ -61,7 +61,7 @@ namespace IntrustCA_Winservice.Process
                 arguments: dlqProps2
                 ).GetAwaiter().GetResult();
         }
-        public void DoWork()
+        public void StartProcess()
         {
             //1 service 1 lan chi lay ra 10 ho so de xu ly 1 luc
             _channel.BasicQosAsync(0, hsCheckPerProcess, false).GetAwaiter().GetResult();

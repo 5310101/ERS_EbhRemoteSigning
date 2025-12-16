@@ -90,6 +90,7 @@
     <Compile Include="RabbitMQHelper.cs" />
     <Compile Include="RabbitmqManager.cs" />
     <Compile Include="Services\CoreService.cs" />
+    <Compile Include="Worker\ScanHoSoWorker.cs" />
     <Compile Include="wsIntrustCA_RemoteSigning.cs">
       <SubType>Component</SubType>
     </Compile>

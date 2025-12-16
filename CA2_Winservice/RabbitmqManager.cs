@@ -24,7 +24,12 @@ namespace CA2_Winservice
 
         public RabbitmqManager()
         {
-            _conFactory = new ConnectionFactory() { Uri = new Uri(RabbitmqUri) };
+            _conFactory = new ConnectionFactory() { Uri = new Uri(RabbitmqUri), AutomaticRecoveryEnabled = false };
+            if(_connection != null && _connection.IsOpen)
+            {
+                _connection.CloseAsync().GetAwaiter().GetResult();
+                _connection.Dispose();
+            }
             _connection = _conFactory.CreateConnectionAsync().GetAwaiter().GetResult();
         }
 
