@@ -1,9 +1,9 @@
-﻿using com.itextpdf.text.pdf.security;
+﻿extern alias netSecurity;
+
+using com.itextpdf.text.pdf.security;
 using ERS_Domain.clsUtilities;
 using iTextSharp.text.pdf;
 using iTextSharp.text.pdf.security;
-using Org.BouncyCastle.Asn1.Cms;
-using Org.BouncyCastle.Cms;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509;
@@ -11,18 +11,26 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Xml;
+
+using SignedXml = netSecurity::System.Security.Cryptography.Xml.SignedXml;
+using Reference = netSecurity::System.Security.Cryptography.Xml.Reference;
+using XmlDsigEnvelopedSignatureTransform = netSecurity::System.Security.Cryptography.Xml.XmlDsigEnvelopedSignatureTransform;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
 {
     public static class CA2SignUtilities
     {
         private static string xmldsigNamespaceUrl = "http://www.w3.org/2000/09/xmldsig#";
-        private static string excC14NNamespaceUrl = "http://www.w3.org/2001/10/xml-exc-c14n#";
+        //private static string excC14NNamespaceUrl = "http://www.w3.org/2001/10/xml-exc-c14n#";
+        private static string incC14NNamespaceUrl = "http://www.w3.org/TR/2001/REC-xml-c14n-20010315";
         private static string rsaSha256NamespaceUrl = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256";
         private static string sha256NamespaceUrl = "http://www.w3.org/2001/04/xmlenc#sha256";
+        private static string envelopedSignatureUrl = "http://www.w3.org/2000/09/xmldsig#enveloped-signature";
 
         #region XML
         /// <summary>
@@ -38,13 +46,42 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             return hashToSignBase64;
         }
 
-        public static XmlElement CreateSignedInfoNode(string filePath, string xmlNodeReferencePath = "")
+        public static XmlElement CreateSignedInfoNode(string filePath, X509Certificate2 cert,string xmlNodeReferencePath = "")
         {
             XmlDocument xDoc = new XmlDocument();
             xDoc.PreserveWhitespace = true;
             xDoc.Load(filePath);
-            string digestBase64 = xDoc.FindNode(xmlNodeReferencePath).CreateDigestValue();
-            XmlElement signedInfo = CreateSignedInfo_BHXH(digestBase64);
+
+            //XmlElement sig = xDoc.CreateElement("Signature", xmldsigNamespaceUrl);
+            //xDoc.DocumentElement.AppendChild(sig);
+
+            //var transform = new netSecurity::System.Security.Cryptography.Xml.XmlDsigEnvelopedSignatureTransform();
+            //transform.LoadInput(xDoc);
+            //var envDoc = (XmlDocument)transform.GetOutput(typeof(XmlDocument));
+
+            //SignedXml signedXml = new SignedXml(xDoc);
+            //signedXml.SigningKey = RSA.Create();
+            //Reference reference = new Reference("");
+            //reference.DigestMethod = SignedXml.XmlDsigSHA256Url;
+            //reference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
+            //signedXml.AddReference(reference);
+
+            //signedXml.SignedInfo.CanonicalizationMethod = SignedXml.XmlDsigC14NTransformUrl;
+            //signedXml.SignedInfo.SignatureMethod = SignedXml.XmlDsigRSASHA256Url;
+            //signedXml.Signature.Id = "sigid";
+            //signedXml.ComputeSignature();
+
+            //XmlElement signedInfo = signedXml.SignedInfo.GetXml();
+            //tao digest value
+            string digestValue = "";
+            var envelopeSig = new XmlDsigEnvelopedSignatureTransform();
+            envelopeSig.LoadInput(xDoc);
+            var envOutput = envelopeSig.GetOutput();
+
+
+
+            var signedInfo = CreateSignedInfo_BHXH(digestValue);
+
             return signedInfo;
         }
 
@@ -59,7 +96,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             XmlElement nodeSignedInfo = xDoc.CreateElement("SignedInfo");
 
             XmlElement nodeCanonicalizationMethod = xDoc.CreateElement("CanonicalizationMethod");
-            nodeCanonicalizationMethod.SetAttribute("Algorithm", excC14NNamespaceUrl);
+            nodeCanonicalizationMethod.SetAttribute("Algorithm", incC14NNamespaceUrl);
             nodeSignedInfo.AppendChild(nodeCanonicalizationMethod);
 
             XmlElement nodeSignatureMethod = xDoc.CreateElement("SignatureMethod");
@@ -71,7 +108,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
 
             XmlElement nodeTransforms = xDoc.CreateElement("Transforms");
             XmlElement nodeTransform = xDoc.CreateElement("Transform");
-            nodeTransform.SetAttribute("Algorithm", excC14NNamespaceUrl);
+            nodeTransform.SetAttribute("Algorithm", envelopedSignatureUrl);
             nodeTransforms.AppendChild(nodeTransform);
             nodeReference.AppendChild(nodeTransforms);
 
@@ -97,12 +134,6 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             return xDoc.SelectSingleNode(xmlNodeReferencePath) as XmlElement;
         }
 
-        private static string CreateDigestValue(this XmlElement elementToSign)
-        {
-            return elementToSign.Canonicalize().Hash().ToBase64String();
-
-        }
-
         private static XmlDocument CreateDocumentFromElement(this XmlElement elementToSign)
         {
             var xDoc = new XmlDocument { PreserveWhitespace = true };
@@ -112,7 +143,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
 
         private static byte[] Canonicalize(this XmlElement elementToSign)
         {
-            var transform = new XmlDsigExcC14NTransform();
+            var transform = new netSecurity::System.Security.Cryptography.Xml.XmlDsigC14NTransform();
             transform.LoadInput(elementToSign.CreateDocumentFromElement());
             using (MemoryStream ms = (MemoryStream)transform.GetOutput(typeof(Stream)))
             {
@@ -168,7 +199,6 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             nodeX509Data.AppendChild(nodeX509Certificate);
             nodeKeyInfo.AppendChild(nodeX509Data);
 
-
             XmlDocument nodeObject = CreateSigningTime(signTime, "proid");
             nodeSignature.AppendChild(xDoc.ImportNode(nodeObject.DocumentElement, true));
             return nodeSignature;
@@ -195,7 +225,6 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             nodeSign.AppendChild(xDoc.ImportNode(nodeSignature, true));
             return Encoding.UTF8.GetBytes(xDoc.OuterXml);
         }
-
         #endregion
 
         #region PDF 

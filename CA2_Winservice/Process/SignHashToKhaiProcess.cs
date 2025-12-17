@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -89,6 +90,7 @@ namespace CA2_Winservice.Process
                 throw new Exception("Cannot get certificate from CA2 service");
             }
             var cert = res.data.user_certificates[0];
+            var x509Cert = new X509Certificate2(Convert.FromBase64String(cert.cert_data));
             DateTime signDate = DateTime.Now;
             List<FileToSign> lstTK = new List<FileToSign>();
 
@@ -117,7 +119,7 @@ namespace CA2_Winservice.Process
                             break;
                         case FileType.XML:
                             tk.TransactionId = "xml".GenGuidStr();
-                            XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(tk.FilePath, "");
+                            XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(tk.FilePath, x509Cert,"");
                             string hashToSignXml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
                             CA2XMlSignerProfile profileXML = new CA2XMlSignerProfile
                             {
@@ -168,7 +170,7 @@ namespace CA2_Winservice.Process
                 string pathFileHSDK = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid, $"{hs.maNV}.xml");
                 hs.transactionId = "HSDK".GenGuidStr();
                 hs.filePathHS = pathFileHSDK;
-                XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathFileHSDK, "");
+                XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathFileHSDK, x509Cert,"");
                 string hashToSignXml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
                 CA2XMlSignerProfile profileXML = new CA2XMlSignerProfile
                 {
