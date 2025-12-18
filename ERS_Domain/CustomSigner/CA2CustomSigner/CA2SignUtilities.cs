@@ -20,6 +20,9 @@ using System.Xml;
 using SignedXml = netSecurity::System.Security.Cryptography.Xml.SignedXml;
 using Reference = netSecurity::System.Security.Cryptography.Xml.Reference;
 using XmlDsigEnvelopedSignatureTransform = netSecurity::System.Security.Cryptography.Xml.XmlDsigEnvelopedSignatureTransform;
+using Transform = netSecurity::System.Security.Cryptography.Xml.Transform;
+using XmlDsigC14NTransform = netSecurity::System.Security.Cryptography.Xml.XmlDsigC14NTransform;
+using System.Web.Configuration;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
 {
@@ -46,14 +49,16 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             return hashToSignBase64;
         }
 
-        public static XmlElement CreateSignedInfoNode(string filePath, X509Certificate2 cert,string xmlNodeReferencePath = "")
+        public static XmlElement CreateSignedInfoNode(string filePath,string xmlNodeReferencePath = "")
         {
             XmlDocument xDoc = new XmlDocument();
             xDoc.PreserveWhitespace = true;
             xDoc.Load(filePath);
-
-            //XmlElement sig = xDoc.CreateElement("Signature", xmldsigNamespaceUrl);
-            //xDoc.DocumentElement.AppendChild(sig);
+            //them phan tu signature gia
+            XmlElement placeholder = xDoc.CreateElement("Signature", "http://www.w3.org/2000/09/xmldsig#");
+            placeholder.SetAttribute("Id", "placeholder-signature");
+            XmlNode insertNode = xmlNodeReferencePath == "" ? xDoc.DocumentElement : xDoc.SelectSingleNode(xmlNodeReferencePath);
+            insertNode.AppendChild(placeholder);
 
             //var transform = new netSecurity::System.Security.Cryptography.Xml.XmlDsigEnvelopedSignatureTransform();
             //transform.LoadInput(xDoc);
@@ -73,15 +78,37 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
 
             //XmlElement signedInfo = signedXml.SignedInfo.GetXml();
             //tao digest value
+
+            //var envelopeSig = new XmlDsigEnvelopedSignatureTransform();
+            //envelopeSig.LoadInput(xDoc);
+            //var envOutput = envelopeSig.GetOutput();
+
+            //var c14 = new XmlDsigC14NTransform(false);
+            //c14.LoadInput(envOutput);
+            //Stream canonStream = (Stream)c14.GetOutput(typeof(Stream));
+
             string digestValue = "";
-            var envelopeSig = new XmlDsigEnvelopedSignatureTransform();
-            envelopeSig.LoadInput(xDoc);
-            var envOutput = envelopeSig.GetOutput();
+            //Reference reference = new Reference();
+            //reference.Uri = "";
+            //reference.DigestMethod = SignedXml.XmlDsigSHA256Url;
 
+            //reference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
+            //reference.AddTransform(new XmlDsigC14NTransform(false));
 
+            var envt = new XmlDsigEnvelopedSignatureTransform();
+            envt.LoadInput(xDoc);
+            
+
+            using (MemoryStream ms = new MemoryStream())
+            using (var sha256 = SHA256.Create())
+            {
+                Stream s = (Stream)currInput;
+                s.CopyTo(ms);
+                byte[] byteHash = sha256.ComputeHash(ms.ToArray());
+                digestValue = Convert.ToBase64String(byteHash);
+            }
 
             var signedInfo = CreateSignedInfo_BHXH(digestValue);
-
             return signedInfo;
         }
 
