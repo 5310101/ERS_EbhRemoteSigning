@@ -24,6 +24,7 @@ using Transform = netSecurity::System.Security.Cryptography.Xml.Transform;
 using XmlDsigC14NTransform = netSecurity::System.Security.Cryptography.Xml.XmlDsigC14NTransform;
 using System.Web.Configuration;
 using System.Net.Sockets;
+using ERS_Domain.Model;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
 {
@@ -50,392 +51,341 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             return hashToSignBase64;
         }
 
-        //public static XmlElement CreateSignedInfoNode(string filePath,string xmlNodeReferencePath = "")
-        //{
-        //    XmlDocument xDoc = new XmlDocument();
-        //    xDoc.PreserveWhitespace = true;
-        //    xDoc.Load(filePath);
-        //them phan tu signature gia
-        //XmlElement placeholder = xDoc.CreateElement("Signature", "http://www.w3.org/2000/09/xmldsig#");
-        //placeholder.SetAttribute("Id", "placeholder-signature");
-        //XmlNode insertNode = xmlNodeReferencePath == "" ? xDoc.DocumentElement : xDoc.SelectSingleNode(xmlNodeReferencePath);
-        //insertNode.AppendChild(placeholder);
 
-        //var transform = new netSecurity::System.Security.Cryptography.Xml.XmlDsigEnvelopedSignatureTransform();
-        //transform.LoadInput(xDoc);
-        //var envDoc = (XmlDocument)transform.GetOutput(typeof(XmlDocument));
-
-        //SignedXml signedXml = new SignedXml(xDoc);
-        //signedXml.SigningKey = RSA.Create();
-        //Reference reference = new Reference("");
-        //reference.DigestMethod = SignedXml.XmlDsigSHA256Url;
-        //reference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
-        //signedXml.AddReference(reference);
-
-        //signedXml.SignedInfo.CanonicalizationMethod = SignedXml.XmlDsigC14NTransformUrl;
-        //signedXml.SignedInfo.SignatureMethod = SignedXml.XmlDsigRSASHA256Url;
-        //signedXml.Signature.Id = "sigid";
-        //signedXml.ComputeSignature();
-
-        //XmlElement signedInfo = signedXml.SignedInfo.GetXml();
-        //tao digest value
-
-        //var envelopeSig = new XmlDsigEnvelopedSignatureTransform();
-        //envelopeSig.LoadInput(xDoc);
-        //var envOutput = envelopeSig.GetOutput();
-
-        //var c14 = new XmlDsigC14NTransform(false);
-        //c14.LoadInput(envOutput);
-        //Stream canonStream = (Stream)c14.GetOutput(typeof(Stream));
-
-        //string digestValue = "";
-        //Reference reference = new Reference();
-        //reference.Uri = "";
-        //reference.DigestMethod = SignedXml.XmlDsigSHA256Url;
-
-        //reference.AddTransform(new XmlDsigEnvelopedSignatureTransform());
-        //reference.AddTransform(new XmlDsigC14NTransform(false));
-
-        //var envt = new XmlDsigEnvelopedSignatureTransform();
-        //envt.LoadInput(xDoc);
-
-        //using (MemoryStream ms = new MemoryStream())
-        //using (var sha256 = SHA256.Create())
-        //{
-        //    Stream s = (Stream)envt;
-        //    s.CopyTo(ms);
-        //    byte[] byteHash = sha256.ComputeHash(ms.ToArray());
-        //    digestValue = Convert.ToBase64String(byteHash);
-        //}
-
-        //var signedInfo = CreateSignedInfo_BHXH(digestValue);
-        //return signedInfo;
-    //}
-
-    public static XmlElement CreateSignedInfoNode(string filePath, string xmlNodeReferencePath = "")
-    {
-        XmlDocument xDoc = new XmlDocument();
-        xDoc.PreserveWhitespace = true;
-        xDoc.Load(filePath);
-
-        XmlElement signedInfo = xDoc.CreateElement("SignedInfo", SignedXml.XmlDsigNamespaceUrl);
-        XmlElement canonMethod = xDoc.CreateElement("CanonicalizationMethod", SignedXml.XmlDsigNamespaceUrl);
-        canonMethod.SetAttribute("Algorithm", SignedXml.XmlDsigC14NTransformUrl);
-        XmlElement sigMethod = xDoc.CreateElement("SignatureMethod", SignedXml.XmlDsigNamespaceUrl);
-        sigMethod.SetAttribute("Algorithm", SignedXml.XmlDsigRSASHA256Url);
-        XmlElement reference = xDoc.CreateElement("Reference", SignedXml.XmlDsigNamespaceUrl);
-        reference.SetAttribute("URI", "");
-        XmlElement Transforms = xDoc.CreateElement("Transforms", SignedXml.XmlDsigNamespaceUrl);
-        XmlElement Transform = xDoc.CreateElement("", SignedXml.XmlDsigNamespaceUrl);
-        Transform.SetAttribute("Algorithm", SignedXml.XmlDsigEnvelopedSignatureTransformUrl);
-
-        Transforms.AppendChild(Transform);
-        reference.AppendChild(Transforms);
-
-        signedInfo.AppendChild(reference);
-        signedInfo.AppendChild(sigMethod);
-        signedInfo.AppendChild(canonMethod);
-
-        return signedInfo;
-    }
-
-    /// <summary>
-    /// Tao node SignedInfo cho file BHXH, chu ky so ben BHXH co refrence den toan bo file xml
-    /// </summary>
-    /// <param name="digestBase64">chuoi digestvalue base 64</param>
-    /// <returns></returns>
-    private static XmlElement CreateSignedInfo_BHXH(string digestBase64)
-    {
-        XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
-        XmlElement nodeSignedInfo = xDoc.CreateElement("SignedInfo");
-
-        XmlElement nodeCanonicalizationMethod = xDoc.CreateElement("CanonicalizationMethod");
-        nodeCanonicalizationMethod.SetAttribute("Algorithm", incC14NNamespaceUrl);
-        nodeSignedInfo.AppendChild(nodeCanonicalizationMethod);
-
-        XmlElement nodeSignatureMethod = xDoc.CreateElement("SignatureMethod");
-        nodeSignatureMethod.SetAttribute("Algorithm", rsaSha256NamespaceUrl);
-        nodeSignedInfo.AppendChild(nodeSignatureMethod);
-
-        XmlElement nodeReference = xDoc.CreateElement("Reference");
-        nodeReference.SetAttribute("URI", "");
-
-        XmlElement nodeTransforms = xDoc.CreateElement("Transforms");
-        XmlElement nodeTransform = xDoc.CreateElement("Transform");
-        nodeTransform.SetAttribute("Algorithm", envelopedSignatureUrl);
-        nodeTransforms.AppendChild(nodeTransform);
-        nodeReference.AppendChild(nodeTransforms);
-
-        XmlElement nodeDigestMethod = xDoc.CreateElement("DigestMethod");
-        nodeDigestMethod.SetAttribute("Algorithm", sha256NamespaceUrl);
-        nodeReference.AppendChild(nodeDigestMethod);
-
-        XmlElement nodeDigestValue = xDoc.CreateElement("DigestValue");
-        nodeDigestValue.InnerText = digestBase64;
-        nodeReference.AppendChild(nodeDigestValue);
-
-        nodeSignedInfo.AppendChild(nodeReference);
-        xDoc.AppendChild(nodeSignedInfo);
-        return nodeSignedInfo;
-    }
-
-    private static XmlElement FindNode(this XmlDocument xDoc, string xmlNodeReferencePath)
-    {
-        if (xmlNodeReferencePath == "")
+        public static XmlElement CreateSignedInfoNode(string filePath, string xmlNodeReferencePath = "")
         {
-            return xDoc.DocumentElement;
-        }
-        return xDoc.SelectSingleNode(xmlNodeReferencePath) as XmlElement;
-    }
+            XmlDocument origin = new XmlDocument();
+            origin.PreserveWhitespace = true;
+            origin.Load(filePath);
+            XmlDocument xDoc = (XmlDocument)origin.CloneNode(true);
 
-    private static XmlDocument CreateDocumentFromElement(this XmlElement elementToSign)
-    {
-        var xDoc = new XmlDocument { PreserveWhitespace = true };
-        xDoc.AppendChild(xDoc.ImportNode(elementToSign, true));
-        return xDoc;
-    }
+            //Tinh hash tren clone
+            XmlDsigC14NTransform transform = new XmlDsigC14NTransform();
+            transform.LoadInput(xDoc);
 
-    private static byte[] Canonicalize(this XmlElement elementToSign)
-    {
-        var transform = new netSecurity::System.Security.Cryptography.Xml.XmlDsigC14NTransform();
-        transform.LoadInput(elementToSign.CreateDocumentFromElement());
-        using (MemoryStream ms = (MemoryStream)transform.GetOutput(typeof(Stream)))
-        {
-            return ms.ToArray();
-        }
-    }
-
-    private static byte[] Hash(this byte[] data)
-    {
-        byte[] digestByte;
-        using (SHA256 sha = SHA256.Create())
-        {
-            digestByte = sha.ComputeHash(data);
-        }
-        return digestByte;
-    }
-
-    public static XmlDocument CreateSigningTime(DateTime signDate, string id)
-    {
-        XmlDocument xmlDocument = new XmlDocument();
-        xmlDocument.LoadXml($"<Object><SignatureProperties Id=\"{id}\" xmlns=\"\"><SignatureProperty Target=\"#sigid\"><SigningTime xmlns=\"http://example.org/#signatureProperties\">{signDate:yyyy-MM-dd}T{DateTime.Now:HH:mm:ss}Z</SigningTime></SignatureProperty></SignatureProperties></Object>");
-        return xmlDocument;
-    }
-
-    public static XmlElement CreateSignatureNode(XmlElement signedInfo, string signatureValue, X509Certificate2 certData, string rawCertData, DateTime signTime)
-    {
-        XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
-        XmlElement nodeSignature = xDoc.CreateElement("Signature");
-        nodeSignature.SetAttribute("Id", "sigid");
-        nodeSignature.SetAttribute("xmlns", xmldsigNamespaceUrl);
-
-        nodeSignature.AppendChild(xDoc.ImportNode(signedInfo, true));
-
-        XmlElement nodeSignatureValue = xDoc.CreateElement("SignatureValue");
-        nodeSignatureValue.InnerText = signatureValue;
-        nodeSignature.AppendChild(nodeSignatureValue);
-
-        XmlElement nodeKeyInfo = xDoc.CreateElement("KeyInfo");
-
-        XmlElement nodeKeyValue = xDoc.CreateElement("KeyValue");
-        string rsaKeyValue = certData.GetRSAPublicKey().ToXmlString(false);
-        nodeKeyValue.InnerXml = rsaKeyValue;
-        nodeKeyInfo.AppendChild(nodeKeyValue);
-        nodeSignature.AppendChild(nodeKeyInfo);
-
-        XmlElement nodeX509Data = xDoc.CreateElement("X509Data");
-        XmlElement nodeX509SubjectName = xDoc.CreateElement("X509SubjectName");
-        nodeX509SubjectName.InnerText = certData.Subject;
-        nodeX509Data.AppendChild(nodeX509SubjectName);
-
-        XmlElement nodeX509Certificate = xDoc.CreateElement("X509Certificate");
-        nodeX509Certificate.InnerText = rawCertData.Replace("\r", "").Replace("\n", "");
-        nodeX509Data.AppendChild(nodeX509Certificate);
-        nodeKeyInfo.AppendChild(nodeX509Data);
-
-        XmlDocument nodeObject = CreateSigningTime(signTime, "proid");
-        nodeSignature.AppendChild(xDoc.ImportNode(nodeObject.DocumentElement, true));
-        return nodeSignature;
-    }
-
-    public static void AddSignatureXml(string filePath, XmlElement nodeSignedInfo, string signatureValue, string certRaw, DateTime signTime, string xPathSignNode)
-    {
-        X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
-        XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, signatureValue, cert, certRaw, signTime);
-        XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
-        xDoc.Load(filePath);
-        XmlNode nodeSign = xDoc.SelectSingleNode(xPathSignNode);
-        nodeSign.AppendChild(xDoc.ImportNode(nodeSignature, true));
-        xDoc.Save(filePath);
-    }
-
-    public static byte[] AddSignatureXmlWithData(string filePath, XmlElement nodeSignedInfo, string signatureValue, string certRaw, DateTime signTime, string xPathSignNode)
-    {
-        X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
-        XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, signatureValue, cert, certRaw, signTime);
-        XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
-        xDoc.Load(filePath);
-        XmlNode nodeSign = xDoc.SelectSingleNode(xPathSignNode);
-        nodeSign.AppendChild(xDoc.ImportNode(nodeSignature, true));
-        return Encoding.UTF8.GetBytes(xDoc.OuterXml);
-    }
-    #endregion
-
-    #region PDF 
-
-    public static Org.BouncyCastle.X509.X509Certificate[] GetCertChain(X509Certificate2 cert)
-    {
-        X509Chain chain = new X509Chain();
-        chain.Build(cert);
-        List<Org.BouncyCastle.X509.X509Certificate> certList = new List<Org.BouncyCastle.X509.X509Certificate>();
-        X509CertificateParser parser = new X509CertificateParser();
-        foreach (X509ChainElement element in chain.ChainElements)
-        {
-            Org.BouncyCastle.X509.X509Certificate bcCert = parser.ReadCertificate(element.Certificate.RawData);
-            certList.Add(bcCert);
-        }
-        return certList.ToArray();
-    }
-    public static void AddSignaturePdf(CA2PDFSignProfile profile, string outputPath, string base64SignatureValue)
-    {
-        byte[] cmsData = Convert.FromBase64String(base64SignatureValue);
-        using (PdfReader reader = new PdfReader(profile.PDFToSign))
-        using (FileStream fs = new FileStream(outputPath, FileMode.Create))
-        {
-            PdfPKCS7 pdfpkcs7 = new PdfPKCS7(null, profile.CertChain, "SHA-256", false);
-            pdfpkcs7.SetExternalDigest(cmsData, null, "RSA");
-            //byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(profile.HashValue, null, null, null, CryptoStandard.CMS);
-            //o day ko dung secondary digest vi da co san cmsData tu CA2 tra ve
-            byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(null, null, null, null, CryptoStandard.CMS);
-            IExternalSignatureContainer externalSignature = new CA2RSExternalSignatureContainer(encodedPKCS);
-            MakeSignature.SignDeferred(reader, profile.Fieldname, fs, externalSignature);
-        }
-    }
-
-    public static byte[] AddSignaturePdfWithData(CA2PDFSignProfile profile, string base64SignatureValue)
-    {
-        byte[] cmsData = Convert.FromBase64String(base64SignatureValue);
-        using (PdfReader reader = new PdfReader(profile.PDFToSign))
-        using (MemoryStream ms = new MemoryStream())
-        {
-            PdfPKCS7 pdfpkcs7 = new PdfPKCS7(null, profile.CertChain, "SHA-256", false);
-            pdfpkcs7.SetExternalDigest(cmsData, null, "RSA");
-            byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(null, null, null, null, CryptoStandard.CMS);
-            IExternalSignatureContainer externalSignature = new CA2RSExternalSignatureContainer(encodedPKCS);
-            MakeSignature.SignDeferred(reader, profile.Fieldname, ms, externalSignature);
-            return ms.ToArray();
-        }
-    }
-
-    public static CA2PDFSignProfile CreateHashPdfToSign(string certRaw, string filePath, DateTime signDate, string transactionId, string docId, string fieldName = "ebhSignature1")
-    {
-        X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
-        var certChain = GetCertChain(cert);
-        MemoryStream ms = new MemoryStream();
-        PdfReader reader = new PdfReader(filePath);
-        PdfStamper stamper = PdfStamper.CreateSignature(reader, ms, '\0');
-        PdfSignatureAppearance appearance = stamper.SignatureAppearance;
-        SetSignatureAppearance(appearance, cert, fieldName);
-        IExternalSignatureContainer empty = new ExternalBlankSignatureContainer(PdfName.ADOBE_PPKLITE, PdfName.ADBE_PKCS7_DETACHED);
-
-        int estimatedSize = CalculateEstimatedSignatureSize(certChain, null, null, null);
-
-        PdfSignature sig = new PdfSignature(PdfName.ADOBE_PPKLITE, PdfName.ADBE_PKCS7_DETACHED)
-        {
-            Location = appearance.Location,
-            Reason = appearance.Reason,
-            Contact = appearance.Contact,
-            Name = cert.Subject.GetSubjectValue("CN="),
-            SignatureCreator = $"EBH CA2 Remote signing {DateTime.Now}",
-            Date = new PdfDate(signDate)
-        };
-        appearance.CryptoDictionary = sig;
-        MakeSignature.SignExternalContainer(appearance, empty, estimatedSize);
-
-        byte[] tempdata = ms.ToArray();
-        IDigest digist = DigestUtilities.GetDigest("SHA-256");
-        byte[] array = new byte[8192];
-        Stream rangeStream = appearance.GetRangeStream();
-        int length;
-        while ((length = rangeStream.Read(array, 0, array.Length)) > 0)
-        {
-            digist.BlockUpdate(array, 0, length);
-        }
-        byte[] hash1 = new byte[digist.GetDigestSize()];
-        digist.DoFinal(hash1, 0);
-        //CA2 ko can dung authenticated attribute
-        //PdfPKCS7 pdfpkcs7 = new PdfPKCS7(null, certChain, "SHA-256", false);
-        //byte[] hash2 = pdfpkcs7.getAuthenticatedAttributeBytes(hash1, null, null, CryptoStandard.CMS);
-        stamper.Close();
-        reader.Close();
-        if (hash1.Length == 0)
-        {
-            throw new Exception("Không thể hash file");
-        }
-
-        return new CA2PDFSignProfile
-        {
-            PDFToSign = tempdata,
-            HashValue = hash1,
-            Fieldname = fieldName,
-            CertChain = certChain,
-            DocId = docId,
-            TransactionId = transactionId,
-        };
-    }
-    public static void SetSignatureAppearance(PdfSignatureAppearance appearance, X509Certificate2 cert, string fieldName)
-    {
-        appearance.Reason = "Xác nhận tài liệu";
-        appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.DESCRIPTION;
-        string subject = cert.Subject;
-        string nguoiKy = subject.GetSubjectValue("CN=");
-        string noiKy = subject.GetSubjectValue("S=");
-        appearance.Layer2Text = $"Ngày ký: {DateTime.Now} \nNgười ký: {nguoiKy} \nNơi ký: {noiKy}";
-        BaseFont fontBase = BaseFont.CreateFont(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "times.ttf"), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
-        var itextFont = new iTextSharp.text.Font(fontBase, 10, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.RED);
-        appearance.Layer2Font = new iTextSharp.text.Font(itextFont);
-        var rectangle = new iTextSharp.text.Rectangle(10, 10, 250, 100);
-        appearance.SetVisibleSignature(rectangle, 1, fieldName);
-    }
-
-    //CA2 chi ky hash1 (PKCS#1)
-    public static bool ValidSignaturePDF(string base64StringValue, byte[] hashValue, X509Certificate2 cert)
-    {
-        using (var rsa = cert.GetRSAPublicKey())
-        {
-            return rsa.VerifyHash(hashValue, Convert.FromBase64String(base64StringValue), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
-        }
-    }
-
-    public static int CalculateEstimatedSignatureSize(Org.BouncyCastle.X509.X509Certificate[] certChain, ITSAClient tsc, byte[] ocsp, ICollection<byte[]> crlList)
-    {
-        int num = 0;
-        if (certChain != null)
-        {
-            foreach (Org.BouncyCastle.X509.X509Certificate x509Certificate in certChain)
+            byte[] canonicalBytes;
+            using (MemoryStream ms = new MemoryStream())
             {
-                num += ((x509Certificate != null) ? x509Certificate.GetEncoded().Length : 0);
+                ((Stream)transform.GetOutput(typeof(Stream))).CopyTo(ms);
+                canonicalBytes = ms.ToArray();
+            }
+            string digestValue = canonicalBytes.Hash().ToBase64String();
+
+            XmlElement signedInfo = CreateSignedInfo_BHXH(digestValue);
+            return signedInfo;
+        }
+
+        /// <summary>
+        /// Tao node SignedInfo cho file BHXH, chu ky so ben BHXH co refrence den toan bo file xml
+        /// </summary>
+        /// <param name="digestBase64">chuoi digestvalue base 64</param>
+        /// <returns></returns>
+        private static XmlElement CreateSignedInfo_BHXH(string digestBase64)
+        {
+            XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
+            XmlElement nodeSignedInfo = xDoc.CreateElement("SignedInfo");
+
+            XmlElement nodeCanonicalizationMethod = xDoc.CreateElement("CanonicalizationMethod");
+            nodeCanonicalizationMethod.SetAttribute("Algorithm", incC14NNamespaceUrl);
+            nodeSignedInfo.AppendChild(nodeCanonicalizationMethod);
+
+            XmlElement nodeSignatureMethod = xDoc.CreateElement("SignatureMethod");
+            nodeSignatureMethod.SetAttribute("Algorithm", rsaSha256NamespaceUrl);
+            nodeSignedInfo.AppendChild(nodeSignatureMethod);
+
+            XmlElement nodeReference = xDoc.CreateElement("Reference");
+            nodeReference.SetAttribute("URI", "");
+
+            XmlElement nodeTransforms = xDoc.CreateElement("Transforms");
+            XmlElement nodeTransform = xDoc.CreateElement("Transform");
+            nodeTransform.SetAttribute("Algorithm", envelopedSignatureUrl);
+            nodeTransforms.AppendChild(nodeTransform);
+            nodeReference.AppendChild(nodeTransforms);
+
+            XmlElement nodeDigestMethod = xDoc.CreateElement("DigestMethod");
+            nodeDigestMethod.SetAttribute("Algorithm", sha256NamespaceUrl);
+            nodeReference.AppendChild(nodeDigestMethod);
+
+            XmlElement nodeDigestValue = xDoc.CreateElement("DigestValue");
+            nodeDigestValue.InnerText = digestBase64;
+            nodeReference.AppendChild(nodeDigestValue);
+
+            nodeSignedInfo.AppendChild(nodeReference);
+            xDoc.AppendChild(nodeSignedInfo);
+            return nodeSignedInfo;
+        }
+
+        private static XmlElement FindNode(this XmlDocument xDoc, string xmlNodeReferencePath)
+        {
+            if (xmlNodeReferencePath == "")
+            {
+                return xDoc.DocumentElement;
+            }
+            return xDoc.SelectSingleNode(xmlNodeReferencePath) as XmlElement;
+        }
+
+        private static XmlDocument CreateDocumentFromElement(this XmlElement elementToSign)
+        {
+            var xDoc = new XmlDocument { PreserveWhitespace = true };
+            xDoc.AppendChild(xDoc.ImportNode(elementToSign, true));
+            return xDoc;
+        }
+
+        private static byte[] Canonicalize(this XmlElement elementToSign)
+        {
+            var transform = new netSecurity::System.Security.Cryptography.Xml.XmlDsigC14NTransform();
+            transform.LoadInput(elementToSign.CreateDocumentFromElement());
+            using (MemoryStream ms = (MemoryStream)transform.GetOutput(typeof(Stream)))
+            {
+                return ms.ToArray();
             }
         }
-        num += 2000;
-        if (ocsp != null)
+
+        private static byte[] Hash(this byte[] data)
         {
-            num += ocsp.Length;
-        }
-        if (tsc != null)
-        {
-            num += 4096;
-        }
-        if (crlList != null)
-        {
-            foreach (byte[] crl in crlList)
+            byte[] digestByte;
+            using (SHA256 sha = SHA256.Create())
             {
-                num += ((crl != null) ? crl.Length : 0);
+                digestByte = sha.ComputeHash(data);
             }
-            num += 100;
+            return digestByte;
         }
-        return num;
+
+        public static XmlDocument CreateSigningTime(DateTime signDate, string id)
+        {
+            XmlDocument xmlDocument = new XmlDocument();
+            xmlDocument.LoadXml($"<Object><SignatureProperties Id=\"{id}\" xmlns=\"\"><SignatureProperty Target=\"#sigid\"><SigningTime xmlns=\"http://example.org/#signatureProperties\">{signDate:yyyy-MM-dd}T{DateTime.Now:HH:mm:ss}Z</SigningTime></SignatureProperty></SignatureProperties></Object>");
+            return xmlDocument;
+        }
+
+        public static XmlElement CreateSignatureNode(XmlElement signedInfo, string signatureValue, X509Certificate2 certData, string rawCertData, DateTime signTime)
+        {
+            XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
+            XmlElement nodeSignature = xDoc.CreateElement("Signature");
+            nodeSignature.SetAttribute("Id", "sigid");
+            nodeSignature.SetAttribute("xmlns", xmldsigNamespaceUrl);
+
+            nodeSignature.AppendChild(xDoc.ImportNode(signedInfo, true));
+
+            XmlElement nodeSignatureValue = xDoc.CreateElement("SignatureValue");
+            nodeSignatureValue.InnerText = signatureValue;
+            nodeSignature.AppendChild(nodeSignatureValue);
+
+            XmlElement nodeKeyInfo = xDoc.CreateElement("KeyInfo");
+
+            XmlElement nodeKeyValue = xDoc.CreateElement("KeyValue");
+            string rsaKeyValue = certData.GetRSAPublicKey().ToXmlString(false);
+            nodeKeyValue.InnerXml = rsaKeyValue;
+            nodeKeyInfo.AppendChild(nodeKeyValue);
+            nodeSignature.AppendChild(nodeKeyInfo);
+
+            XmlElement nodeX509Data = xDoc.CreateElement("X509Data");
+            XmlElement nodeX509SubjectName = xDoc.CreateElement("X509SubjectName");
+            nodeX509SubjectName.InnerText = certData.Subject;
+            nodeX509Data.AppendChild(nodeX509SubjectName);
+
+            XmlElement nodeX509Certificate = xDoc.CreateElement("X509Certificate");
+            nodeX509Certificate.InnerText = rawCertData.Replace("\r", "").Replace("\n", "");
+            nodeX509Data.AppendChild(nodeX509Certificate);
+            nodeKeyInfo.AppendChild(nodeX509Data);
+
+            XmlDocument nodeObject = CreateSigningTime(signTime, "proid");
+            nodeSignature.AppendChild(xDoc.ImportNode(nodeObject.DocumentElement, true));
+            return nodeSignature;
+        }
+
+        public static void AddSignatureXml(string filePath, XmlElement nodeSignedInfo, string signatureValue, string certRaw, DateTime signTime, string xPathSignNode)
+        {
+            X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
+            XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, signatureValue, cert, certRaw, signTime);
+            XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
+            xDoc.Load(filePath);
+            XmlNode nodeSign = xDoc.SelectSingleNode(xPathSignNode);
+            nodeSign.AppendChild(xDoc.ImportNode(nodeSignature, true));
+            xDoc.Save(filePath);
+        }
+
+        public static byte[] AddSignatureXmlWithData(string filePath, XmlElement nodeSignedInfo, string signatureValue, string certRaw, DateTime signTime, string xPathSignNode)
+        {
+            X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
+            XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, signatureValue, cert, certRaw, signTime);
+            XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
+            xDoc.Load(filePath);
+            XmlNode nodeSign = xDoc.SelectSingleNode(xPathSignNode);
+            nodeSign.AppendChild(xDoc.ImportNode(nodeSignature, true));
+            return Encoding.UTF8.GetBytes(xDoc.OuterXml);
+        }
+
+        public static string ComputeDigestValue(string filePath)
+        {
+            XmlDocument xDoc = new XmlDocument();
+            xDoc.PreserveWhitespace = true;
+            xDoc.Load(filePath);
+
+            //Tao SignedXml
+            SignedXml signedXml = new SignedXml(xDoc);
+            string tempFile = Path.GetTempFileName();
+            
+
+        }
+
+        #endregion
+
+        #region PDF 
+
+        public static Org.BouncyCastle.X509.X509Certificate[] GetCertChain(X509Certificate2 cert)
+        {
+            X509Chain chain = new X509Chain();
+            chain.Build(cert);
+            List<Org.BouncyCastle.X509.X509Certificate> certList = new List<Org.BouncyCastle.X509.X509Certificate>();
+            X509CertificateParser parser = new X509CertificateParser();
+            foreach (X509ChainElement element in chain.ChainElements)
+            {
+                Org.BouncyCastle.X509.X509Certificate bcCert = parser.ReadCertificate(element.Certificate.RawData);
+                certList.Add(bcCert);
+            }
+            return certList.ToArray();
+        }
+        public static void AddSignaturePdf(CA2PDFSignProfile profile, string outputPath, string base64SignatureValue)
+        {
+            byte[] cmsData = Convert.FromBase64String(base64SignatureValue);
+            using (PdfReader reader = new PdfReader(profile.PDFToSign))
+            using (FileStream fs = new FileStream(outputPath, FileMode.Create))
+            {
+                PdfPKCS7 pdfpkcs7 = new PdfPKCS7(null, profile.CertChain, "SHA-256", false);
+                pdfpkcs7.SetExternalDigest(cmsData, null, "RSA");
+                //byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(profile.HashValue, null, null, null, CryptoStandard.CMS);
+                //o day ko dung secondary digest vi da co san cmsData tu CA2 tra ve
+                byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(null, null, null, null, CryptoStandard.CMS);
+                IExternalSignatureContainer externalSignature = new CA2RSExternalSignatureContainer(encodedPKCS);
+                MakeSignature.SignDeferred(reader, profile.Fieldname, fs, externalSignature);
+            }
+        }
+
+        public static byte[] AddSignaturePdfWithData(CA2PDFSignProfile profile, string base64SignatureValue)
+        {
+            byte[] cmsData = Convert.FromBase64String(base64SignatureValue);
+            using (PdfReader reader = new PdfReader(profile.PDFToSign))
+            using (MemoryStream ms = new MemoryStream())
+            {
+                PdfPKCS7 pdfpkcs7 = new PdfPKCS7(null, profile.CertChain, "SHA-256", false);
+                pdfpkcs7.SetExternalDigest(cmsData, null, "RSA");
+                byte[] encodedPKCS = pdfpkcs7.GetEncodedPKCS7(null, null, null, null, CryptoStandard.CMS);
+                IExternalSignatureContainer externalSignature = new CA2RSExternalSignatureContainer(encodedPKCS);
+                MakeSignature.SignDeferred(reader, profile.Fieldname, ms, externalSignature);
+                return ms.ToArray();
+            }
+        }
+
+        public static CA2PDFSignProfile CreateHashPdfToSign(string certRaw, string filePath, DateTime signDate, string transactionId, string docId, string fieldName = "ebhSignature1")
+        {
+            X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
+            var certChain = GetCertChain(cert);
+            MemoryStream ms = new MemoryStream();
+            PdfReader reader = new PdfReader(filePath);
+            PdfStamper stamper = PdfStamper.CreateSignature(reader, ms, '\0');
+            PdfSignatureAppearance appearance = stamper.SignatureAppearance;
+            SetSignatureAppearance(appearance, cert, fieldName);
+            IExternalSignatureContainer empty = new ExternalBlankSignatureContainer(PdfName.ADOBE_PPKLITE, PdfName.ADBE_PKCS7_DETACHED);
+
+            int estimatedSize = CalculateEstimatedSignatureSize(certChain, null, null, null);
+
+            PdfSignature sig = new PdfSignature(PdfName.ADOBE_PPKLITE, PdfName.ADBE_PKCS7_DETACHED)
+            {
+                Location = appearance.Location,
+                Reason = appearance.Reason,
+                Contact = appearance.Contact,
+                Name = cert.Subject.GetSubjectValue("CN="),
+                SignatureCreator = $"EBH CA2 Remote signing {DateTime.Now}",
+                Date = new PdfDate(signDate)
+            };
+            appearance.CryptoDictionary = sig;
+            MakeSignature.SignExternalContainer(appearance, empty, estimatedSize);
+
+            byte[] tempdata = ms.ToArray();
+            IDigest digist = DigestUtilities.GetDigest("SHA-256");
+            byte[] array = new byte[8192];
+            Stream rangeStream = appearance.GetRangeStream();
+            int length;
+            while ((length = rangeStream.Read(array, 0, array.Length)) > 0)
+            {
+                digist.BlockUpdate(array, 0, length);
+            }
+            byte[] hash1 = new byte[digist.GetDigestSize()];
+            digist.DoFinal(hash1, 0);
+            //CA2 ko can dung authenticated attribute
+            //PdfPKCS7 pdfpkcs7 = new PdfPKCS7(null, certChain, "SHA-256", false);
+            //byte[] hash2 = pdfpkcs7.getAuthenticatedAttributeBytes(hash1, null, null, CryptoStandard.CMS);
+            stamper.Close();
+            reader.Close();
+            if (hash1.Length == 0)
+            {
+                throw new Exception("Không thể hash file");
+            }
+
+            return new CA2PDFSignProfile
+            {
+                PDFToSign = tempdata,
+                HashValue = hash1,
+                Fieldname = fieldName,
+                CertChain = certChain,
+                DocId = docId,
+                TransactionId = transactionId,
+            };
+        }
+        public static void SetSignatureAppearance(PdfSignatureAppearance appearance, X509Certificate2 cert, string fieldName)
+        {
+            appearance.Reason = "Xác nhận tài liệu";
+            appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.DESCRIPTION;
+            string subject = cert.Subject;
+            string nguoiKy = subject.GetSubjectValue("CN=");
+            string noiKy = subject.GetSubjectValue("S=");
+            appearance.Layer2Text = $"Ngày ký: {DateTime.Now} \nNgười ký: {nguoiKy} \nNơi ký: {noiKy}";
+            BaseFont fontBase = BaseFont.CreateFont(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "times.ttf"), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+            var itextFont = new iTextSharp.text.Font(fontBase, 10, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.RED);
+            appearance.Layer2Font = new iTextSharp.text.Font(itextFont);
+            var rectangle = new iTextSharp.text.Rectangle(10, 10, 250, 100);
+            appearance.SetVisibleSignature(rectangle, 1, fieldName);
+        }
+
+        //CA2 chi ky hash1 (PKCS#1)
+        public static bool ValidSignaturePDF(string base64StringValue, byte[] hashValue, X509Certificate2 cert)
+        {
+            using (var rsa = cert.GetRSAPublicKey())
+            {
+                return rsa.VerifyHash(hashValue, Convert.FromBase64String(base64StringValue), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+            }
+        }
+
+        public static int CalculateEstimatedSignatureSize(Org.BouncyCastle.X509.X509Certificate[] certChain, ITSAClient tsc, byte[] ocsp, ICollection<byte[]> crlList)
+        {
+            int num = 0;
+            if (certChain != null)
+            {
+                foreach (Org.BouncyCastle.X509.X509Certificate x509Certificate in certChain)
+                {
+                    num += ((x509Certificate != null) ? x509Certificate.GetEncoded().Length : 0);
+                }
+            }
+            num += 2000;
+            if (ocsp != null)
+            {
+                num += ocsp.Length;
+            }
+            if (tsc != null)
+            {
+                num += 4096;
+            }
+            if (crlList != null)
+            {
+                foreach (byte[] crl in crlList)
+                {
+                    num += ((crl != null) ? crl.Length : 0);
+                }
+                num += 100;
+            }
+            return num;
+        }
+        #endregion
     }
-    #endregion
-}
 }

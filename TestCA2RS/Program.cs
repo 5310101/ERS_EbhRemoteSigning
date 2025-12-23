@@ -2,6 +2,7 @@
 using ERS_Domain.clsUtilities;
 using ERS_Domain.CustomSigner.CA2CustomSigner;
 using ERS_Domain.Request;
+using Microsoft.SqlServer.Server;
 using System;
 using System.IO;
 using System.Linq;
@@ -145,10 +146,12 @@ namespace TestCA2RS
                 string pathfileXML = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595.xml";
                 string pathfileXMLTemp = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595_temp.xml";
 
+                string pathSignedD02Valid = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595_Valid.xml";
                 string pathSignedXMl = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\BaoHiemDienTu.xml";
+                string pathBHXH = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\BHXHDienTu.xml";
 
                 //Console.WriteLine("Valid");
-                //ValidateXmlSignature(pathfileXMLTemp, out string mes);
+                //ValidateXmlSignature(pathSignedD02Valid, out string mes);
                 //Console.WriteLine(mes);
                 //if (Console.ReadLine() == "c")
                 //{
@@ -160,7 +163,7 @@ namespace TestCA2RS
                 if (type == "xml")
                 {
                     //ky test xml
-                    XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathfileXML,"");
+                    XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathBHXH, "");
                     string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
                     var listFiles = new FileToSign[]
                     {
@@ -183,7 +186,8 @@ namespace TestCA2RS
                         //signature value sample: O6jN+4fGUP6v6ZunAQ0WKKknGn4rvIdipAJ6ZDBbx6JX08vYIh9niM0PypXRpH/45g9qpuzv6Vwgl1jO52SieASzPX52hBJuse0eqYrTWsISyENbIFlKbtr7KzxWL+FMyZmfSfrt2mpq/1STzh16+R+hzCzmwJAW0FmqFsc/b66QRtTrZbwz1ANx5zJgTh7+MU3rD+S62AVTyeZL4reh2AAT4b/npB71/UPfQNy6KbTj2KNyS+K8SF/EOfvT6y+1U8vBfloH7vZQUOU2XrOPX0SWb76RhShyDH59B+ku74BXjXJJzruQ1wwPltK61hjKkxIWhvdLcP4xYO7VCt+DgQ==
                         string res_value = res2.data.signatures[0].signature_value;
                         //var signedInfo1 = CA2SignUtilities.CreateSignedInfoNode(pathfileXML, cert, "");   
-                        byte[] data = CA2SignUtilities.AddSignatureXmlWithData(pathfileXML, signedInfo, res_value, certRaw, signTime, "//D02-TS/Cky");
+                        //byte[] data = CA2SignUtilities.AddSignatureXmlWithData(pathfileXML, signedInfo, res_value, certRaw, signTime, "//D02-TS/Cky");
+                        byte[] data = CA2SignUtilities.AddSignatureXmlWithData(pathBHXH, signedInfo, res_value, certRaw, signTime, "//Hoso/CKy_Dvi");
                         File.WriteAllBytes(pathfileXMLTemp, data);
 
                         //valid xml
