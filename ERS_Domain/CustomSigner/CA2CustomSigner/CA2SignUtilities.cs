@@ -11,20 +11,20 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
-using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
-using System.Security.Cryptography.Xml;
 using System.Text;
 using System.Xml;
 
 using SignedXml = netSecurity::System.Security.Cryptography.Xml.SignedXml;
 using Reference = netSecurity::System.Security.Cryptography.Xml.Reference;
 using XmlDsigEnvelopedSignatureTransform = netSecurity::System.Security.Cryptography.Xml.XmlDsigEnvelopedSignatureTransform;
-using Transform = netSecurity::System.Security.Cryptography.Xml.Transform;
 using XmlDsigC14NTransform = netSecurity::System.Security.Cryptography.Xml.XmlDsigC14NTransform;
-using System.Web.Configuration;
-using System.Net.Sockets;
-using ERS_Domain.Model;
+using KeyInfo = netSecurity::System.Security.Cryptography.Xml.KeyInfo;
+using RSAKeyValue = netSecurity::System.Security.Cryptography.Xml.RSAKeyValue;
+using KeyInfoClause = netSecurity::System.Security.Cryptography.Xml.KeyInfoClause;
+using Signature = netSecurity::System.Security.Cryptography.Xml.Signature;
+using DataObject = netSecurity::System.Security.Cryptography.Xml.DataObject;
+using KeyInfoX509Data = netSecurity::System.Security.Cryptography.Xml.KeyInfoX509Data;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
 {
@@ -216,17 +216,121 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             return Encoding.UTF8.GetBytes(xDoc.OuterXml);
         }
 
-        public static string ComputeDigestValue(string filePath)
+        public static string ComputeDigestValue(string filePath, X509Certificate2 cert, string nodeSign, out string tempFile)
         {
             XmlDocument xDoc = new XmlDocument();
             xDoc.PreserveWhitespace = true;
             xDoc.Load(filePath);
 
+            tempFile = Path.GetTempFileName();
+
             //Tao SignedXml
             SignedXml signedXml = new SignedXml(xDoc);
-            string tempFile = Path.GetTempFileName();
-            
+            //Tao 1 privatekey gia
+            var privateKey = RSA.Create();
+            signedXml.SigningKey = privateKey;
+            signedXml.SignedInfo.SignatureMethod = SignedXml.XmlDsigRSASHA256Url;
+            signedXml.SignedInfo.CanonicalizationMethod = SignedXml.XmlDsigC14NTransformUrl;
+            Signature sig = signedXml.Signature;
+            sig.Id = "sigid";
+            //tao reference
+            Reference reference = new Reference();
+            reference.Uri = "";
+            XmlDsigEnvelopedSignatureTransform transform = new XmlDsigEnvelopedSignatureTransform();
+            reference.AddTransform(transform);
+            reference.DigestMethod = SignedXml.XmlDsigSHA256Url;
+            signedXml.AddReference(reference);
 
+            //tao key info
+            KeyInfo keyInfo = new KeyInfo();
+            RSA rsa = cert.GetRSAPublicKey();
+            RSAKeyValue rSAKeyValue = new RSAKeyValue(rsa);
+            keyInfo.AddClause((KeyInfoClause)(object)rSAKeyValue);
+            KeyInfoX509Data x509Data = new KeyInfoX509Data(cert);
+            x509Data.AddSubjectName(cert.Subject);
+            keyInfo.AddClause((KeyInfoClause)(object)x509Data);
+
+            signedXml.KeyInfo = keyInfo;
+
+
+            //tao Signature properties
+            XmlElement ele1 = xDoc.CreateElement("SignatureProperties", (string)null);
+            ele1.SetAttribute("Id", "proid");
+            XmlElement ele2 = xDoc.CreateElement("SignatureProperty", (string)null);
+            ele2.SetAttribute("Target", "#sigid");
+            XmlElement ele3 = xDoc.CreateElement("SigningTime", (string)null);
+            ele3.SetAttribute("xmlns", "http://example.org/#signatureProperties");
+            ele3.InnerText = DateTime.UtcNow.ToString("s") + "Z";
+            ele2.AppendChild((XmlNode)ele3);
+            ele1.AppendChild((XmlNode)ele2);
+            DataObject obj = new DataObject();
+            obj.Data = ele1.SelectNodes(".");
+            sig.AddObject(obj);
+
+            XmlNode nodeKy = null;
+            XmlNodeList nodeCkys = xDoc.GetElementsByTagName(nodeSign);
+            if (nodeCkys.Count > 0)
+            {
+                nodeKy = nodeCkys.Item(nodeCkys.Count - 1);
+            }
+            if (nodeKy == null)
+            {
+                throw new Exception("Không tìm thấy node ký");
+            }
+
+            signedXml.ComputeSignature();
+            XmlElement signatureNode = signedXml.GetXml();
+            nodeKy.AppendChild(signatureNode);
+            xDoc.Save(tempFile);
+
+            Reference reference1 = (Reference)signedXml.SignedInfo.References[0];
+            string digestValue = reference1.DigestValue.ToBase64String();
+            return digestValue;
+        }
+
+        public static void AddSignature(string tempFile, string saveFile, string signatureValue)
+        {
+            using (FileStream fs = File.OpenRead(tempFile))
+            {
+                XmlDocument xDoc = new XmlDocument();
+                xDoc.PreserveWhitespace = true;
+                xDoc.Load(fs);
+
+                //tim node signature
+                XmlNodeList listNode = xDoc.GetElementsByTagName("Signature");
+                if (listNode.Count == 0)
+                {
+                    throw new Exception("Không tìm thấy node ký");
+                }
+                XmlNode nodeSignature = listNode.Item(listNode.Count - 1);
+                //tim node SignatureValue
+                XmlNode nodeSigValue = null;
+                foreach (XmlNode node in nodeSignature.ChildNodes)
+                {
+                    if (node.Name.Equals("SignatureValue"))
+                    {
+                        nodeSigValue = node;
+                    }
+                }
+                if (nodeSigValue == null)
+                {
+                    throw new Exception("Không tìm thấy node SignatureValue");
+                }
+                nodeSigValue.InnerText = signatureValue;
+                xDoc.Save(saveFile);
+            }
+            try
+            {
+                if (File.Exists(tempFile))
+                {
+                    File.Delete(tempFile);
+                }
+            }
+            catch (IOException ex)
+            {
+
+                throw new Exception($"Lỗi xóa file: {ex.Message}");
+            }
         }
 
         #endregion
@@ -387,5 +491,18 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             return num;
         }
         #endregion
+    }
+
+    public class SignedXmlDigestGen : SignedXml
+    {
+        public SignedXmlDigestGen(): base()
+        {
+
+        }
+
+        public string GetDigestValue()
+        {
+            
+        }
     }
 }

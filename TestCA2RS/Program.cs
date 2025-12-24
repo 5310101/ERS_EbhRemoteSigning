@@ -149,22 +149,25 @@ namespace TestCA2RS
                 string pathSignedD02Valid = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595_Valid.xml";
                 string pathSignedXMl = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\BaoHiemDienTu.xml";
                 string pathBHXH = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\BHXHDienTu.xml";
+                string pathBHXHValid = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\BaoHiemDienTu_1.xml";
 
-                //Console.WriteLine("Valid");
-                //ValidateXmlSignature(pathSignedD02Valid, out string mes);
-                //Console.WriteLine(mes);
-                //if (Console.ReadLine() == "c")
-                //{
-                //    return;
-                //}
-
+                Console.WriteLine("Valid");
+                ValidateXmlSignature(pathBHXHValid, out string mes);
+                Console.WriteLine(mes);
+                if (Console.ReadLine() == "c")
+                {
+                    return;
+                }
+                string digestValue1 = ComputeCheckDigestValue(pathfileXMLTemp);
                 Console.WriteLine("Choose File Type");
                 string type = Console.ReadLine();
                 if (type == "xml")
                 {
                     //ky test xml
-                    XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathBHXH, "");
-                    string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
+                    //XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathBHXH, "");
+                    //string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
+                    string tempFile = Path.GetTempFileName();
+                    string hash_to_sign_xml = CA2SignUtilities.ComputeDigestValue(pathBHXH, cert, "CKy_Dvi", out tempFile);
                     var listFiles = new FileToSign[]
                     {
                         new FileToSign
@@ -187,8 +190,7 @@ namespace TestCA2RS
                         string res_value = res2.data.signatures[0].signature_value;
                         //var signedInfo1 = CA2SignUtilities.CreateSignedInfoNode(pathfileXML, cert, "");   
                         //byte[] data = CA2SignUtilities.AddSignatureXmlWithData(pathfileXML, signedInfo, res_value, certRaw, signTime, "//D02-TS/Cky");
-                        byte[] data = CA2SignUtilities.AddSignatureXmlWithData(pathBHXH, signedInfo, res_value, certRaw, signTime, "//Hoso/CKy_Dvi");
-                        File.WriteAllBytes(pathfileXMLTemp, data);
+                        CA2SignUtilities.AddSignature(tempFile, pathfileXMLTemp, res_value);
 
                         //valid xml
                         XmlDocument docV = new XmlDocument(){ PreserveWhitespace = true };
@@ -196,6 +198,7 @@ namespace TestCA2RS
                         var signedXml = new SignedXml(docV);
                         var nodeList = docV.GetElementsByTagName("Signature", SignedXml.XmlDsigNamespaceUrl);
                         signedXml.LoadXml((XmlElement)nodeList[0]);
+
                         bool valid = signedXml.CheckSignature();
                         if( ValidateXmlSignature(pathfileXMLTemp, out string message) == false)
                         {
@@ -246,6 +249,45 @@ namespace TestCA2RS
             }
 
             Console.ReadLine();
+        }
+
+        public static string ComputeCheckDigestValue(string pathfileXMLTemp)
+        {
+            XmlDocument xDoc = new XmlDocument();
+            xDoc.PreserveWhitespace = true;
+            xDoc.Load(pathfileXMLTemp);
+
+            SignedXml signedXml = new SignedXml(xDoc);
+            XmlNode nodeSig = xDoc.GetElementsByTagName("Signature")[0];
+            signedXml.LoadXml((XmlElement)nodeSig);
+
+            Reference reference = (Reference)signedXml.SignedInfo.References[0];
+            Stream input = new MemoryStream(Encoding.UTF8.GetBytes(xDoc.OuterXml));
+            
+            var env = new XmlDsigEnvelopedSignatureTransform();
+            env.LoadInput(xDoc);
+            XmlNodeList envOutput = (XmlNodeList)env.GetOutput(typeof(XmlNodeList));
+            //foreach (Transform t in reference.TransformChain)
+            //{
+            //    t.LoadInput(input);
+            //    input = (Stream)t.GetOutput(typeof(Stream));
+            //}
+            var c14n = new XmlDsigC14NTransform();
+            c14n.LoadInput(envOutput);
+
+            byte[] canonicalBytes;
+            using (var ms = new MemoryStream())
+            {
+                ((Stream)c14n.GetOutput(typeof(Stream))).CopyTo(ms);
+                canonicalBytes = ms.ToArray();
+            }
+            byte[] digest;
+            using (SHA256 sha = SHA256.Create())
+            {
+                digest = sha.ComputeHash(canonicalBytes);
+            }
+            string digestBase64 = Convert.ToBase64String(digest);
+            return digestBase64;
         }
     }
 }
