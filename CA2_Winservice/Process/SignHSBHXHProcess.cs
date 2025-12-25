@@ -78,7 +78,8 @@ namespace CA2_Winservice.Process
             //Them cks vao file
             string signatureValue = res.data.signatures[0].signature_value;
             string nodeKy =Path.GetFileNameWithoutExtension(hs.filePathHS).GetNodeSignXml();
-            CA2SignUtilities.AddSignatureXml(hs.filePathHS, profile.SignedInfo, signatureValue, profile.CertData, DateTime.Now, nodeKy);
+            //CA2SignUtilities.AddSignatureXml(hs.filePathHS, profile.SignedInfo, signatureValue, profile.CertData, DateTime.Now, nodeKy);
+            CA2SignUtilities.AddSignature(profile.TempPath , hs.filePathHS, signatureValue);
             //ky xong xoa profile va update trang thai hs
             var hsUpdate = new UpdateHoSoDto
             {

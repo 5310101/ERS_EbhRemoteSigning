@@ -11,6 +11,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
     {
         public string DocId { get; set; }   
         public string CertData { get; set; }
-        public XmlElement SignedInfo { get; set; }
+        //public XmlElement SignedInfo { get; set; }
+        public string TempPath { get; set; }  
     }
 }

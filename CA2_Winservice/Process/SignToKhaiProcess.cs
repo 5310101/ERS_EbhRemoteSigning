@@ -15,6 +15,7 @@ using System.Data;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Xml;
 
@@ -116,7 +117,8 @@ namespace CA2_Winservice.Process
                         {
                             throw new CA2ServerSignException($"server cannot sign file {tk.TenToKhai} ,id: {tk.TransactionId}");
                         }
-                        CA2SignUtilities.AddSignatureXml(tk.FilePath, profileXML.SignedInfo, sigValue1, profileXML.CertData, DateTime.Now, Path.GetFileNameWithoutExtension(tk.TenToKhai).GetNodeSignXml());
+                        //CA2SignUtilities.AddSignatureXml(tk.FilePath, profileXML.SignedInfo, sigValue1, profileXML.CertData, DateTime.Now, Path.GetFileNameWithoutExtension(tk.TenToKhai).GetNodeSignXml());
+                        CA2SignUtilities.AddSignature(profileXML.TempPath ,tk.FilePath, sigValue1);
                         var updateTk1 = new UpdateToKhaiDto
                         {
                             Id = tk.Id,
@@ -154,16 +156,20 @@ namespace CA2_Winservice.Process
                 throw new Exception("Cannot get certificate from CA2 service");
             }
             var cert = res1.data.user_certificates[0];
+            var x509Cert = new X509Certificate2(Convert.FromBase64String(cert.cert_data));
             //ky hash
             //tao 1 transactionId khac de ky ho so
             hs.transactionId = "HS".GenGuidStr();
-            XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(filePathHS, "");
-            string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
+            //XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(filePathHS, "");
+            //string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
+            string hash_to_sign_xml = CA2SignUtilities.ComputeDigestValue(filePathHS, x509Cert, Path.GetFileNameWithoutExtension(filePathHS).GetTagNodeSignXml(), out string tempFileHS );
+
             CA2XMlSignerProfile profile = new CA2XMlSignerProfile
             {
                 DocId = hs.transactionId,
-                SignedInfo = signedInfo,    
+                //SignedInfo = signedInfo,    
                 CertData = cert.cert_data,
+                TempPath = tempFileHS,
             };
             //them profile vao profile cache
             ProfileCache.SetProfileCache(profile.DocId, profile);

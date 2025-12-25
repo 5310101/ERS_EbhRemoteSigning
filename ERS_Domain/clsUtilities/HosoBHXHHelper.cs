@@ -41,6 +41,28 @@ namespace ERS_Domain.clsUtilities
             }
         }
 
+        public static string GetTagNodeSignXml(this string fileName)
+        {
+            switch (fileName)
+            {
+                case "TK1-TS-595":
+                case "D02-TS-595":
+                case "D03-TS-595":
+                case "D05-TS-595":
+                case "M01B-HSB":
+                case "05A-HSB":
+                case "D01-TS-595":
+                case "TK3-TS":
+                    return "Cky";
+                case "BHXHDienTu":
+                case "04_DK-IVAN":
+                case "05_SD-IVAN":
+                case "06_NG-IVAN":
+                    return "CKy_Dvi";
+                default: throw new Exception($"Unknown file name {fileName}");
+            }
+        }
+
         public static void CreateFileBHXHDienTu(this HoSoMessage hs, string pathBHXHDienTu)
         {
             List<FileToKhai> listTK = new List<FileToKhai>();

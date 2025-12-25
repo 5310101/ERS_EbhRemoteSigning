@@ -151,14 +151,14 @@ namespace TestCA2RS
                 string pathBHXH = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\BHXHDienTu.xml";
                 string pathBHXHValid = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\BaoHiemDienTu_1.xml";
 
-                Console.WriteLine("Valid");
-                ValidateXmlSignature(pathBHXHValid, out string mes);
-                Console.WriteLine(mes);
-                if (Console.ReadLine() == "c")
-                {
-                    return;
-                }
-                string digestValue1 = ComputeCheckDigestValue(pathfileXMLTemp);
+                //Console.WriteLine("Valid");
+                //ValidateXmlSignature(pathBHXHValid, out string mes);
+                //Console.WriteLine(mes);
+                //if (Console.ReadLine() == "c")
+                //{
+                //    return;
+                //}
+                //string digestValue1 = ComputeCheckDigestValue(pathfileXMLTemp);
                 Console.WriteLine("Choose File Type");
                 string type = Console.ReadLine();
                 if (type == "xml")
@@ -166,8 +166,9 @@ namespace TestCA2RS
                     //ky test xml
                     //XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathBHXH, "");
                     //string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
-                    string tempFile = Path.GetTempFileName();
-                    string hash_to_sign_xml = CA2SignUtilities.ComputeDigestValue(pathBHXH, cert, "CKy_Dvi", out tempFile);
+                    //string tempFile = Path.GetTempFileName();
+                    string hash_to_sign_xml = CA2SignUtilities.ComputeDigestValue(pathBHXH, cert, "CKy_Dvi", out string tempFile);
+                    //string hash_to_sign_xml = CA2SignUtilities.ComputeHashValue(pathBHXH, certRaw, out XmlDocument xDoc, "CKy_Dvi");
                     var listFiles = new FileToSign[]
                     {
                         new FileToSign
@@ -188,9 +189,10 @@ namespace TestCA2RS
                     {
                         //signature value sample: O6jN+4fGUP6v6ZunAQ0WKKknGn4rvIdipAJ6ZDBbx6JX08vYIh9niM0PypXRpH/45g9qpuzv6Vwgl1jO52SieASzPX52hBJuse0eqYrTWsISyENbIFlKbtr7KzxWL+FMyZmfSfrt2mpq/1STzh16+R+hzCzmwJAW0FmqFsc/b66QRtTrZbwz1ANx5zJgTh7+MU3rD+S62AVTyeZL4reh2AAT4b/npB71/UPfQNy6KbTj2KNyS+K8SF/EOfvT6y+1U8vBfloH7vZQUOU2XrOPX0SWb76RhShyDH59B+ku74BXjXJJzruQ1wwPltK61hjKkxIWhvdLcP4xYO7VCt+DgQ==
                         string res_value = res2.data.signatures[0].signature_value;
-                        //var signedInfo1 = CA2SignUtilities.CreateSignedInfoNode(pathfileXML, cert, "");   
+                        //var signedInfo1 = CA2SignUtilities.CreateSignedInfoNode(pathfileXML, "");
                         //byte[] data = CA2SignUtilities.AddSignatureXmlWithData(pathfileXML, signedInfo, res_value, certRaw, signTime, "//D02-TS/Cky");
                         CA2SignUtilities.AddSignature(tempFile, pathfileXMLTemp, res_value);
+                        //CA2SignUtilities.AddSignatureToXml(pathfileXML, xDoc, res_value);
 
                         //valid xml
                         XmlDocument docV = new XmlDocument(){ PreserveWhitespace = true };

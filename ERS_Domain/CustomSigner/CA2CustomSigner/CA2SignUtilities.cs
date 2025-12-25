@@ -25,6 +25,9 @@ using KeyInfoClause = netSecurity::System.Security.Cryptography.Xml.KeyInfoClaus
 using Signature = netSecurity::System.Security.Cryptography.Xml.Signature;
 using DataObject = netSecurity::System.Security.Cryptography.Xml.DataObject;
 using KeyInfoX509Data = netSecurity::System.Security.Cryptography.Xml.KeyInfoX509Data;
+using Transform = netSecurity::System.Security.Cryptography.Xml.Transform;
+
+using System.Security.Cryptography.Xml;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
 {
@@ -51,15 +54,33 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             return hashToSignBase64;
         }
 
-
-        public static XmlElement CreateSignedInfoNode(string filePath, string xmlNodeReferencePath = "")
+        public static string ComputeHashValue(string filePath, string rawCert, out XmlDocument xDoc, string nodeTag = "")
         {
-            XmlDocument origin = new XmlDocument();
-            origin.PreserveWhitespace = true;
-            origin.Load(filePath);
-            XmlDocument xDoc = (XmlDocument)origin.CloneNode(true);
+            xDoc = new XmlDocument();
+            xDoc.PreserveWhitespace = true;
+            xDoc.Load(filePath);
+            XmlElement nodeSignedInfo = CreateSignedInfoNode(xDoc);
+            XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, rawCert, DateTime.UtcNow);
 
-            //Tinh hash tren clone
+            var nodeList = xDoc.GetElementsByTagName(nodeTag);
+            if (nodeList.Count == 0)
+            {
+                throw new Exception("Không tìm thấy node ký");
+            }
+            var nodeKy = nodeList[nodeList.Count - 1];
+            var nodeImported = xDoc.ImportNode(nodeSignature, true);
+            nodeKy.AppendChild(nodeImported);
+
+            return nodeSignedInfo.Canonicalize().Hash().ToBase64String();
+        }
+
+        public static XmlElement CreateSignedInfoNode(XmlDocument xDoc)
+        {
+            XmlNamespaceManager nsm = new XmlNamespaceManager(xDoc.NameTable);
+            nsm.AddNamespace("ns1", SignedXml.XmlDsigNamespaceUrl);
+            XmlNode nodeSig = xDoc.SelectSingleNode("//ns1:Signature", nsm);
+            nodeSig?.ParentNode.RemoveChild(nodeSig);
+
             XmlDsigC14NTransform transform = new XmlDsigC14NTransform();
             transform.LoadInput(xDoc);
 
@@ -133,7 +154,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
 
         private static byte[] Canonicalize(this XmlElement elementToSign)
         {
-            var transform = new netSecurity::System.Security.Cryptography.Xml.XmlDsigC14NTransform();
+            var transform = new XmlDsigC14NTransform();
             transform.LoadInput(elementToSign.CreateDocumentFromElement());
             using (MemoryStream ms = (MemoryStream)transform.GetOutput(typeof(Stream)))
             {
@@ -158,8 +179,9 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             return xmlDocument;
         }
 
-        public static XmlElement CreateSignatureNode(XmlElement signedInfo, string signatureValue, X509Certificate2 certData, string rawCertData, DateTime signTime)
+        public static XmlElement CreateSignatureNode(XmlElement signedInfo, string rawCertData, DateTime signTime)
         {
+            X509Certificate2 certData = new X509Certificate2(Convert.FromBase64String(rawCertData));
             XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
             XmlElement nodeSignature = xDoc.CreateElement("Signature");
             nodeSignature.SetAttribute("Id", "sigid");
@@ -168,7 +190,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             nodeSignature.AppendChild(xDoc.ImportNode(signedInfo, true));
 
             XmlElement nodeSignatureValue = xDoc.CreateElement("SignatureValue");
-            nodeSignatureValue.InnerText = signatureValue;
+            //nodeSignatureValue.InnerText = signatureValue;
             nodeSignature.AppendChild(nodeSignatureValue);
 
             XmlElement nodeKeyInfo = xDoc.CreateElement("KeyInfo");
@@ -197,7 +219,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
         public static void AddSignatureXml(string filePath, XmlElement nodeSignedInfo, string signatureValue, string certRaw, DateTime signTime, string xPathSignNode)
         {
             X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
-            XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, signatureValue, cert, certRaw, signTime);
+            XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, certRaw, signTime);
             XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
             xDoc.Load(filePath);
             XmlNode nodeSign = xDoc.SelectSingleNode(xPathSignNode);
@@ -208,12 +230,24 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
         public static byte[] AddSignatureXmlWithData(string filePath, XmlElement nodeSignedInfo, string signatureValue, string certRaw, DateTime signTime, string xPathSignNode)
         {
             X509Certificate2 cert = new X509Certificate2(Convert.FromBase64String(certRaw));
-            XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, signatureValue, cert, certRaw, signTime);
+            XmlElement nodeSignature = CreateSignatureNode(nodeSignedInfo, certRaw, signTime);
             XmlDocument xDoc = new XmlDocument { PreserveWhitespace = true };
             xDoc.Load(filePath);
             XmlNode nodeSign = xDoc.SelectSingleNode(xPathSignNode);
             nodeSign.AppendChild(xDoc.ImportNode(nodeSignature, true));
             return Encoding.UTF8.GetBytes(xDoc.OuterXml);
+        }
+
+        public static void AddSignatureToXml(string filePath, XmlDocument tempDoc, string signatureValue)
+        {
+            var nodeList = tempDoc.GetElementsByTagName("SignatureValue");
+            if (nodeList.Count == 0)
+            {
+                throw new Exception("Không tìm thấy node SignatureValue");
+            }
+            var nodeSignatureValue = nodeList.Item(nodeList.Count - 1);
+            nodeSignatureValue.InnerText = signatureValue;
+            tempDoc.Save(filePath);
         }
 
         public static string ComputeDigestValue(string filePath, X509Certificate2 cert, string nodeSign, out string tempFile)
@@ -281,11 +315,38 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             signedXml.ComputeSignature();
             XmlElement signatureNode = signedXml.GetXml();
             nodeKy.AppendChild(signatureNode);
+
             xDoc.Save(tempFile);
 
-            Reference reference1 = (Reference)signedXml.SignedInfo.References[0];
-            string digestValue = reference1.DigestValue.ToBase64String();
-            return digestValue;
+            //lay digest value
+            var nodes = xDoc.GetElementsByTagName("SignedInfo");
+            string hashValue = "";
+            if (nodes.Count != 0)
+            {
+                var nodeSI = nodes[nodes.Count - 1];
+                byte[] hash = GetHashValue(nodeSI);
+                hashValue = Convert.ToBase64String(hash);
+            }
+
+            return hashValue;
+        }
+
+        private static byte[] GetHashValue(XmlNode nodeSI)
+        {
+            XmlDocument xDoc = new XmlDocument();
+            xDoc.PreserveWhitespace = true;
+            xDoc.LoadXml(nodeSI.OuterXml);
+            XmlDsigC14NTransform val = new XmlDsigC14NTransform();
+            ((Transform)val).LoadInput((object)xDoc);
+            string s = new StreamReader((Stream)((Transform)val).GetOutput(typeof(Stream))).ReadToEnd();
+            return encodeData(Encoding.UTF8.GetBytes(s));
+        }
+
+        private static byte[] encodeData(byte[] orginalData)
+        {
+            SHA256 sHA2 = new SHA256Managed();
+            byte[] result = sHA2.ComputeHash(orginalData);
+            return result;
         }
 
         public static void AddSignature(string tempFile, string saveFile, string signatureValue)
@@ -491,18 +552,5 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             return num;
         }
         #endregion
-    }
-
-    public class SignedXmlDigestGen : SignedXml
-    {
-        public SignedXmlDigestGen(): base()
-        {
-
-        }
-
-        public string GetDigestValue()
-        {
-            
-        }
     }
 }
