@@ -67,6 +67,7 @@ namespace IntrustCA_Domain
             catch (Exception)
             {
                 //log
+                Logger.ErrorLog("Create session failed", "SignSessionStore");
                 return false;
             }
         }
@@ -98,6 +99,7 @@ namespace IntrustCA_Domain
             catch (Exception ex)
             {
                 //log
+                Logger.ErrorLog(ex, "AutoRefresh session failed", "SignSessionStore");
                 return false;
             }
         }

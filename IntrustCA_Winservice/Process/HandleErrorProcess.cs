@@ -57,6 +57,8 @@ namespace IntrustCA_Winservice.Process
             {
                 Utilities.logger.InfoLog($"Handle dead letter message from queue {queueName} with uid {hs?.uid}", "HandleErrorProcess");
                 //Them logic xu ly tai day
+                // neu co deadletter o bat cu dau thi update trang thai la loi
+
 
                 return true;
             }
