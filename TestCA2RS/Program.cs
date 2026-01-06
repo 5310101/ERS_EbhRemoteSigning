@@ -2,7 +2,6 @@
 using ERS_Domain.clsUtilities;
 using ERS_Domain.CustomSigner.CA2CustomSigner;
 using ERS_Domain.Request;
-using Microsoft.SqlServer.Server;
 using System;
 using System.IO;
 using System.Linq;
@@ -143,7 +142,7 @@ namespace TestCA2RS
                 //doc file roi tao hash ky
                 string pathfilePDF = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf.pdf";
                 string pathfilePDFTemp = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf_temp.pdf";
-                string pathfileXML = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595.xml";
+                string pathfileXML = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\TK1-TS-595.xml";
                 string pathfileXMLTemp = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595_temp.xml";
 
                 string pathSignedD02Valid = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595_Valid.xml";
@@ -151,13 +150,15 @@ namespace TestCA2RS
                 string pathBHXH = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\BHXHDienTu.xml";
                 string pathBHXHValid = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\BaoHiemDienTu_1.xml";
 
-                //Console.WriteLine("Valid");
-                //ValidateXmlSignature(pathBHXHValid, out string mes);
-                //Console.WriteLine(mes);
-                //if (Console.ReadLine() == "c")
-                //{
-                //    return;
-                //}
+                string pathTK1_Valid = "";
+
+                Console.WriteLine("Valid");
+                ValidateXmlSignature(pathBHXHValid, out string mes);
+                Console.WriteLine(mes);
+                if (Console.ReadLine() == "c")
+                {
+                    return;
+                }
                 //string digestValue1 = ComputeCheckDigestValue(pathfileXMLTemp);
                 Console.WriteLine("Choose File Type");
                 string type = Console.ReadLine();
@@ -167,7 +168,7 @@ namespace TestCA2RS
                     //XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathBHXH, "");
                     //string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
                     //string tempFile = Path.GetTempFileName();
-                    string hash_to_sign_xml = CA2SignUtilities.ComputeDigestValue(pathBHXH, cert, "CKy_Dvi", out string tempFile);
+                    string hash_to_sign_xml = CA2SignUtilities.ComputeDigestValue(pathfileXML, cert, "Cky", out string tempFile);
                     //string hash_to_sign_xml = CA2SignUtilities.ComputeHashValue(pathBHXH, certRaw, out XmlDocument xDoc, "CKy_Dvi");
                     var listFiles = new FileToSign[]
                     {
