@@ -162,6 +162,21 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             }
         }
 
+        public static byte[] GetC14NCanonicalize(this XmlNode nodeSI)
+        {
+            XmlDocument xDoc = new XmlDocument();
+            xDoc.PreserveWhitespace = true;
+            xDoc.AppendChild(xDoc.ImportNode(nodeSI, true));
+
+            //Canonicalization
+            XmlDsigC14NTransform val = new XmlDsigC14NTransform();
+            val.LoadInput(xDoc);
+            using (var stream = (MemoryStream)val.GetOutput(typeof(Stream)))
+            {
+                return stream.ToArray();
+            }
+        }
+
         private static byte[] Hash(this byte[] data)
         {
             byte[] digestByte;
@@ -250,7 +265,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             tempDoc.Save(filePath);
         }
 
-        public static string ComputeDigestValue(string filePath, X509Certificate2 cert, string nodeSign, out string tempFile)
+        public static string ComputeHashValueSendToServer(string filePath, X509Certificate2 cert, string nodeSign, out string tempFile)
         {
             XmlDocument xDoc = new XmlDocument();
             xDoc.PreserveWhitespace = true;
@@ -324,30 +339,13 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             if (nodes.Count != 0)
             {
                 var nodeSI = nodes[nodes.Count - 1];
-                byte[] hash = GetHashValue(nodeSI);
+                byte[] hash = nodeSI.GetC14NCanonicalize().Hash();
                 hashValue = Convert.ToBase64String(hash);
             }
 
             return hashValue;
         }
-
-        private static byte[] GetHashValue(XmlNode nodeSI)
-        {
-            XmlDocument xDoc = new XmlDocument();
-            xDoc.PreserveWhitespace = true;
-            xDoc.LoadXml(nodeSI.OuterXml);
-            XmlDsigC14NTransform val = new XmlDsigC14NTransform();
-            ((Transform)val).LoadInput((object)xDoc);
-            string s = new StreamReader((Stream)((Transform)val).GetOutput(typeof(Stream))).ReadToEnd();
-            return encodeData(Encoding.UTF8.GetBytes(s));
-        }
-
-        private static byte[] encodeData(byte[] orginalData)
-        {
-            SHA256 sHA2 = new SHA256Managed();
-            byte[] result = sHA2.ComputeHash(orginalData);
-            return result;
-        }
+ 
 
         public static void AddSignature(string tempFile, string saveFile, string signatureValue)
         {

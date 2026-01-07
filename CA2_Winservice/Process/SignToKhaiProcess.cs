@@ -14,10 +14,8 @@ using System;
 using System.Data;
 using System.IO;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
-using System.Xml;
 
 namespace CA2_Winservice.Process
 {
@@ -162,7 +160,7 @@ namespace CA2_Winservice.Process
             hs.transactionId = "HS".GenGuidStr();
             //XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(filePathHS, "");
             //string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
-            string hash_to_sign_xml = CA2SignUtilities.ComputeDigestValue(filePathHS, x509Cert, Path.GetFileNameWithoutExtension(filePathHS).GetTagNodeSignXml(), out string tempFileHS );
+            string hash_to_sign_xml = CA2SignUtilities.ComputeHashValueSendToServer(filePathHS, x509Cert, Path.GetFileNameWithoutExtension(filePathHS).GetTagNodeSignXml(), out string tempFileHS );
 
             CA2XMlSignerProfile profile = new CA2XMlSignerProfile
             {

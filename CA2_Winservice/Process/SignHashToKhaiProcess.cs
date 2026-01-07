@@ -121,7 +121,7 @@ namespace CA2_Winservice.Process
                             tk.TransactionId = "xml".GenGuidStr();
                             //XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(tk.FilePath,"");
                             //string hashToSignXml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
-                            string hashToSignXml = CA2SignUtilities.ComputeDigestValue(tk.FilePath, x509Cert, Path.GetFileNameWithoutExtension(tk.TenToKhai).GetTagNodeSignXml(), out string tempPath);
+                            string hashToSignXml = CA2SignUtilities.ComputeHashValueSendToServer(tk.FilePath, x509Cert, Path.GetFileNameWithoutExtension(tk.TenToKhai).GetTagNodeSignXml(), out string tempPath);
                             CA2XMlSignerProfile profileXML = new CA2XMlSignerProfile
                             {
                                 DocId = tk.TransactionId,
@@ -174,7 +174,7 @@ namespace CA2_Winservice.Process
                 hs.filePathHS = pathFileHSDK;
                 //XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathFileHSDK, "");
                 //string hashToSignXml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
-                string hashToSignXml = CA2SignUtilities.ComputeDigestValue(pathFileHSDK, x509Cert, Path.GetFileNameWithoutExtension(pathFileHSDK).GetTagNodeSignXml(), out string tempPathHSDK);
+                string hashToSignXml = CA2SignUtilities.ComputeHashValueSendToServer(pathFileHSDK, x509Cert, Path.GetFileNameWithoutExtension(pathFileHSDK).GetTagNodeSignXml(), out string tempPathHSDK);
                 CA2XMlSignerProfile profileXML = new CA2XMlSignerProfile
                 {
                     DocId = hs.transactionId,

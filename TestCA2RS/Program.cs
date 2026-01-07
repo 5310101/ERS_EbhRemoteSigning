@@ -152,13 +152,13 @@ namespace TestCA2RS
 
                 string pathTK1_Valid = "";
 
-                Console.WriteLine("Valid");
-                ValidateXmlSignature(pathBHXHValid, out string mes);
-                Console.WriteLine(mes);
-                if (Console.ReadLine() == "c")
-                {
-                    return;
-                }
+                //Console.WriteLine("Valid");
+                //ValidateXmlSignature(pathBHXHValid, out string mes);
+                //Console.WriteLine(mes);
+                //if (Console.ReadLine() == "c")
+                //{
+                //    return;
+                //}
                 //string digestValue1 = ComputeCheckDigestValue(pathfileXMLTemp);
                 Console.WriteLine("Choose File Type");
                 string type = Console.ReadLine();
@@ -168,7 +168,7 @@ namespace TestCA2RS
                     //XmlElement signedInfo = CA2SignUtilities.CreateSignedInfoNode(pathBHXH, "");
                     //string hash_to_sign_xml = CA2SignUtilities.CreateHashXmlToSign(signedInfo);
                     //string tempFile = Path.GetTempFileName();
-                    string hash_to_sign_xml = CA2SignUtilities.ComputeDigestValue(pathfileXML, cert, "Cky", out string tempFile);
+                    string hash_to_sign_xml = CA2SignUtilities.ComputeHashValueSendToServer(pathfileXML, cert, "Cky", out string tempFile);
                     //string hash_to_sign_xml = CA2SignUtilities.ComputeHashValue(pathBHXH, certRaw, out XmlDocument xDoc, "CKy_Dvi");
                     var listFiles = new FileToSign[]
                     {
