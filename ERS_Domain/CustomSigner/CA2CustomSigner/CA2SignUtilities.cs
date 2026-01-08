@@ -502,12 +502,12 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             appearance.SignatureRenderingMode = PdfSignatureAppearance.RenderingMode.DESCRIPTION;
             string subject = cert.Subject;
             string nguoiKy = subject.GetSubjectValue("CN=");
-            string noiKy = subject.GetSubjectValue("S=");
-            appearance.Layer2Text = $"Ngày ký: {DateTime.Now} \nNgười ký: {nguoiKy} \nNơi ký: {noiKy}";
+            //string noiKy = subject.GetSubjectValue("S=");
+            appearance.Layer2Text = $"Ngày ký: {DateTime.Now} \nKý bởi: {nguoiKy}";
             BaseFont fontBase = BaseFont.CreateFont(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "times.ttf"), BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
             var itextFont = new iTextSharp.text.Font(fontBase, 10, iTextSharp.text.Font.NORMAL, iTextSharp.text.BaseColor.RED);
             appearance.Layer2Font = new iTextSharp.text.Font(itextFont);
-            var rectangle = new iTextSharp.text.Rectangle(10, 10, 250, 100);
+            var rectangle = new iTextSharp.text.Rectangle(0, 0, 250, 80);
             appearance.SetVisibleSignature(rectangle, 1, fieldName);
         }
 
