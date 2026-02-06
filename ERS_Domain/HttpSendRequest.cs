@@ -21,7 +21,6 @@ namespace ERS_Domain
         private readonly HttpClient _client;
         public Dictionary<string, string> Header { get; set; } = new Dictionary<string, string>();
         public string AuthorizeToken { get; set; }
-        private HttpMethodType _method { get; set; }
 
         public HttpSendRequest()
         {
@@ -39,10 +38,8 @@ namespace ERS_Domain
             Header = headers;
         }
 
-        public async Task<TRes> SendRequestAsync<TRes>(HttpMethodType method, string url, object body = null, CancellationToken cancellationToken = default)
+        public async Task<TRes> SendRequestAsync<TRes>(HttpMethodType method, string url, object body = default, CancellationToken cancellationToken = default)
         {
-            //try
-            //{
             string bodyJson = JsonConvert.SerializeObject(body);
             var bodyContent = new StringContent(bodyJson, Encoding.UTF8, "application/json");
 
@@ -86,16 +83,9 @@ namespace ERS_Domain
                 return default;
             }
             
-
             res.EnsureSuccessStatusCode();
             string resJson = await res.Content.ReadAsStringAsync().ConfigureAwait(false);
             return JsonConvert.DeserializeObject<TRes>(resJson);
         }
-        //catch (Exception ex)
-        //{
-        //    //ghi log
-        //    return default(TRes);
-        //}
-
     }
 }

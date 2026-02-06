@@ -28,7 +28,7 @@ namespace ERS_Domain.CAService
                 serial_number = serialNumber,
                 transaction_id = transactionId,
             };
-            return await _sendService.SendRequestAsync<CA2Response<CA2Certificates>>(HttpMethodType.post ,CA2_URI.uriGetCert, request, cancellationToken);
+            return await _sendService.SendRequestAsync< CA2Response<CA2Certificates>>(HttpMethodType.post ,CA2_URI.uriGetCert, request, cancellationToken);
         } 
 
         public async Task<CA2Response<FileSigned>> SignHashValue(string userId, string transactionId, FileToSign[] lstFile, string serialNumber, DateTime signTime)
@@ -43,7 +43,7 @@ namespace ERS_Domain.CAService
                 sign_files = lstFile,
                 time_stamp = signTime.ToString("yyyyMMddHHmmss"),
             };
-            return await _sendService.SendRequestAsync<CA2Response<FileSigned>>(HttpMethodType.post, CA2_URI.uriSign, request);
+            return await _sendService.SendRequestAsync< CA2Response<FileSigned>>(HttpMethodType.post, CA2_URI.uriSign, request);
         }
 
         public async Task<CA2StatusCheckResponse> GetSignedResult(string userId, string transactionId)
@@ -55,7 +55,7 @@ namespace ERS_Domain.CAService
                 user_id = userId,
                 transaction_id = transactionId,
             };
-            return await _sendService.SendRequestAsync<CA2StatusCheckResponse>(HttpMethodType.post, CA2_URI.uriGetResult, request);
+            return await _sendService.SendRequestAsync< CA2StatusCheckResponse>(HttpMethodType.post, CA2_URI.uriGetResult, request);
         }
 
         public X509Certificate2 ConvertCertStringToX509(string rawCert)

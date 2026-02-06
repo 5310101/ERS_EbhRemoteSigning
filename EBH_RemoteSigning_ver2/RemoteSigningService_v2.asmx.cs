@@ -90,7 +90,7 @@ namespace EBH_RemoteSigning_ver2
             }
         }
 
-        [WebMethod(Description = "Phương thức lấy chữ ký số từ server VNPT, truyền serial number để lấy chính xác chữ ký số nếu tài khoản có nhiều chữ ký số.")]
+        [WebMethod(Description = "Phương thức lấy chữ ký số từ server của bên thứ ba, truyền serial number để lấy chính xác chữ ký số nếu tài khoản có nhiều chữ ký số.")]
         [SoapHeader("AuthorizeHeader", Direction = SoapHeaderDirection.In)]
         public ERS_Response GetCertificate_VNPT(RemoteSigningProvider provider, string uid, string serialNumber = "")
         {

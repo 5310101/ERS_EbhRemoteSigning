@@ -39,7 +39,8 @@ namespace ERS_Domain.Model
         VNPT =1,
         VietTel =2,
         Intrust = 3,
-        CA2 = 4
+        CA2 = 4,
+        MISA = 5,
     }
 
     public class RectanglePosition

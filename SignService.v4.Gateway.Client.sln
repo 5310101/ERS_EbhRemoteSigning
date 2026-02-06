@@ -31,6 +31,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestCA2RS", "TestCA2RS\Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CA2_Winservice", "CA2_Winservice\CA2_Winservice.csproj", "{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test_MISA_Signing", "C:\Users\quanna\source\repos\Test_MISA_Signing\Test_MISA_Signing.csproj", "{787840AE-3E94-4299-AF6E-CF6F3C72A5DF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug_woDrawing|Any CPU = Debug_woDrawing|Any CPU
@@ -151,6 +153,14 @@ Global
 		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
 		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F0CAD125-EEF4-4CE9-B7E1-E946F4CC35AB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{787840AE-3E94-4299-AF6E-CF6F3C72A5DF}.Debug_woDrawing|Any CPU.ActiveCfg = Debug|Any CPU
+		{787840AE-3E94-4299-AF6E-CF6F3C72A5DF}.Debug_woDrawing|Any CPU.Build.0 = Debug|Any CPU
+		{787840AE-3E94-4299-AF6E-CF6F3C72A5DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{787840AE-3E94-4299-AF6E-CF6F3C72A5DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{787840AE-3E94-4299-AF6E-CF6F3C72A5DF}.Release_woDrawing|Any CPU.ActiveCfg = Release|Any CPU
+		{787840AE-3E94-4299-AF6E-CF6F3C72A5DF}.Release_woDrawing|Any CPU.Build.0 = Release|Any CPU
+		{787840AE-3E94-4299-AF6E-CF6F3C72A5DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{787840AE-3E94-4299-AF6E-CF6F3C72A5DF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

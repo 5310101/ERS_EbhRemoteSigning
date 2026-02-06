@@ -91,6 +91,10 @@
     <Compile Include="Dtos\UpdateToKhaiDto.cs" />
     <Compile Include="Exceptions\CustomException.cs" />
     <Compile Include="HttpSendRequest.cs" />
+    <Compile Include="MISA\Dto\Request.cs" />
+    <Compile Include="MISA\Dto\Response.cs" />
+    <Compile Include="MISA\MISAAPIConfig.cs" />
+    <Compile Include="MISA\SignService\MISASignService.cs" />
     <Compile Include="Model\BHXHDienTu.cs" />
     <Compile Include="Model\HSDKLanDau.cs" />
     <Compile Include="Model\SignFileInfo.cs" />
