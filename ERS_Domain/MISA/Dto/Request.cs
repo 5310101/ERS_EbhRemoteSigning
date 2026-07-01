@@ -12,7 +12,7 @@ namespace ERS_Domain.MISA.Dto
         public string password { get; set; }
     }
 
-    public class  MISARefreshTokenRequest
+    public class MISARefreshTokenRequest
     {
         public string refreshToken { get; set; }
     }
@@ -30,3 +30,4 @@ namespace ERS_Domain.MISA.Dto
         public string userName { get; set; }
         public string language { get; set; } = "vi-VN";
     }
+}

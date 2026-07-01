@@ -59,7 +59,9 @@ namespace IntrustCA_Domain.Dtos
                     return "M05A-HSB/Cky";
                 case "D01-TS-595":
                     return "D01-TS/Cky";
+                //Them th TK3-TS-595 vao 
                 case "TK3-TS":
+                case "TK3-TS-595":
                     return "TK3-TS/Cky";
                 case "BHXHDienTu":
                 case "04_DK-IVAN":

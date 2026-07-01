@@ -19,7 +19,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERS_Domain", "ERS_Domain\ERS_Domain.csproj", "{C554164F-3A96-487E-9875-EA342EC95799}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ws_GetResult_RemoteSigning", "ws_GetResult_RemoteSigning\ws_GetResult_RemoteSigning.csproj", "{B49FC744-5B16-4E5B-BF90-2DF10982AB65}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ws_SmartCA_RemoteSigning", "ws_GetResult_RemoteSigning\ws_SmartCA_RemoteSigning.csproj", "{B49FC744-5B16-4E5B-BF90-2DF10982AB65}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestRS_IntrustCA", "TestRS_IntrustderCA\TestRS_IntrustCA.csproj", "{022099BB-D447-473C-AE85-C52FD42A0686}"
 EndProject

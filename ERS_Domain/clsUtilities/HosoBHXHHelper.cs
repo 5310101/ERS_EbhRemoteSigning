@@ -31,6 +31,7 @@ namespace ERS_Domain.clsUtilities
                 case "D01-TS-595":
                     return "D01-TS/Cky";
                 case "TK3-TS":
+                case "TK3-TS-595":
                     return "TK3-TS/Cky";
                 case "BHXHDienTu":
                 case "04_DK-IVAN":
@@ -53,6 +54,7 @@ namespace ERS_Domain.clsUtilities
                 case "05A-HSB":
                 case "D01-TS-595":
                 case "TK3-TS":
+                case "TK3-TS-595":
                     return "Cky";
                 case "BHXHDienTu":
                 case "04_DK-IVAN":
