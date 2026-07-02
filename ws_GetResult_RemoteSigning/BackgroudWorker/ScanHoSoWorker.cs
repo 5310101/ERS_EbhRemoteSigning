@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ws_GetResult_RemoteSigning.BackgroudWorker
 {
-    internal class ScanHoSoWorker
+    public class ScanHoSoWorker
     {
     }
 }

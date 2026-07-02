@@ -46,10 +46,10 @@ namespace ws_GetResult_RemoteSigning
     public abstract class RabbitMqWorkerBase
     {
         protected readonly IChannel Channel;
-        protected readonly RabbitQueueOptions Options;
+        protected readonly List<RabbitQueueOptions> Options;
         private readonly Action<Exception, string> _logError; // thay bằng ILogger thực tế nếu có
 
-        protected RabbitMqWorkerBase(IChannel channel, RabbitQueueOptions options, Action<Exception, string> logError = null)
+        protected RabbitMqWorkerBase(IChannel channel, List<RabbitQueueOptions> options, Action<Exception, string> logError = null)
         {
             Channel = channel;
             Options = options;
@@ -68,29 +68,32 @@ namespace ws_GetResult_RemoteSigning
         /// </summary>
         public async Task DeclareInfrastructureAsync()
         {
-            await Channel.QueueDeclareAsync(
-                queue: Options.DeadLetterQueue,
-                durable: true, exclusive: false, autoDelete: false,
-                arguments: null);
+            foreach (var option in Options)
+            {
+                await Channel.QueueDeclareAsync(
+                 queue: option.DeadLetterQueue,
+                 durable: true, exclusive: false, autoDelete: false,
+                 arguments: null);
 
-            await Channel.QueueDeclareAsync(
-                queue: Options.MainQueue,
-                durable: true, exclusive: false, autoDelete: false,
-                arguments: new Dictionary<string, object>
-                {
-                    { "x-dead-letter-exchange", Options.ExchangeName },
-                    { "x-dead-letter-routing-key", Options.DeadLetterQueue }
-                });
+                await Channel.QueueDeclareAsync(
+                    queue: option.MainQueue,
+                    durable: true, exclusive: false, autoDelete: false,
+                    arguments: new Dictionary<string, object>
+                    {
+                    { "x-dead-letter-exchange", option.ExchangeName },
+                    { "x-dead-letter-routing-key", option.DeadLetterQueue }
+                    });
 
-            await Channel.QueueDeclareAsync(
-                queue: Options.RetryQueue,
-                durable: true, exclusive: false, autoDelete: false,
-                arguments: new Dictionary<string, object>
-                {
-                    { "x-dead-letter-exchange", Options.ExchangeName },
-                    { "x-dead-letter-routing-key", Options.MainQueue },
-                    { "x-message-ttl", Options.RetryTtlMs }
-                });
+                await Channel.QueueDeclareAsync(
+                    queue: option.RetryQueue,
+                    durable: true, exclusive: false, autoDelete: false,
+                    arguments: new Dictionary<string, object>
+                    {
+                    { "x-dead-letter-exchange", option.ExchangeName },
+                    { "x-dead-letter-routing-key", option.MainQueue },
+                    { "x-message-ttl", option.RetryTtlMs }
+                    });
+            }
         }
 
         /// <summary>
@@ -99,24 +102,28 @@ namespace ws_GetResult_RemoteSigning
         /// </summary>
         public async Task StartConsumingAsync(CancellationToken cancellationToken)
         {
-            await Channel.BasicQosAsync(0, Options.PrefetchCount, false);
-
-            var consumer = new AsyncEventingBasicConsumer(Channel);
-            consumer.ReceivedAsync += async (model, ea) =>
+            foreach (var option in Options)
             {
-                try
-                {
-                    await ProcessMessageAsync(ea, cancellationToken);
-                    await Channel.BasicAckAsync(ea.DeliveryTag, false);
-                }
-                catch (Exception ex)
-                {
-                    _logError(ex, $"Consume message error on queue {Options.MainQueue}");
-                    await HandleFailureAsync(ea, ex);
-                }
-            };
+                await Channel.BasicQosAsync(0, option.PrefetchCount, false);
 
-            await Channel.BasicConsumeAsync(Options.MainQueue, autoAck: false, consumer, cancellationToken);
+                var consumer = new AsyncEventingBasicConsumer(Channel);
+                consumer.ReceivedAsync += async (model, ea) =>
+                {
+                    try
+                    {
+                        await ProcessMessageAsync(ea, cancellationToken);
+                        await Channel.BasicAckAsync(ea.DeliveryTag, false);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logError(ex, $"Consume message error on queue {option.MainQueue}");
+                        await HandleFailureAsync(ea, ex);
+                    }
+                };
+
+                await Channel.BasicConsumeAsync(option.MainQueue, autoAck: false, consumer, cancellationToken);
+            }
+
         }
 
         /// <summary>Logic nghiệp vụ chính — viết ở lớp con.</summary>
@@ -129,28 +136,31 @@ namespace ws_GetResult_RemoteSigning
         /// </summary>
         protected virtual async Task HandleFailureAsync(BasicDeliverEventArgs ea, Exception ex)
         {
-            int retryCount = GetRetryCount(ea.BasicProperties);
-
-            // Luôn ack message gốc để không block queue; việc retry do mình tự publish lại.
-            await Channel.BasicAckAsync(ea.DeliveryTag, false);
-
-            var props = new BasicProperties
+            foreach (var option in Options)
             {
-                DeliveryMode = DeliveryModes.Persistent,
-                Headers = new Dictionary<string, object>
+                int retryCount = GetRetryCount(ea.BasicProperties);
+
+                // Luôn ack message gốc để không block queue; việc retry do mình tự publish lại.
+                await Channel.BasicAckAsync(ea.DeliveryTag, false);
+
+                var props = new BasicProperties
+                {
+                    DeliveryMode = DeliveryModes.Persistent,
+                    Headers = new Dictionary<string, object>
                 {
                     { "x-retry-count", retryCount + 1 },
                     { "x-last-error", ex.Message }
                 }
-            };
+                };
 
-            if (retryCount + 1 > Options.MaxRetryCount)
-            {
-                await Channel.BasicPublishAsync(Options.ExchangeName, Options.DeadLetterQueue, false, props, ea.Body);
-            }
-            else
-            {
-                await Channel.BasicPublishAsync(Options.ExchangeName, Options.RetryQueue, false, props, ea.Body);
+                if (retryCount + 1 > option.MaxRetryCount)
+                {
+                    await Channel.BasicPublishAsync(option.ExchangeName, option.DeadLetterQueue, false, props, ea.Body);
+                }
+                else
+                {
+                    await Channel.BasicPublishAsync(option.ExchangeName, option.RetryQueue, false, props, ea.Body);
+                }
             }
         }
 
@@ -177,14 +187,18 @@ namespace ws_GetResult_RemoteSigning
     {
         // Inject các service nghiệp vụ như CoreService, CA2SigningService... ở đây
         public SampleSignWorker(IChannel channel)
-            : base(channel, new RabbitQueueOptions
+            : base(channel, new List<RabbitQueueOptions>
             {
-                MainQueue = "HSCA2.ToKhai.q",
-                RetryQueue = "HSCA2.ToKhai.retry.q",
-                DeadLetterQueue = "HSCA2.ToKhai.dlq",
-                RetryTtlMs = 5000,
-                MaxRetryCount = 3,
-                PrefetchCount = 10
+                new RabbitQueueOptions
+                {
+                     MainQueue = "HSCA2.ToKhai.q",
+                     RetryQueue = "HSCA2.ToKhai.retry.q",
+                     DeadLetterQueue = "HSCA2.ToKhai.dlq",
+                     RetryTtlMs = 5000,
+                     MaxRetryCount = 3,
+                     PrefetchCount = 10
+                }
+
             })
         {
         }

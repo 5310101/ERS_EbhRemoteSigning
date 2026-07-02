@@ -130,6 +130,7 @@
   <ItemGroup>
     <Compile Include="BackgroudWorker\ScanHoSoWorker.cs" />
     <Compile Include="Process\ScanHoSoProcess.cs" />
+    <Compile Include="Process\SignhashToKhaiProcess.cs" />
     <Compile Include="RabbitMqWorkerBase.cs" />
     <Compile Include="ServiceGetResult_VNPT.cs">
       <SubType>Component</SubType>
@@ -139,6 +140,7 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Service\CoreService.cs" />
     <Compile Include="Service\SigningService.cs" />
   </ItemGroup>
   <ItemGroup>
