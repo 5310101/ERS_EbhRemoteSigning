@@ -76,4 +76,28 @@ namespace ERS_Domain.Exceptions
         {
         }
     }
+
+    public class SignHashException :Exception
+    {
+        public string GuidHS { get; set; }
+        public int IdToKhai { get; set; }
+
+        public SignHashException(string guidHS, int idToKhai)
+        {
+            GuidHS = guidHS;
+            IdToKhai = idToKhai;
+        }
+
+        public SignHashException(string guidHS, int idToKhai, string message) : base(message)
+        {
+            GuidHS = guidHS;
+            IdToKhai = idToKhai;
+        }
+
+        public SignHashException(string guidHS, int idToKhai, string message, Exception innerException) : base(message, innerException)
+        {
+            GuidHS = guidHS;
+            IdToKhai = idToKhai;
+        }
+    }
 }

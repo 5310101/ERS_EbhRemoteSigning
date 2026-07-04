@@ -1,4 +1,6 @@
-﻿using RabbitMQ.Client;
+﻿using ERS_Domain;
+using ERS_Domain.clsUtilities;
+using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
@@ -32,6 +34,12 @@ namespace ws_GetResult_RemoteSigning
         public int MaxRetryCount { get; set; } = 3;
 
         /// <summary>Số message tối đa xử lý song song / chưa ack trên 1 consumer.</summary>
+        
+    }
+
+    public class RabbitMqConsumerOptions
+    {
+        public string QueueName { get; set; }
         public ushort PrefetchCount { get; set; } = 10;
     }
 
@@ -47,12 +55,17 @@ namespace ws_GetResult_RemoteSigning
     {
         protected readonly IChannel Channel;
         protected readonly List<RabbitQueueOptions> Options;
+        private readonly List<RabbitMqConsumerOptions> _consumerOptions;
         private readonly Action<Exception, string> _logError; // thay bằng ILogger thực tế nếu có
 
-        protected RabbitMqWorkerBase(IChannel channel, List<RabbitQueueOptions> options, Action<Exception, string> logError = null)
+        protected RabbitMqWorkerBase(IChannel channel, 
+                                    List<RabbitQueueOptions> options,
+                                    List<RabbitMqConsumerOptions> consumerOptions = null, 
+                                    Action<Exception, string> logError = null)
         {
             Channel = channel;
             Options = options;
+            _consumerOptions = consumerOptions;
             _logError = logError ?? ((ex, msg) => Console.Error.WriteLine($"{msg}: {ex}"));
         }
 
@@ -102,7 +115,9 @@ namespace ws_GetResult_RemoteSigning
         /// </summary>
         public async Task StartConsumingAsync(CancellationToken cancellationToken)
         {
-            foreach (var option in Options)
+            if(_consumerOptions == null || !_consumerOptions.Any())
+                throw new InvalidOperationException("No consumer options provided.");   
+            foreach (var option in _consumerOptions)
             {
                 await Channel.BasicQosAsync(0, option.PrefetchCount, false);
 
@@ -116,14 +131,13 @@ namespace ws_GetResult_RemoteSigning
                     }
                     catch (Exception ex)
                     {
-                        _logError(ex, $"Consume message error on queue {option.MainQueue}");
+                        Utilities.logger.ErrorLog(ex, $"Consume message error on queue {option.QueueName}");
                         await HandleFailureAsync(ea, ex);
                     }
                 };
 
-                await Channel.BasicConsumeAsync(option.MainQueue, autoAck: false, consumer, cancellationToken);
+                await Channel.BasicConsumeAsync(option.QueueName, autoAck: false, consumer, cancellationToken);
             }
-
         }
 
         /// <summary>Logic nghiệp vụ chính — viết ở lớp con.</summary>
@@ -164,7 +178,7 @@ namespace ws_GetResult_RemoteSigning
             }
         }
 
-        private static int GetRetryCount(IReadOnlyBasicProperties props)
+        private int GetRetryCount(IReadOnlyBasicProperties props)
         {
             if (props?.Headers != null && props.Headers.TryGetValue("x-retry-count", out var val))
             {
@@ -177,6 +191,15 @@ namespace ws_GetResult_RemoteSigning
                 }
             }
             return 0;
+        }
+
+        protected  T ProcessMessageToObject<T>(BasicDeliverEventArgs ea)
+        {
+            var bytedata = ea.Body.ToArray();
+            string jsonMessage = Encoding.UTF8.GetString(bytedata);
+
+            //xu ly message
+            return jsonMessage.DeserializeJsonTo<T>();
         }
     }
 
@@ -196,10 +219,17 @@ namespace ws_GetResult_RemoteSigning
                      DeadLetterQueue = "HSCA2.ToKhai.dlq",
                      RetryTtlMs = 5000,
                      MaxRetryCount = 3,
-                     PrefetchCount = 10
-                }
-
-            })
+                    
+                },
+            },
+                  new List<RabbitMqConsumerOptions>
+                {
+                    new RabbitMqConsumerOptions
+                    {
+                        QueueName = "HSCA2.ToKhai.q",
+                        PrefetchCount = 10
+                    }
+                })
         {
         }
 

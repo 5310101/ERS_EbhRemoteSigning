@@ -1,4 +1,5 @@
 ﻿using ERS_Domain.Model;
+using VnptHashSignatures.Interface;
 
 namespace ERS_Domain.Dtos
 {
@@ -20,6 +21,8 @@ namespace ERS_Domain.Dtos
         public ToKhai[] toKhais { get; set; }
         public string filePathHS { get; set; }  
         public string transactionId { get; set; }
+        //vnpt
+        public string transCode { get; set; }
     }
     public class ToKhai
     {
@@ -30,6 +33,8 @@ namespace ERS_Domain.Dtos
         public string FilePath { get; set; }
         public string MoTaToKhai { get; set; }
         public FileType LoaiFile { get; set; }
+        //doi voi vnpt
+        public string TransCode { get; set; }
     }
 
     public enum  TypeHS

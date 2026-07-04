@@ -31,7 +31,6 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
                 DeadLetterQueue = "SmartCA.SignhashToKhai.dlq",
                 RetryTtlMs = 5000,
                 MaxRetryCount = 3,
-                PrefetchCount = 10
             },
             new RabbitQueueOptions
             {
@@ -40,7 +39,6 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
                 DeadLetterQueue = "SmartCA.SignhashHSDK.dlq",
                 RetryTtlMs = 5000,
                 MaxRetryCount = 3,
-                PrefetchCount = 10
             },
         })
         {
