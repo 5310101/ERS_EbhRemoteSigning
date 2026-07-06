@@ -1,5 +1,6 @@
 ﻿using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
+using ERS_Domain.Exceptions;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
@@ -50,8 +51,16 @@ namespace ws_GetResult_RemoteSigning.Process
             {
                 throw new Exception("Deserialize error or incorrect message");
             }
-           
-            _signService.SignToKhai_VNPT(hs);
+            try
+            {
+                _signService.SignToKhai_VNPT(hs);
+            }
+            catch (FileErrorException ex)
+            {
+                //neu file bi loi thi push vao queue SmartCA.GetResultToKhai.q de thong bao loi
+                throw;
+            }
+            
             //ky thanh cong roi push vao queue SmartCA.GetResultToKhai.q
             var properties = new BasicProperties()
             {
