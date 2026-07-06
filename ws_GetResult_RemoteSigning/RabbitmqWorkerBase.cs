@@ -131,7 +131,7 @@ namespace ws_GetResult_RemoteSigning
                     }
                     catch (Exception ex)
                     {
-                        Utilities.logger.ErrorLog(ex, $"Consume message error on queue {option.QueueName}");
+                        Utilities.logger.ErrorLog(ex, $"Error on queue {option.QueueName}");
                         await HandleFailureAsync(ea, ex);
                     }
                 };

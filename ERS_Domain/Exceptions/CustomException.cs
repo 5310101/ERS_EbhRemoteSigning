@@ -77,6 +77,57 @@ namespace ERS_Domain.Exceptions
         }
     }
 
+    public class SigningExpiredException : Exception
+    {
+
+        public SigningExpiredException()
+        {
+        }
+
+        public SigningExpiredException(string message) : base(message)
+        {
+        }
+
+        public SigningExpiredException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+    }
+
+    public class SigningRejectedException : Exception
+    {
+
+        public SigningRejectedException()
+        {
+        }
+
+        public SigningRejectedException(string message) : base(message)
+        {
+        }
+
+        public SigningRejectedException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+    }
+
+    public class FileErrorException : Exception
+    {
+        public string FilePath { get; set; }
+        public FileErrorException(string filePath)
+        {
+            FilePath = filePath;
+        }
+
+        public FileErrorException(string filePath,string message) : base(message)
+        {
+            FilePath = filePath;
+        }
+
+        public FileErrorException(string filePath,string message, Exception innerException) : base(message, innerException)
+        {
+            FilePath = filePath;
+        }
+    }
+
     public class SignHashException :Exception
     {
         public string GuidHS { get; set; }

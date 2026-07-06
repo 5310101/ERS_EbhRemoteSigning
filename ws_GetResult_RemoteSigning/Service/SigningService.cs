@@ -29,7 +29,7 @@ namespace ws_GetResult_RemoteSigning.Utils
     {
         private readonly DbService _dbService;
         private readonly SmartCAService _smartCAService;
-        private static List<TSDHashSigner> listSigner = new List<TSDHashSigner>();
+        //private static List<TSDHashSigner> listSigner = new List<TSDHashSigner>();
 
         //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu ho so mặc định là 3 ho so chua to khai
         private int _signTK_HSCount = int.Parse(ConfigurationManager.AppSettings["TKHS_COUNT"]);
@@ -53,123 +53,96 @@ namespace ws_GetResult_RemoteSigning.Utils
         #region ham lay ket qua ky tu server VNPT
         public void GetResultToKhai_VNPT(HoSoMessage hs)
         {
-            try
+
+            foreach (var toKhai in hs.toKhais)
             {
-                
-                foreach (var toKhai in hs.toKhais)
+                string GuidHS = hs.guid;
+                int id = toKhai.Id;
+                string tran_id = toKhai.TransactionId;
+                string tenToKhai = toKhai.TenToKhai;
+                string filePath = toKhai.FilePath;
+                //lay signer theo transaction_id
+                string url = $"{VNPT_URI.uriGetResult}/{tran_id}/status";
+                try
                 {
-                    string GuidHS = MethodLibrary.SafeString(dr["GuidHS"]);
-                    int id = MethodLibrary.SafeNumber<int>(dr["id"]);
-                    DateTime LastGet = MethodLibrary.SafeDateTime(dr["LastGet"]);
-                    string tran_id = MethodLibrary.SafeString(dr["transaction_id"]);
-                    string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
-                    string filePath = MethodLibrary.SafeString(dr["FilePath"]);
-                    string signerId = MethodLibrary.SafeString(dr["SignerId"]);
-                    string url = $"{VNPT_URI.uriGetResult}/{tran_id}/status";
-                    try
+
+                    ResStatus res = _smartCAService.GetStatus(url);
+                    if (res == null)
                     {
-
-                        ResStatus res = _smartCAService.GetStatus(url);
-                        if (res == null)
-                        {
-                            if (!listGuidKoLayDuocKQ.Contains(GuidHS))
-                            {
-                                listGuidKoLayDuocKQ.Add(GuidHS);
-                            }
-                        }
-
-                        if (res.message == "PENDING")
-                        {
-                            //van chua lay ket qua thi continue sau lay tiep
-                            continue;
-                        }
-
-                        if (res.message == "EXPIRED")
-                        {
-                            //khi to khai da het han update trang thai
-                            UpdateStatusToKhai(id, TrangThaiFile.HetHan, "The file's signing time has expired");
-                            if (!listHetHan.Contains(GuidHS))
-                            {
-                                listHetHan.Add(GuidHS);
-                            }
-                            continue;
-                        }
-
-                        if (res.message == "REJECTED")
-                        {
-                            //khi to khai da het han update trang thai
-                            UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "The file has been rejected");
-                            if (!listGuidKoLayDuocKQ.Contains(GuidHS))
-                            {
-                                listGuidKoLayDuocKQ.Add(GuidHS);
-                            }
-                            continue;
-                        }
-
-                        TSDHashSigner TSDSigner = listSigner.FirstOrDefault(s => s.Id == signerId);
-                        //file pdf ky bang signer profile ko can luu tru signer
-                        if (TSDSigner == null && Path.GetExtension(tenToKhai) != ".pdf")
-                        {
-                            UpdateStatusToKhai(id, TrangThaiFile.KyLoi, "Cannot find signer");
-                            continue;
-                        }
-                        IHashSigner signer = null;
-                        bool isSigned = false;
-                        //thu muc duong dan save file to khai sau khi ky
-
-                        switch (Path.GetExtension(tenToKhai))
-                        {
-                            case ".pdf":
-                                isSigned = GetResult_PDF(res.data, filePath);
-                                break;
-                            case ".xml":
-                                signer = TSDSigner.Signer;
-                                isSigned = GetResult_Xml(signer, res.data, filePath);
-                                break;
-                            case ".docx":
-                            case ".xlsx":
-                                signer = TSDSigner.Signer;
-                                isSigned = GetResult_Office(signer, res.data, filePath);
-                                break;
-                            default:
-                                //khi tiep nhan file o webservice la da kiem tra kieu file
-                                throw new Exception("Không hỗ trợ kiểu file ký");
-                        }
-                        if (!isSigned)
-                        {
-                            if (!listGuidKoLayDuocKQ.Contains(GuidHS))
-                            {
-                                listGuidKoLayDuocKQ.Add(GuidHS);
-                            }
-                            continue;
-                        }
-                        //update thanh trang thai da ky va xoa signer ra khoi bo nho
-                        listSigner.Remove(TSDSigner);
-                        UpdateStatusToKhai(id, TrangThaiFile.DaKy, "", filePath);
+                        throw new Exception("Cannot get result");
                     }
-                    catch (DatabaseInteractException ex)
+
+                    if (res.message == "PENDING")
                     {
-                        Utilities.logger.ErrorLog(ex, "Lỗi tương tác database");
-                        continue;
+                        //van chua lay ket qua thi continue sau lay tiep
+                        throw new NotSigningFromUserException("Waiting for user to sign");
                     }
-                    catch (Exception ex)
+
+                    if (res.message == "EXPIRED")
                     {
-                        Utilities.logger.ErrorLog(ex, $"Lỗi khi lấy kết quả file {GuidHS}[{id}]");
-                        UpdateStatusToKhai(id, TrangThaiFile.KyLoi, ex.Message, filePath, signerId, tran_id);
-                        if (!listGuidKoLayDuocKQ.Contains(GuidHS))
-                        {
-                            listGuidKoLayDuocKQ.Add(GuidHS);
-                        }
-                        continue;
+                        throw new SigningExpiredException("The file's signing time has expired");
                     }
+
+                    if (res.message == "REJECTED")
+                    {
+                        //khi to khai da het han update trang thai
+                        throw new SigningRejectedException("The file has been rejected");
+                    }
+
+                    //TSDHashSigner TSDSigner = listSigner.FirstOrDefault(s => s.Id == signerId);
+                    //lay signner de them cks vao file
+                    IHashSigner signer = SigningCache.GetSignerCache<IHashSigner>(tran_id);
+                    //file pdf ky bang signer profile ko can luu tru signer
+                    if (signer == null && Path.GetExtension(tenToKhai) != ".pdf")
+                    {
+                        throw new Exception("Cannot find signer");
+                    }
+                    bool isSigned = false;
+                    //thu muc duong dan save file to khai sau khi ky
+
+                    switch (Path.GetExtension(tenToKhai))
+                    {
+                        case ".pdf":
+                            isSigned = GetResult_PDF(res.data, filePath);
+                            break;
+                        case ".xml":
+                            isSigned = GetResult_Xml(signer, res.data, filePath);
+                            break;
+                        case ".docx":
+                        case ".xlsx":
+                            isSigned = GetResult_Office(signer, res.data, filePath);
+                            break;
+                        default:
+                            //khi tiep nhan file o webservice la da kiem tra kieu file
+                            throw new Exception("Không hỗ trợ kiểu file ký");
+                    }
+                    if (!isSigned)
+                    {
+                        //khong them dc chu ky so thi retry
+                        throw new Exception("Cannot add signature to file");
+                    }
+                    //update thanh trang thai da ky va xoa signer ra khoi bo nho
+                    SigningCache.RemoveSigner(tran_id);
+                    UpdateStatusToKhai(id, TrangThaiFile.DaKy, "", filePath);
                 }
-                UpdateHoSo_SignFailed(listGuidKoLayDuocKQ);
-                UpdateHoSo_Expired(listHetHan);
+                catch (DatabaseInteractException ex)
+                {
+                    Utilities.logger.ErrorLog(ex, "Lỗi tương tác database");
+                    continue;
+                }
+                catch (Exception ex)
+                {
+                    Utilities.logger.ErrorLog(ex, $"Lỗi khi lấy kết quả file {GuidHS}[{id}]");
+                    UpdateStatusToKhai(id, TrangThaiFile.KyLoi, ex.Message, filePath, signerId, tran_id);
+                    if (!listGuidKoLayDuocKQ.Contains(GuidHS))
+                    {
+                        listGuidKoLayDuocKQ.Add(GuidHS);
+                    }
+                    continue;
+                }
             }
-            catch (DatabaseInteractException ex)
-            {
-                Utilities.logger.ErrorLog(ex, "GetResultToKhai_VNPT");
-            }
+            UpdateHoSo_SignFailed(listGuidKoLayDuocKQ);
+            UpdateHoSo_Expired(listHetHan);
         }
 
         private SignerProfile RestoreSigner(string signerPath)
@@ -326,10 +299,8 @@ namespace ws_GetResult_RemoteSigning.Utils
                 UserCertificate cert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert, uid, serialNumber);
                 if (cert == null)
                 {
-                    //khong tim dc cks thi se bao luon ho so loi
-                    Utilities.logger.ErrorLog("Cert not found", $"{VNPT_URI.uriGetCert}, {uid},{serialNumber}");
+                    //khong tim dc cks thi se retry
                     UpdateStatusToKhai(id, TrangThaiFile.KyLoi, $"Cannot find certificate of {uid}");
-                    UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, $"Cannot find certificate of {uid}");
                     throw new Exception($"Cannot find certificate of {uid}");
                 }
                 byte[] Data = null;
@@ -338,18 +309,15 @@ namespace ws_GetResult_RemoteSigning.Utils
                     try
                     {
                         Data = File.ReadAllBytes(FilePath);
-                        if (Data == null)
-                        {
-                            throw new Exception($"Cannot read file {FilePath}");
-                        }
                     }
                     catch (Exception ex)
                     {
-                        Utilities.logger.ErrorLog(ex, "Read File Error", FilePath);
-                        //khong doc duoc file thi khoi can ky nua, update trang thai loi
-                        UpdateStatusToKhai(id, TrangThaiFile.KyLoi, $"Cannot find file {FilePath}");
-                        UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, $"Cannot find file {FilePath}");
-                        throw new Exception($"Cannot find file {FilePath}");
+                        throw new FileErrorException(FilePath, $"Read file {FilePath} error, {ex.Message}", ex);
+                    }
+                    
+                    if (Data.Length == 0)
+                    {
+                        throw new FileErrorException(FilePath, $"File {FilePath} error");
                     }
                 }
 
@@ -382,12 +350,6 @@ namespace ws_GetResult_RemoteSigning.Utils
                 {
                     throw new Exception($"Sign hash error: {errMessage}");
                 }
-                TSDHashSigner TSDSigner = new TSDHashSigner()
-                {
-                    Id = dataSign.transaction_id,
-                    Signer = signer,
-                };
-                listSigner.Add(TSDSigner);
                 toKhai.TransactionId = dataSign.transaction_id;
                 toKhai.TransCode = dataSign.tran_code;
                 SigningCache.SetSigningCache(dataSign.transaction_id, signer);

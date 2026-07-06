@@ -1,4 +1,5 @@
 ﻿using ERS_Domain.Dtos;
+using ERS_Domain.Exceptions;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
@@ -41,7 +42,8 @@ namespace ws_GetResult_RemoteSigning.Process
             _signService = signService;
         }
 
-        //process nay se consume message tu queue SmartCA.GetResultToKhai.q, xu ly lay ket qua ky to khai roi push vao queue SmartCA.SignHashHoSo.q
+        //process nay se consume message tu queue SmartCA.GetResultToKhai.q,
+        //xu ly lay ket qua ky to khai roi them chu ky so push vao queue SmartCA.SignHashHoSo.q
         protected override Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
         {
             var hs = ProcessMessageToObject<HoSoMessage>(ea);
@@ -49,7 +51,18 @@ namespace ws_GetResult_RemoteSigning.Process
             {
                 throw new Exception("Deserialize error or incorrect message");
             }
-            _signService.GetResultToKhai_VNPT(hs);
+            try
+            {
+                _signService.GetResultToKhai_VNPT(hs);
+            }
+            //handle trong truong hop nguoi ky chua ky file 
+            catch (NotSigningFromUserException)
+            {
+                // retry nhieu lan hon, ko tang count retry, de cho nguoi ky co the ky file roi moi retry
+                
+
+            }
+
         }
     }
 }
