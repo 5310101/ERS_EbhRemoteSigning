@@ -47,7 +47,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             catch (Exception ex)
             {
                 Utilities.logger.ErrorLog(ex, "UpdateHS");
-                return false;
+                throw;
             }
         }
 

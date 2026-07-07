@@ -141,24 +141,21 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
                         PublishedList.Add(guid);
                     }
                 }
+                //update co trans de ko bi mat trang thai message
+                //neu update loi thi dung luon service luu lai cac Guid HS update loi vi co the da duoc publish vao rabit mq
+                _coreService.UpdateHS(new UpdateHoSoDto()
+                {
+                    ListId = PublishedList.ToArray(),
+                    TrangThai = TrangThaiHoso.DangXuLy
+                });
             }
+            //Process nay ko consum message tu queue, ma chi scan ho so tu db va gui len queue, neu co loi thi log ra luon
             catch (Exception ex)
             {
-                Utilities.logger.ErrorLog(ex, "Error when publishing message to queue HSCA2");
+                Utilities.logger.ErrorLog(ex, "Error when scanning HoSo");
                 return;
             }
-            UpdateHoSoDto updateHS = new UpdateHoSoDto()
-            {
-                ListId = PublishedList.ToArray(),
-                TrangThai = TrangThaiHoso.DangXuLy
-            };
-            //update co trans de ko bi mat trang thai message
-            //neu update loi thi dung luon service luu lai cac Guid HS update loi vi co the da duoc publish vao rabit mq
-            bool isUpdate = _coreService.UpdateHS(updateHS);
-            if (isUpdate == false)
-            {
-                throw new DatabaseInteractException("Update database failed", PublishedList.ToArray());
-            }
+            
         }
     }
 }

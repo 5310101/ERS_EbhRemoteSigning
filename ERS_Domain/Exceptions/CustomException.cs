@@ -112,19 +112,23 @@ namespace ERS_Domain.Exceptions
     public class FileErrorException : Exception
     {
         public string FilePath { get; set; }
-        public FileErrorException(string filePath)
+        public int IdToKhai { get; set; }
+        public FileErrorException( int idToKhai, string filePath)
         {
             FilePath = filePath;
+            IdToKhai = idToKhai;
         }
 
-        public FileErrorException(string filePath,string message) : base(message)
+        public FileErrorException(int idToKhai,string filePath, string message) : base(message)
         {
             FilePath = filePath;
+            IdToKhai = idToKhai;
         }
 
-        public FileErrorException(string filePath,string message, Exception innerException) : base(message, innerException)
+        public FileErrorException(int idToKhai ,string filePath, string message, Exception innerException) : base(message, innerException)
         {
             FilePath = filePath;
+            IdToKhai = idToKhai;
         }
     }
 

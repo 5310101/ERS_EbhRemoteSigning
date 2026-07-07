@@ -1,14 +1,18 @@
-﻿using ERS_Domain.clsUtilities;
+﻿using ERS_Domain;
+using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
 using ERS_Domain.Exceptions;
+using ERS_Domain.Model;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using VnptHashSignatures.Common;
 using ws_GetResult_RemoteSigning.Utils;
 
 namespace ws_GetResult_RemoteSigning.Process
@@ -16,7 +20,13 @@ namespace ws_GetResult_RemoteSigning.Process
     public class SignHashToKhaiProcess : RabbitMqWorkerBase
     {
         private readonly IChannel _channel;
+        private readonly CoreService _coreService;
         private readonly SigningService _signService;
+        private static readonly int _retryTtlMs = int.Parse(ConfigurationManager.AppSettings["GETRESULT_RETRY_INTERVAL"]);
+        private static readonly int _maxCount = int.Parse(ConfigurationManager.AppSettings["GETRESULT_RETRY_MAXCOUNT"]);
+
+        //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu ho so mặc định là 3 ho so chua to khai
+        private static readonly ushort _signTK_HSCount = ushort.Parse(ConfigurationManager.AppSettings["TKHS_COUNT"]);
 
         public SignHashToKhaiProcess(IChannel channel, CoreService coreService, SigningService signService) : base(channel,
              new List<RabbitQueueOptions>
@@ -26,20 +36,21 @@ namespace ws_GetResult_RemoteSigning.Process
                     MainQueue = "SmartCA.GetResultToKhai.q",
                     RetryQueue = "SmartCA.GetResultToKhai.retry.q",
                     DeadLetterQueue = "SmartCA.GetResultToKhai.dlq",
-                    RetryTtlMs = 5000,
-                    MaxRetryCount = 3,
+                    RetryTtlMs = _retryTtlMs,
+                    MaxRetryCount = _maxCount,
                 },
             }, new List<RabbitMqConsumerOptions>
             {
                 new RabbitMqConsumerOptions
                 {
                     QueueName = "SmartCA.SignhashToKhai.q",
-                    //ky 5 ho so 1 luc 
-                    PrefetchCount = 5,
+                    //ky n ho so 1 luc 
+                    PrefetchCount = _signTK_HSCount,
                 },
             })
         {
             _channel = channel;
+            _coreService = coreService;
             _signService = signService;
         }
 
@@ -54,19 +65,33 @@ namespace ws_GetResult_RemoteSigning.Process
             try
             {
                 _signService.SignToKhai_VNPT(hs);
+                //ky thanh cong roi push vao queue SmartCA.GetResultToKhai.q
+                var properties = new BasicProperties()
+                {
+                    Persistent = true
+                };
+                await _channel.BasicPublishAsync(exchange: "", routingKey: "SmartCA.GetResultToKhai.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
             }
             catch (FileErrorException ex)
             {
-                //neu file bi loi thi push vao queue SmartCA.GetResultToKhai.q de thong bao loi
-                throw;
+                //neu file bi loi thi ack luon ko ky lai nua, update trang thai to khai va ho so loi
+                Utilities.logger.ErrorLog(ex, $"Lỗi đọc hsfile {ex.FilePath}");
+                //update trang thai to khai va ho so loi
+                _coreService.UpdateToKhai(new UpdateToKhaiDto
+                {
+                    Id = ex.IdToKhai,
+                    TrangThai = TrangThaiFile.KyLoi,
+                    ErrMsg = ex.Message,
+                });
+                _coreService.UpdateHS(new UpdateHoSoDto
+                {
+                    ListId = new string[] { hs.guid },  
+                    TrangThai = TrangThaiHoso.KyLoi,
+                    ErrMsg = $"Lỗi đọc hsfile {ex.FilePath}"
+                });
+                await Channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false);
+                //ko nhay vao day thi se handle exception nhu binh thuong, retry 3 lan roi push vao dlq
             }
-            
-            //ky thanh cong roi push vao queue SmartCA.GetResultToKhai.q
-            var properties = new BasicProperties()
-            {
-                Persistent = true
-            };
-            await _channel.BasicPublishAsync(exchange: "", routingKey: "SmartCA.GetResultToKhai.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
         }
     }
 }

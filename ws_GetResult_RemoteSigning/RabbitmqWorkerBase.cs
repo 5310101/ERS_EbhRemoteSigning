@@ -127,7 +127,7 @@ namespace ws_GetResult_RemoteSigning
                     try
                     {
                         await ProcessMessageAsync(ea, cancellationToken);
-                        await Channel.BasicAckAsync(ea.DeliveryTag, false);
+                        await Channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false);
                     }
                     catch (Exception ex)
                     {
@@ -178,7 +178,41 @@ namespace ws_GetResult_RemoteSigning
             }
         }
 
-        private int GetRetryCount(IReadOnlyBasicProperties props)
+        //truoc khi publish vao retry phai ack message goc, de ko bi block queue
+        protected async Task PublishToRetryQueueAsync( string queueName,string dlqName ,byte[] body, int retryCount, int maxRetry , string lastError = null)
+        {
+            var props = new BasicProperties
+            {
+                DeliveryMode = DeliveryModes.Persistent,
+                Headers = new Dictionary<string, object>
+                    {
+                        { "x-retry-count", retryCount + 1 },
+                        { "x-last-error", lastError }
+                    }
+            };
+            if (retryCount >= maxRetry) 
+            {    
+                //chuyen vao dlq
+                await Channel.BasicPublishAsync("", dlqName, false, props, body);
+            }
+            else
+            {
+                await Channel.BasicPublishAsync("", queueName, false, props, body);
+            }
+        }
+
+        protected async Task PublishToAnotherQueue(string exchangeName, string queueName,  byte[] body)
+        {
+            var props = new BasicProperties
+            {
+                DeliveryMode = DeliveryModes.Persistent,
+               
+            };
+            await Channel.BasicPublishAsync(exchangeName, queueName, false, props, body);
+            
+        }
+
+        protected int GetRetryCount(IReadOnlyBasicProperties props)
         {
             if (props?.Headers != null && props.Headers.TryGetValue("x-retry-count", out var val))
             {
