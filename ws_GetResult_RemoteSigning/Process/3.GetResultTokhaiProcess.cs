@@ -1,4 +1,5 @@
-﻿using ERS_Domain.clsUtilities;
+﻿using ERS_Domain;
+using ERS_Domain.clsUtilities;
 using ERS_Domain.Dtos;
 using ERS_Domain.Exceptions;
 using ERS_Domain.Model;
@@ -29,9 +30,9 @@ namespace ws_GetResult_RemoteSigning.Process
             {
                 new RabbitQueueOptions
                 {
-                    MainQueue = "SmartCA.SignHashHoSo.q",
-                    RetryQueue = "SmartCA.SignHashHoSo.retry.q",
-                    DeadLetterQueue = "SmartCA.SignHashHoSo.dlq",
+                    MainQueue = "SmartCA.GetResultHoSo.q",
+                    RetryQueue = "SmartCA.GetResultHoSo.retry.q",
+                    DeadLetterQueue = "SmartCA.GetResultHoSo.dlq",
                     RetryTtlMs = _retryTtlMs,
                     MaxRetryCount = _maxCount,
                 },
@@ -53,6 +54,10 @@ namespace ws_GetResult_RemoteSigning.Process
         //xu ly lay ket qua ky to khai roi them chu ky so push vao queue SmartCA.SignHashHoSo.q
         protected override async Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
             var hs = ProcessMessageToObject<HoSoMessage>(ea);
             if (hs == null)
             {
@@ -70,6 +75,7 @@ namespace ws_GetResult_RemoteSigning.Process
                 int retryCount = GetRetryCount(ea.BasicProperties);
                 //retry 30 lan, moi lan retry cach nhau 8s, neu qua 30 lan (150s) thi push vao dlq
                 await PublishToRetryQueueAsync( "SmartCA.GetResultToKhai.retry.q", "SmartCA.GetResultToKhai.dlq", body, retryCount, 30);
+                return;
             }
             // het han hoac tu choi ky thi ack luon, update trang thai hoso, ko retry nua
             catch (SigningExpiredException ex)
@@ -79,7 +85,9 @@ namespace ws_GetResult_RemoteSigning.Process
                      ListId = new string[] { hs.guid },
                      TrangThai = TrangThaiHoso.HetHan,
                      ErrMsg = ex.Message,
-                 }); 
+                 });
+                _coreService.DeleteTempFolder(Path.GetDirectoryName(ex.FilePath));
+                return;
             }
             catch (SigningRejectedException ex)
             {
@@ -88,18 +96,46 @@ namespace ws_GetResult_RemoteSigning.Process
                     ListId = new string[] { hs.guid },
                     TrangThai = TrangThaiHoso.KyLoi,
                     ErrMsg = ex.Message,
-                }); 
+                });
+                _coreService.DeleteTempFolder(Path.GetDirectoryName(ex.FilePath));
+                return;
             }
 
             //ok thi tao file xml ho so
+            //process nay se signhash HSNghiepVu va HSDKLD
             string pathSaveHS = Path.Combine(SignedTempFolder, $"{hs.guid}");
             _signService.CreateBHXHDienTu(hs, pathSaveHS);
-
-            //signhash ho so
-
-
-            //push vao queue SmartCA.SignHashHoSo.q de ky hash ho so
-            await PublishToAnotherQueue("","SmartCA.SignHashHoSo.q", hs.GetBytesStringFromJsonObject());
+            if (hs.typeDK == TypeHS.HSNV)
+            {
+                _signService.CreateBHXHDienTu(hs, pathSaveHS);
+            }
+            else if (hs.typeDK == TypeHS.HSDKLanDau)
+            {
+                string pathFile = Path.Combine(pathSaveHS, $"{hs.maNV}.xml");
+                var dtHSDK = _coreService.GetHSDKLanDau(hs.guid);   
+               _signService.CreateFileHoSoDK_LanDau(hs, pathFile, dtHSDK); 
+            }
+            //signhash  
+            try
+            {
+                _signService.SignHoSoBHXH(hs);
+                //push vao queue SmartCA.SignHashHoSo.q de lay ket qua ky tu CA
+                await PublishToAnotherQueue("", "SmartCA.GetResultHoSo.q", hs.GetBytesStringFromJsonObject());
+            }
+            catch (FileErrorException ex)
+            {
+                //neu file bi loi thi ack luon ko ky lai nua, update trang thai to khai va ho so loi
+                Utilities.logger.ErrorLog(ex, $"Lỗi đọc hsfile {ex.FilePath}");
+                _coreService.UpdateHS(new UpdateHoSoDto
+                {
+                    ListId = new string[] { hs.guid },
+                    TrangThai = TrangThaiHoso.KyLoi,
+                    ErrMsg = $"Lỗi đọc hsfile {ex.FilePath}"
+                });
+                //ko nhay vao day thi se handle exception nhu binh thuong, retry 3 lan roi push vao dlq
+                //Xoa thu muc chua file bi loi
+                _coreService.DeleteTempFolder(Path.GetDirectoryName(ex.FilePath));
+            }
         }
     }
 }

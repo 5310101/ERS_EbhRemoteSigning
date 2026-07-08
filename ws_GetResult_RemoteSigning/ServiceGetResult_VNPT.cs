@@ -9,41 +9,15 @@ namespace ws_GetResult_RemoteSigning
 {
     public partial class ServiceGetResult_VNPT : ServiceBase
     {
-        private SigningService _service;
+        private SigningService _signingService;
+        private readonly CoreService _coreService;
 
-        #region Timer ky to khai
-        private Timer _signTKTimer;
-        //thoi gian chay tu dong cua timer co the dieu chinh, mac dinh la 0.1s
-        private int _signtkTimeInterval = int.Parse(ConfigurationManager.AppSettings["SIGNTK_TIME_INTERVAL"]);
-        #endregion
-
-        #region Timer Lay ket qua to khai
-        private Timer _getResultTKTimer;
-        //thoi gian chay tu dong cua timer co the dieu chinh, mac dinh la 0.1s
-        private int _tkTimeInterval = int.Parse(ConfigurationManager.AppSettings["TK_TIME_INTERVAL"]);
-        #endregion
-
-        #region Timer ky hash file BHXHDienTu.xml
-        private Timer _signHSTimer;
-        //thoi gian chay tu dong cua timer co the dieu chinh, mac dinh la 0.1s
-        private int _signHSTimeInterval = int.Parse(ConfigurationManager.AppSettings["SIGNHS_TIME_INTERVAL"]);
-        #endregion
-
-        #region timer lay ket qua ho so
-        private Timer _getResultHSTimer;
-        //thoi gian chay tu dong cua timer co the dieu chinh, mac dinh la 0.1s
-        private int _hsTimeInterval = int.Parse(ConfigurationManager.AppSettings["HS_TIME_INTERVAL"]);
-        #endregion
-
-        //timer ky cac hs dang ky (ngoai tru hsdk cap ma lan dau)
-        #region timer sign ho so dang ky (tru dk cap ma lan dau)
-        private Timer _signHSDKTimer;
-        private int _signHSDKInterval = int.Parse(ConfigurationManager.AppSettings["SIGNHSDK_TIME_INTERVAL"]);
-        #endregion
 
         public ServiceGetResult_VNPT()
         {
             InitializeComponent();
+            _coreService = new CoreService();
+            _signingService = new SigningService();
 
         }
 
@@ -62,45 +36,7 @@ namespace ws_GetResult_RemoteSigning
 
         protected override void OnStart(string[] args)
         {
-            Utilities.logger.InfoLog("OnStart", "Service started");
-            _service = new SigningService();
-            try
-            {
-                _signTKTimer = new Timer();
-                _signTKTimer.Interval = _signtkTimeInterval;
-                _signTKTimer.AutoReset = true;
-                _signTKTimer.Elapsed += SignTKTimer_Elapsed;
-                _signTKTimer.Enabled = true;
-
-                _getResultTKTimer = new Timer();
-                _getResultTKTimer.Interval = _tkTimeInterval;
-                _getResultTKTimer.AutoReset = true;
-                _getResultTKTimer.Elapsed += TKTimer_Elapsed;
-                _getResultTKTimer.Enabled = true;
-
-                _signHSTimer = new Timer();
-                _signHSTimer.Interval = _signHSTimeInterval;
-                _signHSTimer.AutoReset = true;
-                _signHSTimer.Elapsed += SignHSTimer_Elapsed;
-                _signHSTimer.Enabled = true;
-
-                _getResultHSTimer = new Timer();
-                _getResultHSTimer.Interval = _hsTimeInterval;
-                _getResultHSTimer.AutoReset = true;
-                _getResultHSTimer.Elapsed += HSTimer_Elapsed;
-                _getResultHSTimer.Enabled = true;
-
-                _signHSDKTimer = new Timer();
-                _signHSDKTimer.Interval = _signHSDKInterval;
-                _signHSDKTimer.AutoReset = true;
-                _signHSDKTimer.Elapsed += SignHSDK_Elapsed;
-                _signHSDKTimer.Enabled = true;
-            }
-            catch (Exception ex)
-            {
-                Utilities.logger.ErrorLog(ex, "OnStart");
-                this.Stop();
-            }
+            
         }
 
         protected override void OnStop()

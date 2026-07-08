@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Data;
 using System.Linq;
+using System.IO;
 
 namespace ws_GetResult_RemoteSigning.Utils
 {
@@ -91,5 +92,21 @@ namespace ws_GetResult_RemoteSigning.Utils
             };
             return _dbService.ExecQuery_Tran(tsql, "", sqlParams);
         }
+
+        public void DeleteTempFolder(string folderPath)
+        {
+            try
+            {
+                if (Directory.Exists(folderPath))
+                {
+                    Directory.Delete(folderPath, true);
+                }
+            }
+            catch (Exception ex)
+            {
+                Utilities.logger.ErrorLog(ex, $"DeleteTempFolder failed for path: {folderPath}");
+                throw;
+            }
+        }   
     }
 }

@@ -8,18 +8,15 @@ using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
-using System.Text;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using VnptHashSignatures.Common;
 using ws_GetResult_RemoteSigning.Utils;
 
 namespace ws_GetResult_RemoteSigning.Process
 {
     public class SignHashToKhaiProcess : RabbitMqWorkerBase
     {
-        private readonly IChannel _channel;
         private readonly CoreService _coreService;
         private readonly SigningService _signService;
         private static readonly int _retryTtlMs = int.Parse(ConfigurationManager.AppSettings["GETRESULT_RETRY_INTERVAL"]);
@@ -49,7 +46,6 @@ namespace ws_GetResult_RemoteSigning.Process
                 },
             })
         {
-            _channel = channel;
             _coreService = coreService;
             _signService = signService;
         }
@@ -57,6 +53,10 @@ namespace ws_GetResult_RemoteSigning.Process
         //process nay se consume message tu queue SmartCA.SignhashToKhai.q, xu ly ky hash roi push vao queue SmartCA.GetResultToKhai.q
         protected override async Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
             var hs = ProcessMessageToObject<HoSoMessage>(ea);
             if (hs == null)
             {
@@ -66,11 +66,7 @@ namespace ws_GetResult_RemoteSigning.Process
             {
                 _signService.SignToKhai_VNPT(hs);
                 //ky thanh cong roi push vao queue SmartCA.GetResultToKhai.q
-                var properties = new BasicProperties()
-                {
-                    Persistent = true
-                };
-                await _channel.BasicPublishAsync(exchange: "", routingKey: "SmartCA.GetResultToKhai.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
+                await PublishToAnotherQueue("", "SmartCA.GetResultToKhai.q", hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
             }
             catch (FileErrorException ex)
             {
@@ -89,8 +85,9 @@ namespace ws_GetResult_RemoteSigning.Process
                     TrangThai = TrangThaiHoso.KyLoi,
                     ErrMsg = $"Lỗi đọc hsfile {ex.FilePath}"
                 });
-                await Channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false);
                 //ko nhay vao day thi se handle exception nhu binh thuong, retry 3 lan roi push vao dlq
+                //Xoa thu muc chua file bi loi
+                _coreService.DeleteTempFolder(Path.GetDirectoryName(ex.FilePath)); 
             }
         }
     }

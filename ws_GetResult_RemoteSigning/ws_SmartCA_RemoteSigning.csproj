@@ -131,9 +131,12 @@
   <ItemGroup>
     <Compile Include="BackgroudWorker\ScanHoSoWorker.cs" />
     <Compile Include="Cache\SigningCache.cs" />
-    <Compile Include="Process\GetResultTokhaiProcess.cs" />
-    <Compile Include="Process\ScanHoSoProcess.cs" />
-    <Compile Include="Process\SignHashToKhaiProcess.cs" />
+    <Compile Include="Process\3.GetResultTokhaiProcess.cs" />
+    <Compile Include="Process\1.ScanHoSoProcess.cs" />
+    <Compile Include="Process\2.SignHashToKhaiProcess.cs" />
+    <Compile Include="Process\4.GetResultHoSoProcess.cs" />
+    <Compile Include="Process\2.1.SignHashHSDKProcess.cs" />
+    <Compile Include="Process\5.HandleDlqProcess.cs" />
     <Compile Include="RabbitMqWorkerBase.cs" />
     <Compile Include="ServiceGetResult_VNPT.cs">
       <SubType>Component</SubType>

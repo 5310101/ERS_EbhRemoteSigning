@@ -22,6 +22,12 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
         private readonly CoreService _coreService;
         private readonly IChannel _channel;
         private readonly int NumberHSScan = int.Parse(ConfigurationManager.AppSettings["HOSO_COUNT"]);
+
+        private readonly static int _signhashTKTtl = int.Parse(ConfigurationManager.AppSettings["TKSIGNHASH_RETRYTTL"]);
+        private readonly static int _signhashTKMaxTry = int.Parse(ConfigurationManager.AppSettings["TKSIGNHASH_RETRYMAXTRY"]);
+
+        private readonly static int _signhashHSDKTtl = int.Parse(ConfigurationManager.AppSettings["HSDKSIGNHASH_RETRYTTL"]);
+        private readonly static int _signhashHSDKMaxTry = int.Parse(ConfigurationManager.AppSettings["HSDKSIGNHASH_RETRYMAXTRY"]);
         public ScanHoSoProcess(IChannel channel, CoreService coreService) : base(channel, new List<RabbitQueueOptions>
         {
             new RabbitQueueOptions
@@ -29,16 +35,16 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
                 MainQueue = "SmartCA.SignhashToKhai.q",
                 RetryQueue = "SmartCA.SignhashToKhai.retry.q",
                 DeadLetterQueue = "SmartCA.SignhashToKhai.dlq",
-                RetryTtlMs = 5000,
-                MaxRetryCount = 3,
+                RetryTtlMs = _signhashTKTtl,
+                MaxRetryCount = _signhashTKMaxTry,
             },
             new RabbitQueueOptions
             {
                 MainQueue = "SmartCA.SignhashHSDK.q",
                 RetryQueue = "SmartCA.SignhashHSDK.retry.q",
                 DeadLetterQueue = "SmartCA.SignhashHSDK.dlq",
-                RetryTtlMs = 5000,
-                MaxRetryCount = 3,
+                RetryTtlMs = _signhashHSDKTtl,
+                MaxRetryCount = _signhashHSDKMaxTry,
             },
         })
         {
@@ -55,6 +61,10 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
         /// <returns></returns>
         protected override async Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
         {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
             List<string> PublishedList = new List<string>();
             try
             {
