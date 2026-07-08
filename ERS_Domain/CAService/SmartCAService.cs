@@ -19,7 +19,6 @@ namespace ERS_Domain.CAService
             _configRequest = configRequest;
         }
 
-
         public UserCertificate GetAccountCert(string uri, string uid, string serialNumber = "")
         {
             try

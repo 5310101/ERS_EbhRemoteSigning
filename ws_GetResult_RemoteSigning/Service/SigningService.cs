@@ -38,8 +38,6 @@ namespace ws_GetResult_RemoteSigning.Utils
         private int HSSignCount = int.Parse(ConfigurationManager.AppSettings["SIGNHS_COUNT"]);
         //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu file mặc định là 10
         private int HoSoCount = int.Parse(ConfigurationManager.AppSettings["HOSO_COUNT"]);
-        //biến quy đinh 1 lần timer sẽ xử lý bao nhiêu file HSDK (trừ hồ sơ đăng ký lấy mã đơn vị lần đầu)
-        private int _signHSDKCount = int.Parse(ConfigurationManager.AppSettings["HSDK_COUNT"]);
 
         private readonly string SignedTempFolder = ConfigurationManager.AppSettings["HOSO_TEMP_FOLDER"];
 
@@ -78,13 +76,13 @@ namespace ws_GetResult_RemoteSigning.Utils
 
                 if (res.message == "EXPIRED")
                 {
-                    throw new SigningExpiredException("The file's signing time has expired");
+                    throw new SigningExpiredException(filePath, "The file's signing time has expired");
                 }
 
                 if (res.message == "REJECTED")
                 {
                     //khi to khai da het han update trang thai
-                    throw new SigningRejectedException("The file has been rejected");
+                    throw new SigningRejectedException(filePath, "The file has been rejected");
                 }
 
                 //TSDHashSigner TSDSigner = listSigner.FirstOrDefault(s => s.Id == signerId);
@@ -300,6 +298,10 @@ namespace ws_GetResult_RemoteSigning.Utils
                         throw new FileErrorException(toKhai.Id, FilePath, $"File {FilePath} error");
                     }
                 }
+                else
+                {
+                    throw new FileErrorException(toKhai.Id, FilePath, $"File not found: {FilePath}");
+                }   
 
                 IHashSigner signer = null;
                 string errMessage = "";
@@ -606,133 +608,56 @@ namespace ws_GetResult_RemoteSigning.Utils
         #endregion 
 
         #region HoSo region
-        public void SignFileBHXHDienTu()
+
+        public void CreateFileHoSoDK_LanDau(HoSoMessage hs, string pathFileHSDKLD, DataTable dtHSDK)
         {
-            try
+            List<FileToKhai> listTK = new List<FileToKhai>();
+            foreach (ToKhai signed in hs.toKhais)
             {
-                //select trong bang HoSo_RS, chi select cac hoso ma tat ca to khai da dc ky(trang thai =2)
-                string TSQL = $"SELECT TOP {HSSignCount} * FROM HoSo_RS WITH (NOLOCK) WHERE GUID IN (SELECT GUID FROM HoSo_RS A JOIN ToKhai_RS B ON A.Guid = B.GuidHS GROUP BY A.Guid HAVING COUNT(*) = SUM(CASE WHEN B.TrangThai = 2 THEN 1 ELSE 0 END)) AND TrangThai=4 AND CAProvider=1 ORDER BY NgayGui";
-                DataTable dtHS = _dbService.GetDataTable(TSQL);
-                if (dtHS.Rows.Count == 0) return;
-                foreach (DataRow dr in dtHS.Rows)
-                {
-                    try
-                    {
-                        string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
-                        string uid = MethodLibrary.SafeString(dr["uid"]);
-                        string serialNumber = MethodLibrary.SafeString(dr["SerialNumber"]);
-                        string pathSaveHS = Path.Combine(SignedTempFolder, $"{GuidHS}");
-                        string maNV = MethodLibrary.SafeString(dr["MaNV"]);
-                        int typeDK = MethodLibrary.SafeNumber<int>(dr["typeDK"]);
+                byte[] tkDaKy = File.ReadAllBytes(signed.FilePath);
+                string base64Data = Convert.ToBase64String(tkDaKy);
+                string tenFile = MethodLibrary.SafeString(signed.TenToKhai);
 
-                        bool isCreated = false;
-                        if (typeDK == 0)
-                        {
-                            isCreated = CreateBHXHDienTu(dr, pathSaveHS);
-                            if (!isCreated)
-                            {
-                                //ko tao dc file thi continue lan sau tao lai
-                                continue;
-                            }
-                        }
-                        else if (typeDK == 2)
-                        {
-                            string pathFile = Path.Combine(pathSaveHS, $"{maNV}.xml");
-                            isCreated = CreateFileHSDK(dr, pathFile);
-                            if (!isCreated)
-                            {
-                                continue;
-                            }
-                        }
-                        bool isSigned = SignHoSoBHXH(uid, GuidHS, serialNumber, typeDK, maNV);
-                        if (!isSigned)
-                        {
-                            Utilities.logger.ErrorLog($"Hồ sơ ký lỗi không lấy kết quả: {GuidHS}", "Hồ sơ ký lỗi");
-                            //Xoa thu muc neu ky loi
-                            Directory.Delete(pathSaveHS, true);
-                        }
-                    }
-                    catch
-                    {
-                        continue;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                Utilities.logger.ErrorLog(ex, "SignFileBHXH");
-                return;
-            }
-        }
-
-        public bool CreateFileHSDK(DataRow dr, string pathSaveHSDK)
-        {
-            try
-            {
-                string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
-                DataTable dtToKhais = _dbService.GetDataTable("SELECT * FROM ToKhai_RS WITH (NOLOCK) WHERE GuidHS=@GuidHS", "", new SqlParameter[]
+                FileToKhai tk = new FileToKhai()
                 {
-                      new SqlParameter("@GuidHS", GuidHS)
-                });
-                if (dtToKhais.Rows.Count == 0) return false;
-                List<FileToKhai> listTK = new List<FileToKhai>();
-                foreach (DataRow rowTK in dtToKhais.Rows)
-                {
-                    byte[] tkDaKy = File.ReadAllBytes(MethodLibrary.SafeString(rowTK["FilePath"]));
-                    string base64Data = Convert.ToBase64String(tkDaKy);
-                    string tenFile = MethodLibrary.SafeString(rowTK["TenToKhai"]);
-
-                    FileToKhai tk = new FileToKhai()
-                    {
-                        MaToKhai = MethodLibrary.GetMaTK(tenFile),
-                        MoTaToKhai = MethodLibrary.SafeString(rowTK["MoTa"]),
-                        TenFile = tenFile,
-                        LoaiFile = Path.GetExtension(tenFile),
-                        DoDaiFile = base64Data.Length,
-                        NoiDungFile = base64Data,
-                    };
-                    listTK.Add(tk);
-                }
-
-                //Load thong tin de tao file HSDK 04DK
-                DataTable dtHSDK = _dbService.GetDataTable("SELECT * FROM HSDKLanDau WHERE GuidHS=@Guid", "", new SqlParameter[]
-                {
-                    new SqlParameter("@Guid", GuidHS)
-                });
-                if (dtHSDK.Rows.Count == 0) return false;
-                DataRow row = dtHSDK.Rows[0];
-                HosoDKLanDauObjSerialize hsdk = new HosoDKLanDauObjSerialize()
-                {
-                    NoiDung = new NoiDungDK()
-                    {
-                        TenCoQuan = row["TenCoQuan"].SafeString(),
-                        MaCoQuan = row["MaCoQuan"].SafeString(),
-                        LoaiDoiTuong = row["LoaiDoiTuong"].SafeString(),
-                        TenDoiTuong = row["TenDoiTuong"].SafeString(),
-                        MaSoThue = row["MaSoThue"].SafeString(),
-                        DienThoai = row["DienThoai"].SafeString(),
-                        Email = row["Email"].SafeString(),
-                        NguoiLienHe = row["NguoiLienHe"].SafeString(),
-                        DiaChi = row["DiaChi"].SafeString(),
-                        DiaChiLienHe = row["DiaChiLienHe"].SafeString(),
-                        DienThoaiLienHe = row["DienThoaiLienHe"].SafeString(),
-                        NgayLap = row["NgayLap"].SafeDateTime().ToString("dd/MM/yyyy"),
-                        NgayDangKy = row["NgayDangKy"].SafeDateTime().ToString("dd/MM/yyyy"),
-                        PTNhanKetQua = row["PTNhanKetQua"].SafeString(),
-                        ToKhais = new ToKhais()
-                        {
-                            FileToKhai = listTK.ToArray()
-                        },
-                    },
+                    MaToKhai = MethodLibrary.GetMaTK(tenFile),
+                    MoTaToKhai = signed.MoTaToKhai,
+                    TenFile = tenFile,
+                    LoaiFile = Path.GetExtension(tenFile),
+                    DoDaiFile = base64Data.Length,
+                    NoiDungFile = base64Data,
                 };
+                listTK.Add(tk);
+            }
 
-                return MethodLibrary.SerializeToFile(hsdk, pathSaveHSDK);
-            }
-            catch (Exception ex)
+            if (dtHSDK.Rows.Count == 0) return;
+            DataRow row = dtHSDK.Rows[0];
+            HosoDKLanDauObjSerialize hsdk = new HosoDKLanDauObjSerialize()
             {
-                Utilities.logger.ErrorLog(ex, "CreateFileHSDK");
-                return false;
-            }
+                NoiDung = new NoiDungDK()
+                {
+                    TenCoQuan = row["TenCoQuan"].SafeString(),
+                    MaCoQuan = row["MaCoQuan"].SafeString(),
+                    LoaiDoiTuong = row["LoaiDoiTuong"].SafeString(),
+                    TenDoiTuong = row["TenDoiTuong"].SafeString(),
+                    MaSoThue = row["MaSoThue"].SafeString(),
+                    DienThoai = row["DienThoai"].SafeString(),
+                    Email = row["Email"].SafeString(),
+                    NguoiLienHe = row["NguoiLienHe"].SafeString(),
+                    DiaChi = row["DiaChi"].SafeString(),
+                    DiaChiLienHe = row["DiaChiLienHe"].SafeString(),
+                    DienThoaiLienHe = row["DienThoaiLienHe"].SafeString(),
+                    NgayLap = row["NgayLap"].SafeDateTime().ToString("dd/MM/yyyy"),
+                    NgayDangKy = row["NgayDangKy"].SafeDateTime().ToString("dd/MM/yyyy"),
+                    PTNhanKetQua = row["PTNhanKetQua"].SafeString(),
+                    ToKhais = new ToKhais()
+                    {
+                        FileToKhai = listTK.ToArray()
+                    },
+                },
+            };
+            hs.filePathHS = pathFileHSDKLD;
+            MethodLibrary.SerializeToFile(hsdk, pathFileHSDKLD);
         }
 
         public void CreateBHXHDienTu(HoSoMessage hs, string pathFolderHoSo)
@@ -801,13 +726,14 @@ namespace ws_GetResult_RemoteSigning.Utils
                 NoiDung = noiDung,
             };
             string pathBHXHDT = Path.Combine(pathFolderHoSo, "BHXHDienTu.xml");
+            hs.filePathHS = pathBHXHDT;
             if (!MethodLibrary.SerializeToFile(hoso, pathBHXHDT))
             {
                 throw new Exception($"Cannot serialize file BHXHDienTu.xml for {GuidHS}");
             }
         }
 
-        public void SignHoSoBHXH(HoSoMessage hs , string HSDKName = "")
+        public void SignHoSoBHXH(HoSoMessage hs)
         {
             string errMessage = "";
 
@@ -815,309 +741,104 @@ namespace ws_GetResult_RemoteSigning.Utils
             UserCertificate userCert = _smartCAService.GetAccountCert(VNPT_URI.uriGetCert, hs.uid, hs.serialNumber);
             if (userCert == null)
             {
-               throw new Exception("Cannot find certificate");
+                throw new Exception("Cannot find certificate");
             }
-            string PathTempHoSo = Path.Combine(SignedTempFolder, hs.guid);
-            string pathBHXHDt = "";
-            if (hs.typeDK == TypeHS.HSNV)
-            {
-                pathBHXHDt = Path.Combine(PathTempHoSo, "BHXHDienTu.xml");
-            }
-            else if (hs.typeDK == TypeHS.HSDKLanDau || hs.typeDK == TypeHS.HSDK)
-            {
-                pathBHXHDt = Path.Combine(PathTempHoSo, $"{HSDKName}.xml");
-            }
+            //string PathTempHoSo = Path.Combine(SignedTempFolder, hs.guid);
+            //string pathBHXHDt = "";
+            //if (hs.typeDK == TypeHS.HSNV)
+            //{
+            //    pathBHXHDt = Path.Combine(PathTempHoSo, "BHXHDienTu.xml");
+            //}
+            //else if (hs.typeDK == TypeHS.HSDKLanDau || hs.typeDK == TypeHS.HSDK )
+            //{
+            //    pathBHXHDt = Path.Combine(PathTempHoSo, $"{HSDKName}.xml");
+            //}
 
             IHashSigner signer = null;
 
+            byte[] DataBHXHDt = null;
+            if (File.Exists(hs.filePathHS))
+            {
+                try
+                {
+                    DataBHXHDt = File.ReadAllBytes(hs.filePathHS);
+                }
+                catch (Exception ex)
+                {
+                    throw new FileErrorException(-1, hs.filePathHS, $"Cannot read file in path {hs.filePathHS}: {ex.Message}") ;
+                }
+               if(DataBHXHDt.Length == 0)
+               {
+                   throw new FileErrorException(-1, hs.filePathHS, $"File {hs.filePathHS} is empty");
+               }
+            }
+            else
+            {
+                throw new FileErrorException(-1, hs.filePathHS, $"File not found: {hs.filePathHS}");
+            }
 
-            byte[] DataBHXHDt = File.ReadAllBytes(pathBHXHDt);
-            DataSign dataSign = SignSmartCAXML(userCert, DataBHXHDt, uid, ref signer, ref errMessage, "/Hoso/CKy_Dvi");
+            DataSign dataSign = SignSmartCAXML(userCert, DataBHXHDt, hs.guid, ref signer, ref errMessage, "/Hoso/CKy_Dvi");
 
-            if (dataSign == null)
+            if (dataSign == null || signer == null)
             {
                 //update trang thai ky loi
-                UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, errMessage);
-                return false;
+                throw new Exception($"Sign hash error: {errMessage}");
             }
-            //co the thay doi thoi gian countdown dua vao data tra ve tu sever, default la 300
+
+            SigningCache.SetSigningCache(dataSign.transaction_id, signer);
+            hs.transactionId = dataSign.transaction_id;
+            hs.transCode = dataSign.tran_code;
+            UpdateStatusHoSo(hs.guid, TrangThaiHoso.DaKyHash, "", dataSign.transaction_id, "", dataSign.transaction_id, dataSign.tran_code);
+        }
+        public void GetResultHoSo_VNPT(HoSoMessage hs)
+        {
+            string GuidHS = hs.guid;
+            string tran_id = hs.transactionId;
+            //string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
+            string url = $"{VNPT_URI.uriGetResult}/{tran_id}/status";
+            string maNV = hs.maNV;
+            ResStatus res = _smartCAService.GetStatus(url);
+            if (res == null)
+            {
+                throw new Exception($"Cannot get status of {hs.guid}-transaction:{tran_id}");
+            }
+
+            if (res.message == "PENDING")
+            {
+                // neu chua lay ket qua do chua ky ben app vnpt 
+                throw new NotSigningFromUserException($"Waiting for user to sign {hs.guid}-transaction:{tran_id}");
+            }
+
+            if (res.message == "EXPIRED")
+            {
+                //het han
+                throw new SigningExpiredException(hs.filePathHS, $"{hs.guid}-transactionId[{tran_id}]: signing time has expired");
+            }
+            if (res.message == "REJECTED")
+            {
+                //tu choi ky
+                throw new SigningRejectedException(hs.filePathHS, $"{hs.guid}-transactionId[{tran_id}]: has been rejected");
+            }
+            bool isSigned = false;
+
+            var signer = SigningCache.GetSignerCache<IHashSigner>(tran_id);
+
             if (signer == null)
             {
-                //update trang thai ky loi
-                UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Không tạo được signer");
-                return false;
-            }
-            
-            SigningCache.SetSigningCache(TSDSigner);
-            UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKyHash, "", dataSign.transaction_id, "", dataSign.transaction_id, dataSign.tran_code);
-            return true;
+                throw new Exception($"Cannot find signer for {hs.guid}-transaction:{tran_id}");
 
-        }
-        public void GetResultHoSo_VNPT()
-        {
-            List<string> ListHSKoLayDuocKQ = new List<string>();
-            List<string> ListHetHan = new List<string>();
-            //lay cac ban ghi to khai da ky hash
-            //sau khi lay ket qua thi 10s sau ms lay lai ket qua neu ko thanh cong
-            string TSQL = $"SELECT TOP {HoSoCount} * FROM HoSo_RS WITH (NOLOCK) WHERE TrangThai=1 AND CAProvider=1 AND LastGet <= DATEADD(SECOND,-10,GETDATE()) ORDER BY NgayGui";
-            try
+            }
+            isSigned = GetResult_Xml(signer, res.data, hs.filePathHS);
+            if (!isSigned)
             {
-                DataTable dt = _dbService.GetDataTable(TSQL);
-                if (dt.Rows.Count == 0)
-                {
-                    return;
-                }
-                foreach (DataRow dr in dt.Rows)
-                {
-                    string GuidHS = MethodLibrary.SafeString(dr["Guid"]);
-                    int idHS = MethodLibrary.SafeNumber<int>(dr["id"]);
-                    string signerId = MethodLibrary.SafeString(dr["SignerId"]);
-                    DateTime LastGet = MethodLibrary.SafeDateTime(dr["LastGet"]);
-                    string tran_id = MethodLibrary.SafeString(dr["transaction_id"]);
-                    //string tenToKhai = MethodLibrary.SafeString(dr["TenToKhai"]);
-                    string url = $"{VNPT_URI.uriGetResult}/{tran_id}/status";
-                    int typeDK = MethodLibrary.SafeNumber<int>(dr["typeDK"]);
-                    string maNV = MethodLibrary.SafeString(dr["MaNV"]);
+                throw new Exception($"Cannot add signature to file {hs.filePathHS} for {hs.guid}-transaction:{tran_id}");
 
-                    try
-                    {
-
-                        ResStatus res = _smartCAService.GetStatus(url);
-
-                        if (res == null)
-                        {
-                            if (!ListHSKoLayDuocKQ.Contains(GuidHS))
-                            {
-                                ListHSKoLayDuocKQ.Add(GuidHS);
-                            }
-                            continue;
-                        }
-
-                        if (res.message == "PENDING")
-                        {
-                            // neu chua lay ket qua do chua ky ben app vnpt cho chay lay tiep cac ket qua khac
-                            continue;
-                        }
-
-                        if (res.message == "EXPIRED")
-                        {
-                            //khi to khai da het han update trang thai
-                            UpdateStatusHoSo(GuidHS, TrangThaiHoso.HetHan, "File [BHXHDienTu.xml] is expired");
-                            if (!ListHetHan.Contains(GuidHS))
-                            {
-                                ListHetHan.Add(GuidHS);
-                            }
-                            continue;
-                        }
-                        if (res.message == "REJECTED")
-                        {
-                            //khi to khai da het han update trang thai
-                            UpdateStatusHoSo(GuidHS, TrangThaiHoso.HetHan, "File [BHXHDienTu.xml] is rejected");
-                            if (!ListHSKoLayDuocKQ.Contains(GuidHS))
-                            {
-                                ListHSKoLayDuocKQ.Add(GuidHS);
-                            }
-                            continue;
-                        }
-                        bool isSigned = false;
-                        string pathSaved = "";
-                        if (typeDK == 0)
-                        {
-                            pathSaved = Path.Combine(SignedTempFolder, GuidHS, "BHXHDienTu.xml");
-                        }
-                        else if (typeDK == 1 || typeDK == 2)
-                        {
-                            pathSaved = Path.Combine(SignedTempFolder, GuidHS, $"{maNV}.xml");
-                        }
-
-                        TSDHashSigner TSDSigner = listSigner.FirstOrDefault(s => s.Id == signerId);
-                        if (TSDSigner == null)
-                        {
-                            UpdateStatusHoSo(GuidHS, TrangThaiHoso.KyLoi, "Không tìm được signer");
-                            continue;
-                        }
-                        isSigned = GetResult_Xml(TSDSigner.Signer, res.data, pathSaved);
-                        if (!isSigned)
-                        {
-                            if (!ListHSKoLayDuocKQ.Contains(GuidHS))
-                            {
-                                ListHSKoLayDuocKQ.Add(GuidHS);
-                            }
-                            continue;
-                        }
-                        //update thanh trang thai da ky
-                        UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKy, "", "", pathSaved);
-                    }
-                    catch (DatabaseInteractException ex)
-                    {
-                        Utilities.logger.ErrorLog(ex, "Lỗi tương tác database");
-                        continue;
-                    }
-                    catch (Exception ex)
-                    {
-                        Utilities.logger.ErrorLog(ex, $"Lỗi khi ký file BHXHDienTu.xml: {GuidHS}");
-                        continue;
-                    }
-                }
-                UpdateHoSo_Expired(ListHetHan);
-                UpdateHoSo_SignFailed(ListHSKoLayDuocKQ);
             }
-            catch (DatabaseInteractException ex)
-            {
-                Utilities.logger.ErrorLog(ex, "GetResultToKhai_VNPT");
-            }
+            //update thanh trang thai da ky
+            UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKy, "", "", hs.filePathHS);
         }
         #endregion
-
-        #region Hoso dang ky
-        //Ham SignHash
-        public void SignHSDK_Type1()
-        {
-            try
-            {
-                //voi cac ho so dang ky type 1 thi chi gom file xml ko can tao file tokhai ma ky thang vao file ho so 
-                //vi ko tao file xml hoso nen trangthai=4 (chua tao file) chi de select cac ho so moi, chu ko co y nghia nhu voi hsnghiepvu(typeDk=0) hay hosocapmalandau(typeDk=2)
-                string TSQL = $"SELECT TOP {_signHSDKCount} * FROM HoSo_RS WITH (NOLOCK) WHERE TrangThai=4 AND typeDK=1 AND CAProvider=1 AND LastGet < DATEADD(SECOND, -10, GETDATE()) ORDER BY NgayGui";
-                DataTable dt = _dbService.GetDataTable(TSQL);
-                if (dt == null || dt.Rows.Count == 0)
-                {
-                    return;
-                }
-                foreach (DataRow row in dt.Rows)
-                {
-                    try
-                    {
-                        string GuidHS = row["Guid"].SafeString();
-                        string pathHSFolder = Path.Combine(SignedTempFolder, GuidHS);
-                        string uid = MethodLibrary.SafeString(row["uid"]);
-                        string serialNumber = MethodLibrary.SafeString(row["SerialNumber"]);
-                        string maNV = MethodLibrary.SafeString(row["MaNV"]);
-                        //string tenFile = $"{maNV}.xml";
-
-                        bool isSigned = SignHoSoBHXH(uid, GuidHS, serialNumber, 1, maNV);
-                        if (!isSigned)
-                        {
-                            Utilities.logger.InfoLog($"Hồ sơ ký lỗi không lấy kết quả: {GuidHS}", "Hồ sơ ký lỗi");
-                            //Xoa thu muc neu ky loi
-                            Directory.Delete(pathHSFolder, true);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Utilities.logger.ErrorLog(ex, "SignHSDK_Type1");
-                        continue;
-                    }
-                }
-            }
-            catch
-            {
-                return;
-            }
-        }
-
-        internal void UpdateHoSoKyLoi()
-        {
-            List<string> listHSLoi = new List<string>();
-            try
-            {
-                string TSQL = "SELECT * FROM ToKhai_RS WHERE TrangThai=0";
-                DataTable dt = _dbService.GetDataTable(TSQL);
-                if (dt == null || dt.Rows.Count == 0)
-                {
-                    return;
-                }
-                foreach (DataRow row in dt.Rows)
-                {
-                    if (!listHSLoi.Contains(row["GuidHS"].SafeString()))
-                    {
-                        listHSLoi.Add(row["GuidHS"].SafeString());
-                    }
-                }
-            }
-            catch (Exception)
-            {
-
-                throw;
-            }
-        }
-
-        #endregion
-        //[Obsolete]
-        //private SignerProfile RestoreSignerXML(string signerPath, bool isTokhai = true)
-        //{
-        //    try
-        //    {
-        //        SignerProfile signerProfile = MethodLibrary.ImportSigner(signerPath);
-        //        if (signerProfile == null)
-        //        {
-        //            return null;
-        //        }
-        //        //IHashSigner signer = HashSignerFactory.GenerateSigner(signerInfo.UnsignData, signerInfo.SignerCert, null, HashSignerFactory.XML);
-        //        IHashSigner signer = MethodLibrary.GenerateCustomSigner(signerInfo.UnsignData, signerInfo.SignerCert);
-        //        signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
-
-        //        ((CustomXmlSigner)signer).SetSignatureID(signerInfo.SigId);
-        //        ((CustomXmlSigner)signer).SetSigningTime(signerInfo.SigningTime, "SigningTime-" + signerInfo.SigningTimeId);
-        //        if (isTokhai)
-        //        {
-        //            ((CustomXmlSigner)signer).SetParentNodePath("//Cky");
-        //        }
-        //        else
-        //        {
-        //            ((CustomXmlSigner)signer).SetParentNodePath("/Hoso/CKy_Dvi");
-        //        }
-        //        signer.GetSecondHashAsBase64();
-        //        return signer;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Utilities.logger.ErrorLog(ex, "");
-        //        return null;
-        //    }
-        //}
-
-        //[Obsolete]
-        //private DataSign SignSmartCAXML(UserCertificate userCert, string FileBHXHPath, string uid, out SignerProfile signerProfile, string nodeKy = "")
-        //{
-        //    IHashSigner signer = null;
-        //    signerProfile = new SignerProfile();
-        //    try
-        //    {
-        //        byte[] xmlUnsign = File.ReadAllBytes(FileBHXHPath);
-        //        String certBase64 = userCert.cert_data;
-        //        signer = MethodLibrary.GenerateCustomSigner(xmlUnsign, certBase64);
-        //        signer.SetHashAlgorithm(MessageDigestAlgorithm.SHA256);
-
-        //        ((CustomXmlSigner)signer).SetSignatureID("sigid");
-        //        //Set reference đến id
-        //        //((XmlHashSigner)signers).SetReferenceId("#SigningData");
-
-        //        //Set thời gian ký
-        //        ((CustomXmlSigner)signer).SetSigningTime(DateTime.Now, "proid");
-
-        //        //đường dẫn dẫn đến thẻ chứa chữ ký 
-        //        if (nodeKy == "")
-        //        {
-        //            nodeKy = "//Cky";
-        //        }
-        //        ((CustomXmlSigner)signer).SetParentNodePath(nodeKy);
-
-        //        signerProfile = signer.GetSignerProfile();
-        //        var hashValue = Convert.ToBase64String(signerProfile.SecondHashBytes);
-
-        //        var data_to_be_sign = BitConverter.ToString(Convert.FromBase64String(hashValue)).Replace("-", "").ToLower();
-
-        //        DataSign dataSign = _smartCAService.Sign(VNPT_URI.uriSign, data_to_be_sign, userCert.serial_number, uid, "xml");
-
-        //        return dataSign;
-
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        Utilities.logger.ErrorLog(ex, "SignSmartCAXML", userCert.cert_subject);
-        //        signerProfile = null;
-        //        return null;
-        //    }
-        //}
     }
 }
+
+

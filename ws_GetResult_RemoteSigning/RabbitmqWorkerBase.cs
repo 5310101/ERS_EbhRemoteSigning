@@ -34,7 +34,7 @@ namespace ws_GetResult_RemoteSigning
         public int MaxRetryCount { get; set; } = 3;
 
         /// <summary>Số message tối đa xử lý song song / chưa ack trên 1 consumer.</summary>
-        
+
     }
 
     public class RabbitMqConsumerOptions
@@ -58,9 +58,9 @@ namespace ws_GetResult_RemoteSigning
         private readonly List<RabbitMqConsumerOptions> _consumerOptions;
         private readonly Action<Exception, string> _logError; // thay bằng ILogger thực tế nếu có
 
-        protected RabbitMqWorkerBase(IChannel channel, 
-                                    List<RabbitQueueOptions> options,
-                                    List<RabbitMqConsumerOptions> consumerOptions = null, 
+        protected RabbitMqWorkerBase(IChannel channel,
+                                    List<RabbitQueueOptions> options = null,
+                                    List<RabbitMqConsumerOptions> consumerOptions = null,
                                     Action<Exception, string> logError = null)
         {
             Channel = channel;
@@ -115,8 +115,8 @@ namespace ws_GetResult_RemoteSigning
         /// </summary>
         public async Task StartConsumingAsync(CancellationToken cancellationToken)
         {
-            if(_consumerOptions == null || !_consumerOptions.Any())
-                throw new InvalidOperationException("No consumer options provided.");   
+            if (_consumerOptions == null || !_consumerOptions.Any())
+                throw new InvalidOperationException("No consumer options provided.");
             foreach (var option in _consumerOptions)
             {
                 await Channel.BasicQosAsync(0, option.PrefetchCount, false);
@@ -133,6 +133,32 @@ namespace ws_GetResult_RemoteSigning
                     {
                         Utilities.logger.ErrorLog(ex, $"Error on queue {option.QueueName}");
                         await HandleFailureAsync(ea, ex);
+                    }
+                };
+
+                await Channel.BasicConsumeAsync(option.QueueName, autoAck: false, consumer, cancellationToken);
+            }
+        }
+
+        public async Task StartConsumingHandleDlqAsync(CancellationToken cancellationToken)
+        {
+            if (_consumerOptions == null || !_consumerOptions.Any())
+                throw new InvalidOperationException("No consumer options provided.");
+            foreach (var option in _consumerOptions)
+            {
+                await Channel.BasicQosAsync(0, option.PrefetchCount, false);
+
+                var consumer = new AsyncEventingBasicConsumer(Channel);
+                consumer.ReceivedAsync += async (model, ea) =>
+                {
+                    try
+                    {
+                        await ProcessMessageAsync(ea, cancellationToken);
+                        await Channel.BasicAckAsync(ea.DeliveryTag, false).ConfigureAwait(false);
+                    }
+                    catch (Exception ex)
+                    {
+                        Utilities.logger.ErrorLog(ex, $"Error on dlq queue {option.QueueName}");
                     }
                 };
 
@@ -179,7 +205,7 @@ namespace ws_GetResult_RemoteSigning
         }
 
         //truoc khi publish vao retry phai ack message goc, de ko bi block queue
-        protected async Task PublishToRetryQueueAsync( string queueName,string dlqName ,byte[] body, int retryCount, int maxRetry , string lastError = null)
+        protected async Task PublishToRetryQueueAsync(string queueName, string dlqName, byte[] body, int retryCount, int maxRetry, string lastError = null)
         {
             var props = new BasicProperties
             {
@@ -190,8 +216,8 @@ namespace ws_GetResult_RemoteSigning
                         { "x-last-error", lastError }
                     }
             };
-            if (retryCount >= maxRetry) 
-            {    
+            if (retryCount >= maxRetry)
+            {
                 //chuyen vao dlq
                 await Channel.BasicPublishAsync("", dlqName, false, props, body);
             }
@@ -201,15 +227,15 @@ namespace ws_GetResult_RemoteSigning
             }
         }
 
-        protected async Task PublishToAnotherQueue(string exchangeName, string queueName,  byte[] body)
+        protected async Task PublishToAnotherQueue(string exchangeName, string queueName, byte[] body)
         {
             var props = new BasicProperties
             {
                 DeliveryMode = DeliveryModes.Persistent,
-               
+                Persistent = true
             };
             await Channel.BasicPublishAsync(exchangeName, queueName, false, props, body);
-            
+
         }
 
         protected int GetRetryCount(IReadOnlyBasicProperties props)
@@ -227,7 +253,7 @@ namespace ws_GetResult_RemoteSigning
             return 0;
         }
 
-        protected  T ProcessMessageToObject<T>(BasicDeliverEventArgs ea)
+        protected T ProcessMessageToObject<T>(BasicDeliverEventArgs ea)
         {
             var bytedata = ea.Body.ToArray();
             string jsonMessage = Encoding.UTF8.GetString(bytedata);
@@ -253,7 +279,7 @@ namespace ws_GetResult_RemoteSigning
                      DeadLetterQueue = "HSCA2.ToKhai.dlq",
                      RetryTtlMs = 5000,
                      MaxRetryCount = 3,
-                    
+
                 },
             },
                   new List<RabbitMqConsumerOptions>
@@ -303,6 +329,7 @@ namespace ws_GetResult_RemoteSigning
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            
             await _worker.DeclareInfrastructureAsync();   // khai báo queue trước
             await _worker.StartConsumingAsync(_cts.Token); // rồi mới consume
         }

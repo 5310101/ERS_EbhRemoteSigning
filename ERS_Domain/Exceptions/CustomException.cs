@@ -79,33 +79,39 @@ namespace ERS_Domain.Exceptions
 
     public class SigningExpiredException : Exception
     {
-
-        public SigningExpiredException()
+        public string FilePath { get; set; }   
+        public SigningExpiredException(string filePath)
         {
+            FilePath = filePath;
         }
 
-        public SigningExpiredException(string message) : base(message)
+        public SigningExpiredException(string filePath,string message) : base(message)
         {
+            FilePath = filePath;
         }
 
-        public SigningExpiredException(string message, Exception innerException) : base(message, innerException)
+        public SigningExpiredException(string filePath, string message, Exception innerException) : base(message, innerException)
         {
+            FilePath = filePath;
         }
     }
 
     public class SigningRejectedException : Exception
     {
-
-        public SigningRejectedException()
+        public string FilePath { get; set; }
+        public SigningRejectedException(string filePath)
         {
+            FilePath = filePath;
         }
 
-        public SigningRejectedException(string message) : base(message)
+        public SigningRejectedException(string filePath,string message) : base(message)
         {
+            FilePath = filePath;
         }
 
-        public SigningRejectedException(string message, Exception innerException) : base(message, innerException)
+        public SigningRejectedException(string filePath,string message, Exception innerException) : base(message, innerException)
         {
+            FilePath = filePath;
         }
     }
 
