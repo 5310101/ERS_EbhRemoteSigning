@@ -52,17 +52,17 @@ namespace CA2_Winservice
             {
                 try
                 {
-                    _scanHoSoProcess = new ScanHoSoProcess(_rMQManager.CreateChanel(), _coreService);
+                    _scanHoSoProcess = new ScanHoSoProcess(_rMQManager.CreateChannel(), _coreService);
                     ScanHoSoWorker scanWorker = new ScanHoSoWorker(_scanHoSoProcess, _cts.Token);
                     _ = scanWorker.RunAsync();
 
-                    _signHashTKProcess = new SignHashToKhaiProcess(_rMQManager.CreateChanel(), _coreService, _ca2Service);
+                    _signHashTKProcess = new SignHashToKhaiProcess(_rMQManager.CreateChannel(), _coreService, _ca2Service);
                     _signHashTKProcess.StartProcess();
 
-                    _signToKhaiProcess = new SignToKhaiProcess(_rMQManager.CreateChanel(), _coreService, _ca2Service);
+                    _signToKhaiProcess = new SignToKhaiProcess(_rMQManager.CreateChannel(), _coreService, _ca2Service);
                     _signToKhaiProcess.StartProcess();
 
-                    _signHSBHXHProcess = new SignHSBHXHProcess(_rMQManager.CreateChanel(), _coreService, _ca2Service);
+                    _signHSBHXHProcess = new SignHSBHXHProcess(_rMQManager.CreateChannel(), _coreService, _ca2Service);
                     _signHSBHXHProcess.StartProcess();
 
                     _handleErrorProcess = new HandleErrorProcess(_rMQManager, _coreService);

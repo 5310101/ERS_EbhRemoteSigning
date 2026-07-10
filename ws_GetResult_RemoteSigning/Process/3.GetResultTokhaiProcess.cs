@@ -23,9 +23,11 @@ namespace ws_GetResult_RemoteSigning.Process
         private readonly SigningService _signService;
         private static readonly int _retryTtlMs = int.Parse(ConfigurationManager.AppSettings["GETRESULT_RETRY_INTERVAL"]);
         private static readonly int _maxCount = int.Parse(ConfigurationManager.AppSettings["GETRESULT_RETRY_MAXCOUNT"]);
-        private readonly string SignedTempFolder = ConfigurationManager.AppSettings["HOSO_TEMP_FOLDER"];
+        private static readonly ushort _getResultTKPrefetch = ushort.Parse(ConfigurationManager.AppSettings["GETRESULT_TOKHAI_PREFETCH"]);
+        private static readonly int _getResultTKConcurrentConsumer = int.Parse(ConfigurationManager.AppSettings["GETRESULT_TOKHAI_ConcurrentConsumer"]);
+        private static readonly string SignedTempFolder = ConfigurationManager.AppSettings["HOSO_TEMP_FOLDER"];
 
-        public GetResultTokhaiProcess(IChannel channel, CoreService coreService, SigningService signService) : base(channel, 
+        public GetResultTokhaiProcess(RabbitmqManager manager, CoreService coreService, SigningService signService) : base(manager, _getResultTKConcurrentConsumer,
             new List<RabbitQueueOptions>
             {
                 new RabbitQueueOptions
@@ -42,7 +44,10 @@ namespace ws_GetResult_RemoteSigning.Process
                 new RabbitMqConsumerOptions
                 {
                     QueueName = "SmartCA.GetResultToKhai.q",
-                    PrefetchCount = 5,
+                    RetryQueue = "SmartCA.GetResultToKhai.retry.q",
+                    DeadLetterQueue = "SmartCA.GetResultToKhai.dlq",
+                    MaxRetryCount = _maxCount,
+                    PrefetchCount = _getResultTKPrefetch,
                 },
             })
         {
@@ -52,16 +57,11 @@ namespace ws_GetResult_RemoteSigning.Process
 
         //process nay se consume message tu queue SmartCA.GetResultToKhai.q,
         //xu ly lay ket qua ky to khai roi them chu ky so push vao queue SmartCA.SignHashHoSo.q
-        protected override async Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
+        protected override async Task ProcessMessageAsync(IChannel channel,HoSoMessage hs, CancellationToken cancellationToken, BasicDeliverEventArgs ea)
         {
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
-            }
-            var hs = ProcessMessageToObject<HoSoMessage>(ea);
-            if (hs == null)
-            {
-                throw new Exception("Deserialize error or incorrect message");
             }
             try
             {
@@ -74,7 +74,7 @@ namespace ws_GetResult_RemoteSigning.Process
                 byte[] body = hs.GetBytesStringFromJsonObject();
                 int retryCount = GetRetryCount(ea.BasicProperties);
                 //retry 30 lan, moi lan retry cach nhau 8s, neu qua 30 lan (150s) thi push vao dlq
-                await PublishToRetryQueueAsync( "SmartCA.GetResultToKhai.retry.q", "SmartCA.GetResultToKhai.dlq", body, retryCount, 30);
+                await PublishToRetryQueueAsync(channel, "SmartCA.GetResultToKhai.retry.q", "SmartCA.GetResultToKhai.dlq", body, retryCount, 30).ConfigureAwait(false);
                 return;
             }
             // het han hoac tu choi ky thi ack luon, update trang thai hoso, ko retry nua
@@ -120,7 +120,7 @@ namespace ws_GetResult_RemoteSigning.Process
             {
                 _signService.SignHoSoBHXH(hs);
                 //push vao queue SmartCA.SignHashHoSo.q de lay ket qua ky tu CA
-                await PublishToAnotherQueue("", "SmartCA.GetResultHoSo.q", hs.GetBytesStringFromJsonObject());
+                await PublishToAnotherQueue(channel,"", "SmartCA.GetResultHoSo.q", hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
             }
             catch (FileErrorException ex)
             {

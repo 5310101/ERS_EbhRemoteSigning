@@ -1,8 +1,9 @@
 ﻿using RabbitMQ.Client;
 using System;
 using System.Configuration;
+using System.Threading.Tasks;
 
-namespace CA2_Winservice
+namespace ws_GetResult_RemoteSigning
 {
     public class RabbitmqManager : IDisposable
     {
@@ -24,7 +25,11 @@ namespace CA2_Winservice
 
         public RabbitmqManager()
         {
-            _conFactory = new ConnectionFactory() { Uri = new Uri(RabbitmqUri), AutomaticRecoveryEnabled = false };
+            _conFactory = new ConnectionFactory()
+            { 
+                Uri = new Uri(RabbitmqUri),
+                AutomaticRecoveryEnabled = false 
+            };
             if(_connection != null && _connection.IsOpen)
             {
                 _connection.CloseAsync().GetAwaiter().GetResult();
@@ -34,6 +39,7 @@ namespace CA2_Winservice
         }
 
         public IChannel CreateChannel() => _connection.CreateChannelAsync().GetAwaiter().GetResult();
+        public async Task<IChannel> CreateChannelAsync() => await _connection.CreateChannelAsync();
 
         public void Dispose()
         {

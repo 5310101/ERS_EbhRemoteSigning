@@ -33,7 +33,7 @@ namespace IntrustCA_Winservice.Process
 
         private IEnumerable<DLQConsumer> CreateConsumer()
         {
-            return queueNames.Select(name => new DLQConsumer(_manager.CreateChanel(), HandleDLQMessage, name, numberDeadLetterPerProcess));
+            return queueNames.Select(name => new DLQConsumer(_manager.CreateChannel(), HandleDLQMessage, name, numberDeadLetterPerProcess));
         }
 
         //Tam thoi chua biet lam gi voi cac message nay nen chi ghi ra file roi ack luon

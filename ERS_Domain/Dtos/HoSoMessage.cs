@@ -23,6 +23,7 @@ namespace ERS_Domain.Dtos
         public string transactionId { get; set; }
         //vnpt
         public string transCode { get; set; }
+        public TrangThaiHoso TrangThai { get; set; }
     }
     public class ToKhai
     {
@@ -35,6 +36,7 @@ namespace ERS_Domain.Dtos
         public FileType LoaiFile { get; set; }
         //doi voi vnpt
         public string TransCode { get; set; }
+        public TrangThaiFile TrangThai { get; set; }
     }
 
     public enum  TypeHS

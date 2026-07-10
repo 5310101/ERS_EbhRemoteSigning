@@ -19,8 +19,8 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
 {
     public class ScanHoSoProcess : RabbitMqWorkerBase
     {
-        private readonly CoreService _coreService;
         private readonly IChannel _channel;
+        private readonly CoreService _coreService;
         private readonly int NumberHSScan = int.Parse(ConfigurationManager.AppSettings["HOSO_COUNT"]);
 
         private readonly static int _signhashTKTtl = int.Parse(ConfigurationManager.AppSettings["TKSIGNHASH_RETRYTTL"]);
@@ -28,7 +28,10 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
 
         private readonly static int _signhashHSDKTtl = int.Parse(ConfigurationManager.AppSettings["HSDKSIGNHASH_RETRYTTL"]);
         private readonly static int _signhashHSDKMaxTry = int.Parse(ConfigurationManager.AppSettings["HSDKSIGNHASH_RETRYMAXTRY"]);
-        public ScanHoSoProcess(IChannel channel, CoreService coreService) : base(channel, new List<RabbitQueueOptions>
+
+
+        //process nay ko counsumer nen mac dinh chi dinh concurrentConsumers =1
+        public ScanHoSoProcess(RabbitmqManager manager, CoreService coreService) : base(manager, 1, new List<RabbitQueueOptions>
         {
             new RabbitQueueOptions
             {
@@ -49,7 +52,7 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
         })
         {
             _coreService = coreService;
-            _channel = channel;
+            _channel = manager.CreateChannel();
         }
 
         /// <summary>
@@ -59,13 +62,14 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
         /// <param name="ea"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        protected override async Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
+        protected override async Task ProcessMessageAsync(IChannel channel, HoSoMessage hoso, CancellationToken cancellationToken, BasicDeliverEventArgs ea )
         {
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
             }
             List<string> PublishedList = new List<string>();
+            HoSoMessage hs = null;
             try
             {
                 //lay ho so chua ky tu db
@@ -76,7 +80,7 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
                     foreach (DataRow row in dt.Rows)
                     {
                         string guid = row["Guid"].SafeString();
-                        var hs = new HoSoMessage
+                        hs = new HoSoMessage
                         {
                             guid = guid,
                             uid = row["uid"].SafeString(),
@@ -141,11 +145,11 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
                         };
                         if (hs.typeDK == TypeHS.HSNV || hs.typeDK == TypeHS.HSDKLanDau)
                         {
-                            await _channel.BasicPublishAsync(exchange: "", routingKey: "SmartCA.SignhashToKhai.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
+                            await channel.BasicPublishAsync(exchange: "", routingKey: "SmartCA.SignhashToKhai.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
                         }
                         else
                         {
-                            await _channel.BasicPublishAsync(exchange: "", routingKey: "SmartCA.SignhashHSDK.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
+                            await channel.BasicPublishAsync(exchange: "", routingKey: "SmartCA.SignhashHSDK.q", mandatory: false, basicProperties: properties, body: hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
                         }
                         //sau khi publish message thi update database cho hoso
                         PublishedList.Add(guid);
@@ -153,6 +157,7 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
                 }
                 //update co trans de ko bi mat trang thai message
                 //neu update loi thi dung luon service luu lai cac Guid HS update loi vi co the da duoc publish vao rabit mq
+                hs.TrangThai = TrangThaiHoso.DangXuLy;
                 _coreService.UpdateHS(new UpdateHoSoDto()
                 {
                     ListId = PublishedList.ToArray(),
@@ -165,7 +170,12 @@ namespace ws_GetResult_RemoteSigning.BackgroudWorker
                 Utilities.logger.ErrorLog(ex, "Error when scanning HoSo");
                 return;
             }
-            
+
+        }
+
+        public async Task RunAsync( CancellationToken cancellationToken)
+        {
+            await ProcessMessageAsync(_channel, null, cancellationToken, null);
         }
     }
 }

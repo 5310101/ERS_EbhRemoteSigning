@@ -19,16 +19,21 @@ namespace ws_GetResult_RemoteSigning.Process
     {
         private readonly CoreService _coreService;
         private readonly SigningService _signService;
-        //biến quy đinh 1 lần timer sẽ xử lý bao nhiêu file HSDK (trừ hồ sơ đăng ký lấy mã đơn vị lần đầu)
-        private readonly static ushort _signHSDKCount = ushort.Parse(ConfigurationManager.AppSettings["HSDK_COUNT"]);
+        private readonly static ushort _signHSDKPrefetch = ushort.Parse(ConfigurationManager.AppSettings["HSDK_PREFETCH"]);
+        private readonly static int signHSDK_ConcurrentConsumer = ushort.Parse(ConfigurationManager.AppSettings["SIGNHSDK_ConcurrentConsumer"]);
+        private readonly static int _signhashHSDKMaxTry = int.Parse(ConfigurationManager.AppSettings["HSDKSIGNHASH_RETRYMAXTRY"]);
 
-        public SignHashHSDKProcess(IChannel chanel, CoreService coreService, SigningService signService) : base(chanel, null,
+
+        public SignHashHSDKProcess(RabbitmqManager manager, CoreService coreService, SigningService signService) : base(manager, signHSDK_ConcurrentConsumer, null,
             new List<RabbitMqConsumerOptions>
             {
                 new RabbitMqConsumerOptions
                 {
                     QueueName = "SmartCA.SignhashHSDK.q",
-                    PrefetchCount = _signHSDKCount,
+                    MaxRetryCount = _signhashHSDKMaxTry,
+                    RetryQueue = "SmartCA.SignhashHSDK.retry.q",
+                    DeadLetterQueue = "SmartCA.SignhashHSDK.dlq",
+                    PrefetchCount = _signHSDKPrefetch,
                 },
             })
         {
@@ -36,18 +41,14 @@ namespace ws_GetResult_RemoteSigning.Process
             _signService = signService;
         }
 
-        protected override async Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
+        protected override async Task ProcessMessageAsync(IChannel channel, HoSoMessage hs, CancellationToken cancellationToken, BasicDeliverEventArgs ea )
         {
-            if(cancellationToken.IsCancellationRequested)
+            if (cancellationToken.IsCancellationRequested)
             {
                 return;
             }
             //voi truong hop to khai dang ky thì ky thang file
-            var hs = ProcessMessageToObject<HoSoMessage>(ea);   
-            if (hs == null)
-            {
-                throw new Exception("Deserialize error or incorrect message");
-            }
+           
             string pathFileHSDK = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid, $"{hs.maNV}.xml");
             hs.filePathHS = pathFileHSDK;
             //signhash
@@ -55,7 +56,7 @@ namespace ws_GetResult_RemoteSigning.Process
             {
                 _signService.SignHoSoBHXH(hs);
                 //push message to queue get result
-                await PublishToAnotherQueue("", "SmartCA.GetResultHSDK.q", hs.GetBytesStringFromJsonObject());
+                await PublishToAnotherQueue(channel, "", "SmartCA.GetResultHSDK.q", hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
             }
             catch (FileErrorException ex)
             {

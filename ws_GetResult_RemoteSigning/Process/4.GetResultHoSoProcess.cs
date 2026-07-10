@@ -6,9 +6,8 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using ws_GetResult_RemoteSigning.Utils;
@@ -21,13 +20,20 @@ namespace ws_GetResult_RemoteSigning.Process
         private readonly CoreService _coreService;
         private readonly SigningService _signService;
 
-        public GetResultHoSoProcess(IChannel channel, CoreService coreService, SigningService signService) : base(channel, null,
+        private static readonly ushort _getResultTKPrefetch = ushort.Parse(ConfigurationManager.AppSettings["GETRESULT_HOSO_PREFETCH"]);
+        private static readonly int _getResultTKConcurrentConsumer = int.Parse(ConfigurationManager.AppSettings["GETRESULT_HOSO_ConcurrentConsumer"]);
+        private static readonly int _maxCount = int.Parse(ConfigurationManager.AppSettings["GETRESULT_RETRY_MAXCOUNT"]);
+
+        public GetResultHoSoProcess(RabbitmqManager manager, CoreService coreService, SigningService signService) : base(manager, _getResultTKConcurrentConsumer, null,
             new List<RabbitMqConsumerOptions>
             {
                 new RabbitMqConsumerOptions
                 {
                     QueueName = "SmartCA.GetResultHoSo.q",
-                    PrefetchCount = 5,
+                     RetryQueue = "SmartCA.GetResultHoSo.retry.q",
+                    DeadLetterQueue = "SmartCA.GetResultHoSo.dlq",
+                    MaxRetryCount = _maxCount,
+                    PrefetchCount = _getResultTKPrefetch,
                 },
             })
         {
@@ -35,16 +41,11 @@ namespace ws_GetResult_RemoteSigning.Process
             _signService = signService;
         }
 
-        protected override async Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
+        protected override async Task ProcessMessageAsync(IChannel channel, HoSoMessage hs, CancellationToken cancellationToken, BasicDeliverEventArgs ea)
         {
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
-            }
-            var hs = ProcessMessageToObject<HoSoMessage>(ea);
-            if (hs == null)
-            {
-                throw new Exception("Deserialize error or incorrect message");
             }
             try
             {
@@ -56,7 +57,7 @@ namespace ws_GetResult_RemoteSigning.Process
                 byte[] body = hs.GetBytesStringFromJsonObject();
                 int retryCount = GetRetryCount(ea.BasicProperties);
                 //retry 30 lan, moi lan retry cach nhau 8s, neu qua 30 lan (240s) thi push vao dlq
-                await PublishToRetryQueueAsync("SmartCA.GetResultHoSo.retry.q", "SmartCA.GetResultHoSo.dlq", body, retryCount, 30);
+                await PublishToRetryQueueAsync(channel, "SmartCA.GetResultHoSo.retry.q", "SmartCA.GetResultHoSo.dlq", body, retryCount, 30).ConfigureAwait(false);
             }
             // het han hoac tu choi ky thi ack luon, update trang thai hoso, ko retry nua
             catch (SigningExpiredException ex)

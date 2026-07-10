@@ -29,15 +29,6 @@ namespace ws_GetResult_RemoteSigning.Utils
     {
         private readonly DbService _dbService;
         private readonly SmartCAService _smartCAService;
-        //private static List<TSDHashSigner> listSigner = new List<TSDHashSigner>();
-
-
-        //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu file mặc định là 10
-        private int FileCount = int.Parse(ConfigurationManager.AppSettings["FILE_COUNT"]);
-        //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu file mặc định là 3
-        private int HSSignCount = int.Parse(ConfigurationManager.AppSettings["SIGNHS_COUNT"]);
-        //biến quy định 1 lần timer tick sẽ xử lý bao nhiêu file mặc định là 10
-        private int HoSoCount = int.Parse(ConfigurationManager.AppSettings["HOSO_COUNT"]);
 
         private readonly string SignedTempFolder = ConfigurationManager.AppSettings["HOSO_TEMP_FOLDER"];
 
@@ -53,6 +44,10 @@ namespace ws_GetResult_RemoteSigning.Utils
 
             foreach (var toKhai in hs.toKhais)
             {
+                if(toKhai.TrangThai == TrangThaiFile.DaKy)
+                {
+                    continue;
+                }
                 string GuidHS = hs.guid;
                 int id = toKhai.Id;
                 string tran_id = toKhai.TransactionId;
@@ -87,12 +82,17 @@ namespace ws_GetResult_RemoteSigning.Utils
 
                 //TSDHashSigner TSDSigner = listSigner.FirstOrDefault(s => s.Id == signerId);
                 //lay signner de them cks vao file
-                IHashSigner signer = SigningCache.GetSignerCache<IHashSigner>(tran_id);
                 //file pdf ky bang signer profile ko can luu tru signer
-                if (signer == null && Path.GetExtension(tenToKhai) != ".pdf")
+                IHashSigner signer = null;
+                if (toKhai.LoaiFile != FileType.PDF)
                 {
-                    throw new Exception("Cannot find signer");
+                    signer = SigningCache.GetSignerCache<IHashSigner>(tran_id);
+                    if (signer == null)
+                    {
+                        throw new Exception("Cannot find signer");
+                    }
                 }
+                
                 bool isSigned = false;
                 //thu muc duong dan save file to khai sau khi ky
 
@@ -118,6 +118,7 @@ namespace ws_GetResult_RemoteSigning.Utils
                     throw new Exception("Cannot add signature to file");
                 }
                 //update thanh trang thai da ky va xoa signer ra khoi bo nho
+                toKhai.TrangThai = TrangThaiFile.DaKy;
                 SigningCache.RemoveSigner(tran_id);
                 UpdateStatusToKhai(id, TrangThaiFile.DaKy, "", filePath);
             }
@@ -265,6 +266,10 @@ namespace ws_GetResult_RemoteSigning.Utils
         {
             foreach (var toKhai in hoso.toKhais)
             {
+                if(toKhai.TrangThai == TrangThaiFile.DaKyHash)
+                {
+                    continue;
+                }
                 string GuidHS = hoso.guid;
                 string uid = hoso.uid;
                 int id = toKhai.Id;
@@ -301,7 +306,7 @@ namespace ws_GetResult_RemoteSigning.Utils
                 else
                 {
                     throw new FileErrorException(toKhai.Id, FilePath, $"File not found: {FilePath}");
-                }   
+                }
 
                 IHashSigner signer = null;
                 string errMessage = "";
@@ -320,7 +325,7 @@ namespace ws_GetResult_RemoteSigning.Utils
                         return;
                 }
                 //1 file ky loi thi them vao list guid loi
-                if (dataSign == null)
+                if (dataSign == null || (signer == null && type != FileType.PDF))
                 {
                     //update to khai ky loi
                     UpdateStatusToKhai(id, TrangThaiFile.KyLoi, errMessage);
@@ -328,14 +333,14 @@ namespace ws_GetResult_RemoteSigning.Utils
                     throw new SignHashException(GuidHS, id, errMessage);
                 }
                 //signedHashInfo.SignData = dataSign;
-                if (signer == null)
-                {
-                    throw new Exception($"Sign hash error: {errMessage}");
-                }
                 toKhai.TransactionId = dataSign.transaction_id;
                 toKhai.TransCode = dataSign.tran_code;
-                SigningCache.SetSigningCache(dataSign.transaction_id, signer);
+                if (type != FileType.PDF)
+                {
+                    SigningCache.SetSigningCache(dataSign.transaction_id, signer);
+                }
                 //update trang thai to khai
+                toKhai.TrangThai = TrangThaiFile.DaKyHash;
                 UpdateStatusToKhai(id, TrangThaiFile.DaKyHash, "", FilePath, dataSign.transaction_id, dataSign.transaction_id, dataSign.tran_code);
             }
         }
@@ -765,19 +770,19 @@ namespace ws_GetResult_RemoteSigning.Utils
                 }
                 catch (Exception ex)
                 {
-                    throw new FileErrorException(-1, hs.filePathHS, $"Cannot read file in path {hs.filePathHS}: {ex.Message}") ;
+                    throw new FileErrorException(-1, hs.filePathHS, $"Cannot read file in path {hs.filePathHS}: {ex.Message}");
                 }
-               if(DataBHXHDt.Length == 0)
-               {
-                   throw new FileErrorException(-1, hs.filePathHS, $"File {hs.filePathHS} is empty");
-               }
+                if (DataBHXHDt.Length == 0)
+                {
+                    throw new FileErrorException(-1, hs.filePathHS, $"File {hs.filePathHS} is empty");
+                }
             }
             else
             {
                 throw new FileErrorException(-1, hs.filePathHS, $"File not found: {hs.filePathHS}");
             }
 
-            DataSign dataSign = SignSmartCAXML(userCert, DataBHXHDt, hs.guid, ref signer, ref errMessage, "/Hoso/CKy_Dvi");
+            DataSign dataSign = SignSmartCAXML(userCert, DataBHXHDt, hs.uid, ref signer, ref errMessage, "//CKy_Dvi");
 
             if (dataSign == null || signer == null)
             {
@@ -788,6 +793,7 @@ namespace ws_GetResult_RemoteSigning.Utils
             SigningCache.SetSigningCache(dataSign.transaction_id, signer);
             hs.transactionId = dataSign.transaction_id;
             hs.transCode = dataSign.tran_code;
+            hs.TrangThai = TrangThaiHoso.DaKyHash;
             UpdateStatusHoSo(hs.guid, TrangThaiHoso.DaKyHash, "", dataSign.transaction_id, "", dataSign.transaction_id, dataSign.tran_code);
         }
         public void GetResultHoSo_VNPT(HoSoMessage hs)

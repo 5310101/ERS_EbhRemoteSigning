@@ -17,14 +17,15 @@ namespace ws_GetResult_RemoteSigning.Process
     /// </summary>
     public class HandleDlqProcess : RabbitMqWorkerBase
     {
+        private readonly CoreService _coreService;
         private static readonly string[] AllDlqs = { "SmartCA.SignhashToKhai.dlq",
                                                      "SmartCA.SignhashHSDK.dlq" ,
                                                      "SmartCA.GetResultToKhai.dlq",
                                                      "SmartCA.GetResultHoSo.dlq" };
         private readonly string SignedTempFolder = ConfigurationManager.AppSettings["HOSO_TEMP_FOLDER"];
-        private readonly CoreService _coreService;
+        private readonly static int DlqConcurrentConsumer = int.Parse(ConfigurationManager.AppSettings["DLQ_ConcurrentConsumer"]);
 
-        public HandleDlqProcess(IChannel chanel, CoreService coreService) : base(chanel, null,
+        public HandleDlqProcess(RabbitmqManager manager, CoreService coreService) : base(manager, DlqConcurrentConsumer, null,
             AllDlqs.Select(dlq => new RabbitMqConsumerOptions
             {
                 QueueName = dlq,
@@ -35,17 +36,11 @@ namespace ws_GetResult_RemoteSigning.Process
             _coreService = coreService;
         }
 
-        protected override async Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken cancellationToken)
+        protected override async Task ProcessMessageAsync(IChannel channel,HoSoMessage hs, CancellationToken cancellationToken, BasicDeliverEventArgs ea)
         {
             if (cancellationToken.IsCancellationRequested)
             {
                 return;
-            }
-            //log ra cac message loi 
-            var hs = ProcessMessageToObject<HoSoMessage>(ea);
-            if (hs == null)
-            {
-                Utilities.logger.ErrorLog($"[HandleDlqProcess] Message in dlq is not valid json: {ea.Body}", "Serialize Error");
             }
 
             //log ra cac message loi 
@@ -59,7 +54,7 @@ namespace ws_GetResult_RemoteSigning.Process
                 TrangThai = ERS_Domain.Model.TrangThaiHoso.KyLoi,
                 ErrMsg = "Retry more than 3 times"
             });
-            await Task.CompletedTask;
+            await Task.CompletedTask.ConfigureAwait(false);
         }
     }
 }
