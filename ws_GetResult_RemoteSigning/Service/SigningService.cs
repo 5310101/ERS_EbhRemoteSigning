@@ -15,6 +15,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.IO;
 using System.Linq;
+using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Security.Principal;
 using VnptHashSignatures.Common;
@@ -841,6 +842,7 @@ namespace ws_GetResult_RemoteSigning.Utils
 
             }
             //update thanh trang thai da ky
+            hs.TrangThai = TrangThaiHoso.DaKy;
             UpdateStatusHoSo(GuidHS, TrangThaiHoso.DaKy, "", "", hs.filePathHS);
         }
         #endregion

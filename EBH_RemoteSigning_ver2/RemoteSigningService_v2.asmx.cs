@@ -53,7 +53,6 @@ namespace EBH_RemoteSigning_ver2
         public ERS_Response UserAuthorize(string userName, string Md5Password)
         {
             //test
-            return new ERS_Response("Authorized", true);
             bool isAuthed = false;
             try
             {

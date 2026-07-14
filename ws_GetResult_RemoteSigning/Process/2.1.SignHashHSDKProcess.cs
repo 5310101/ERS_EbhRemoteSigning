@@ -22,7 +22,7 @@ namespace ws_GetResult_RemoteSigning.Process
         private readonly static ushort _signHSDKPrefetch = ushort.Parse(ConfigurationManager.AppSettings["HSDK_PREFETCH"]);
         private readonly static int signHSDK_ConcurrentConsumer = ushort.Parse(ConfigurationManager.AppSettings["SIGNHSDK_ConcurrentConsumer"]);
         private readonly static int _signhashHSDKMaxTry = int.Parse(ConfigurationManager.AppSettings["HSDKSIGNHASH_RETRYMAXTRY"]);
-
+        private static readonly string SignedTempFolder = ConfigurationManager.AppSettings["HOSO_TEMP_FOLDER"];
 
         public SignHashHSDKProcess(RabbitmqManager manager, CoreService coreService, SigningService signService) : base(manager, signHSDK_ConcurrentConsumer, null,
             new List<RabbitMqConsumerOptions>
@@ -49,14 +49,14 @@ namespace ws_GetResult_RemoteSigning.Process
             }
             //voi truong hop to khai dang ky thì ky thang file
            
-            string pathFileHSDK = Path.Combine(Utilities.globalPath.SignedTempFolder, hs.guid, $"{hs.maNV}.xml");
+            string pathFileHSDK = Path.Combine(SignedTempFolder, hs.guid, $"{hs.maNV}.xml");
             hs.filePathHS = pathFileHSDK;
             //signhash
             try
             {
                 _signService.SignHoSoBHXH(hs);
                 //push message to queue get result
-                await PublishToAnotherQueue(channel, "", "SmartCA.GetResultHSDK.q", hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
+                await PublishToAnotherQueue(channel, "", "SmartCA.GetResultHoSo.q", hs.GetBytesStringFromJsonObject()).ConfigureAwait(false);
             }
             catch (FileErrorException ex)
             {
