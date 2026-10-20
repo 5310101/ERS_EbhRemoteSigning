@@ -23,6 +23,12 @@ namespace IntrustCA_Winservice.Process
         private readonly CoreService _coreService;
 
         private readonly ushort numHSSignPerProcess = ushort.Parse(System.Configuration.ConfigurationManager.AppSettings["NUMBERHSSIGN_PERPROCESS"]);
+        private const string SessionExpiredMessage = "Phiên ký chưa đăng ký hoặc đã hết hạn";
+
+        private class SessionNotFoundException : Exception
+        {
+            public SessionNotFoundException(string message) : base(message) { }
+        }
 
         public SignHSProcess(IChannel channel, CoreService coreService)
         {
@@ -44,14 +50,9 @@ namespace IntrustCA_Winservice.Process
                 catch (Exception ex)
                 {
                     Utilities.logger.ErrorLog(ex, "Consume message error", "SignHSProcess");
-                    //neu tra ve loi do het han phiên ký thì do da huy phien ky tren app cua app Intrust, xoa phien ky tren cache
-                    if (ex.Message.Contains("Phiên ký chưa đăng ký hoặc đã hết hạn"))
+                    //chua co phien ky hoac phien ky da het han (store da duoc xoa khoi cache trong ProcessMessage) thi chuyen ve createsession
+                    if (ex is SessionNotFoundException || ex.Message.Contains(SessionExpiredMessage))
                     {
-                        var hs = ea.ProcessMessageToObject<HoSoMessage>();
-                        if (hs != null)
-                        {
-                            SessionCache.RemoveStore(hs.uid);
-                        }
                         var props1 = new BasicProperties
                         {
                             Persistent = true,
@@ -80,9 +81,23 @@ namespace IntrustCA_Winservice.Process
             //Tao Service ky
             ICACertificate cert = IntrustRSHelper.GetCertificate(hs.uid, hs.serialNumber);
             if (cert == null) throw new Exception("Không tìm thấy chữ ký số");
-            //luu y: khi tao service nay thi chac chan hs can ky da duoc tao store trong cache vi chi o process SignHS moi khoi tao nen o day se get chu ko set nua
-            SignSessionStore store = SessionCache.GetOrSetStore(hs.uid, cert);
-            if (store == null) throw new Exception("Không tạo được phiên ký");
+            //chi lay phien ky da co, ko tu tao phien o day (tao phien chi o CreateSessionStoreProcess de co lock)
+            SignSessionStore store = SessionCache.GetStore(hs.uid);
+            if (store == null) throw new SessionNotFoundException($"Chưa có phiên ký cho {hs.uid}");
+            try
+            {
+                SignWithStore(hs, store);
+            }
+            catch (Exception ex) when (ex.Message.Contains(SessionExpiredMessage))
+            {
+                //phien ky da bi huy tren app Intrust, chi xoa dung store vua dung
+                SessionCache.RemoveStore(hs.uid, store);
+                throw;
+            }
+        }
+
+        private void SignWithStore(HoSoMessage hs, SignSessionStore store)
+        {
             var signService = new IntrustRemoteSigningService(store);
             //tao listfile de ky
             //chi 2 loai hs nay moi co to khai

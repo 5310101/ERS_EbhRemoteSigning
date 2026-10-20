@@ -34,13 +34,10 @@ namespace IntrustCA_Domain
             this.UserName = UserName;
             this.Cert = Certificate;
             this.SessionId = Guid.NewGuid().ToString();
-            if (CreateSession() == false)
-            {
-                throw new Exception("Create session failed");
-            }
+            CreateSession();
         }
 
-        private bool CreateSession()
+        private void CreateSession()
         {
             try
             {
@@ -62,13 +59,12 @@ namespace IntrustCA_Domain
                 RefreshToken = res.refresh_token;
                 //luon lay truoc khi het han that su cua phien 5 p
                 ValidUntil = DateTime.Now.AddMinutes(SessionTime - 5);
-                return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //log
-                Logger.ErrorLog("Create session failed", "SignSessionStore");
-                return false;
+                //log kem loi goc de biet ly do (user tu choi, het thoi gian xac nhan, sai credentialID...)
+                Logger.ErrorLog(ex, "Create session failed", "SignSessionStore");
+                throw new Exception("Create session failed: " + ex.Message, ex);
             }
         }
 

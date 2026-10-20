@@ -142,7 +142,7 @@ namespace TestCA2RS
                 //doc file roi tao hash ky
                 string pathfilePDF = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf.pdf";
                 string pathfilePDFTemp = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\sample-local-pdf_temp.pdf";
-                string pathfileXML = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\TK1-TS-595.xml";
+                string pathfileXML = "C:\\Users\\quanna\\Desktop\\Desk\\CA2RSTest\\TK1-TS-595.xml";
                 string pathfileXMLTemp = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595_temp.xml";
 
                 string pathSignedD02Valid = "C:\\Users\\quanna\\Desktop\\CA2RSTest\\D02-TS-595_Valid.xml";

@@ -25,9 +25,7 @@ using KeyInfoClause = netSecurity::System.Security.Cryptography.Xml.KeyInfoClaus
 using Signature = netSecurity::System.Security.Cryptography.Xml.Signature;
 using DataObject = netSecurity::System.Security.Cryptography.Xml.DataObject;
 using KeyInfoX509Data = netSecurity::System.Security.Cryptography.Xml.KeyInfoX509Data;
-using Transform = netSecurity::System.Security.Cryptography.Xml.Transform;
 
-using System.Security.Cryptography.Xml;
 
 namespace ERS_Domain.CustomSigner.CA2CustomSigner
 {
@@ -164,13 +162,12 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
 
         public static byte[] GetC14NCanonicalize(this XmlNode nodeSI)
         {
-            XmlDocument xDoc = new XmlDocument();
-            xDoc.PreserveWhitespace = true;
-            xDoc.AppendChild(xDoc.ImportNode(nodeSI, true));
+            //khong load node vao 1 documnent moi de mat namespace
+            XmlNodeList nodeList = nodeSI.SelectNodes(".//node() | .//@* | .");
 
             //Canonicalization
             XmlDsigC14NTransform val = new XmlDsigC14NTransform();
-            val.LoadInput(xDoc);
+            val.LoadInput(nodeList);
             using (var stream = (MemoryStream)val.GetOutput(typeof(Stream)))
             {
                 return stream.ToArray();
@@ -239,7 +236,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             xDoc.Load(filePath);
             XmlNode nodeSign = xDoc.SelectSingleNode(xPathSignNode);
             nodeSign.AppendChild(xDoc.ImportNode(nodeSignature, true));
-            xDoc.Save(filePath);
+            xDoc.SaveKeepNewLine(filePath);
         }
 
         public static byte[] AddSignatureXmlWithData(string filePath, XmlElement nodeSignedInfo, string signatureValue, string certRaw, DateTime signTime, string xPathSignNode)
@@ -262,7 +259,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             }
             var nodeSignatureValue = nodeList.Item(nodeList.Count - 1);
             nodeSignatureValue.InnerText = signatureValue;
-            tempDoc.Save(filePath);
+            tempDoc.SaveKeepNewLine(filePath);
         }
 
         public static string ComputeHashValueSendToServer(string filePath, X509Certificate2 cert, string nodeSign, out string tempFile)
@@ -307,8 +304,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             ele1.SetAttribute("Id", "proid");
             XmlElement ele2 = xDoc.CreateElement("SignatureProperty", (string)null);
             ele2.SetAttribute("Target", "#sigid");
-            XmlElement ele3 = xDoc.CreateElement("SigningTime", (string)null);
-            ele3.SetAttribute("xmlns", "http://example.org/#signatureProperties");
+            XmlElement ele3 = xDoc.CreateElement("SigningTime", "http://example.org/#signatureProperties");
             ele3.InnerText = DateTime.UtcNow.ToString("s") + "Z";
             ele2.AppendChild((XmlNode)ele3);
             ele1.AppendChild((XmlNode)ele2);
@@ -331,7 +327,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             XmlElement signatureNode = signedXml.GetXml();
             nodeKy.AppendChild(signatureNode);
 
-            xDoc.Save(tempFile);
+            xDoc.SaveKeepNewLine(tempFile);
 
             //lay digest value
             var nodes = xDoc.GetElementsByTagName("SignedInfo");
@@ -376,7 +372,7 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
                     throw new Exception("Không tìm thấy node SignatureValue");
                 }
                 nodeSigValue.InnerText = signatureValue;
-                xDoc.Save(saveFile);
+                xDoc.SaveKeepNewLine(saveFile);
             }
             try
             {
@@ -389,6 +385,19 @@ namespace ERS_Domain.CustomSigner.CA2CustomSigner
             {
 
                 throw new Exception($"Lỗi xóa file: {ex.Message}");
+            }
+        }
+
+        private static void SaveKeepNewLine(this XmlDocument xDoc, string filePath)
+        {
+            var settings = new XmlWriterSettings { 
+                NewLineHandling = NewLineHandling.None,
+                Indent = false,
+                Encoding = new UTF8Encoding(false),
+            };
+            using (var writer = XmlWriter.Create(filePath, settings))
+            {
+                xDoc.Save(writer);
             }
         }
 
