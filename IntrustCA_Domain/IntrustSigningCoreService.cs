@@ -19,11 +19,12 @@ namespace IntrustCA_Domain
         /// </summary>
         /// <param name="req"></param>
         /// <returns></returns>
-        public static SessionRegisterResponse RegisterSession(SessionRegisterRequest req)
+        /// <param name="timeoutMs">thoi gian toi da cho user xac nhan tren app, het thoi gian nem TimeoutException</param>
+        public static SessionRegisterResponse RegisterSession(SessionRegisterRequest req, int timeoutMs)
         {
             string jsonData = JsonConvert.SerializeObject(req);
             //string jsonResponse = Signer.registerSessionPub(jsonData);
-            string jsonResponse = ESDKCaller.Call("registerSessionPub", jsonData);
+            string jsonResponse = ESDKCaller.Call("registerSessionPub", jsonData, timeoutMs);
             return JsonConvert.DeserializeObject<SessionRegisterResponse>(jsonResponse);   
         }
 

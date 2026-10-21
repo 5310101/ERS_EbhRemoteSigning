@@ -59,7 +59,8 @@ namespace IntrustCA_Winservice
                     _processCheckHS = new CheckHSProcess(_rmqManager.CreateChanel(), _coreService);
                     _processCheckHS.StartProcess();
                     //khoi tao process tao session ky so
-                    _processCreateSession = new CreateSessionStoreProcess(_rmqManager.CreateChanel(), _coreService);
+                    //xu ly song song de 1 user ko xac nhan tren app ko lam treo viec tao phien cua user khac
+                    _processCreateSession = new CreateSessionStoreProcess(_rmqManager.CreateChanel(CreateSessionStoreProcess.NumberOfSession), _coreService);
                     _processCreateSession.StartProcess();
                     //khoi tao process ky so
                     _processSignHS = new SignHSProcess(_rmqManager.CreateChanel(), _coreService);

@@ -16,12 +16,15 @@ namespace IntrustCA_Domain.Cache
         //luu lan tao phien loi gan nhat theo uid, trong thoi gian cooldown ko gui yeu cau tao phien moi len app nua
         private static readonly ConcurrentDictionary<string, (DateTime FailedAt, Exception Error)> _failures = new ConcurrentDictionary<string, (DateTime, Exception)>();
 
+        //mac dinh bang RABBITMQ_TTL (ms) de cooldown khop voi khoang cach giua cac lan retry, tranh het luot retry trong luc cooldown
         private static int FailCooldownSeconds
         {
             get
             {
                 int seconds;
-                return int.TryParse(ConfigurationManager.AppSettings["SESSION_FAIL_COOLDOWN"], out seconds) ? seconds : 60;
+                if (int.TryParse(ConfigurationManager.AppSettings["SESSION_FAIL_COOLDOWN"], out seconds)) return seconds;
+                int ttlMs;
+                return int.TryParse(ConfigurationManager.AppSettings["RABBITMQ_TTL"], out ttlMs) ? ttlMs / 1000 : 5;
             }
         }
 
@@ -45,6 +48,11 @@ namespace IntrustCA_Domain.Cache
                 //vua tao phien loi (user tu choi/ko xac nhan kip) thi ko gui them yeu cau len app, de message retry sau
                 if (_failures.TryGetValue(uid, out var failure) && (DateTime.Now - failure.FailedAt).TotalSeconds < FailCooldownSeconds)
                 {
+                    //user vua tu choi thi cac ho so khac cung uid dang cho cung bao loi luon, ko retry
+                    if (failure.Error is SessionRejectedException)
+                    {
+                        throw new SessionRejectedException(failure.Error.Message, failure.Error);
+                    }
                     throw new Exception($"Create session failed recently, wait before retry: {failure.Error.Message}", failure.Error);
                 }
 

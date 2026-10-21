@@ -30,6 +30,15 @@ namespace IntrustCA_Winservice
 
         public IChannel CreateChanel() => _connection.CreateChannelAsync().GetAwaiter().GetResult();
 
+        /// <summary>
+        /// Channel xu ly song song nhieu message 1 luc (mac dinh chi 1), consumer phai thread-safe
+        /// </summary>
+        public IChannel CreateChanel(ushort consumerDispatchConcurrency) =>
+            _connection.CreateChannelAsync(new CreateChannelOptions(
+                publisherConfirmationsEnabled: false,
+                publisherConfirmationTrackingEnabled: false,
+                consumerDispatchConcurrency: consumerDispatchConcurrency)).GetAwaiter().GetResult();
+
         public void Dispose()
         {
             _connection.Dispose();

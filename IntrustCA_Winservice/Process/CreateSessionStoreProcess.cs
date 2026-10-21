@@ -1,6 +1,7 @@
 ﻿using ERS_Domain;
 using ERS_Domain.Dtos;
 using IntrustCA_Domain.Cache;
+using IntrustCA_Domain;
 using IntrustCA_Domain.Dtos;
 using IntrustCA_Winservice.Services;
 using RabbitMQ.Client;
@@ -15,7 +16,8 @@ namespace IntrustCA_Winservice.Process
         private readonly IChannel _channel;
         private readonly CoreService _coreService;
 
-        private readonly ushort numberOfSession = ushort.Parse(System.Configuration.ConfigurationManager.AppSettings["SESSIONCREATE_PERPROCESS"]);
+        //so message xu ly song song, dung chung cho prefetch va ConsumerDispatchConcurrency cua channel
+        public static readonly ushort NumberOfSession = ushort.Parse(System.Configuration.ConfigurationManager.AppSettings["SESSIONCREATE_PERPROCESS"]);
         public CreateSessionStoreProcess(IChannel channel, CoreService coreService)
         {
             _channel = channel;
@@ -24,7 +26,7 @@ namespace IntrustCA_Winservice.Process
 
         public void StartProcess()
         {
-            _channel.BasicQosAsync(0, numberOfSession, false).GetAwaiter().GetResult();
+            _channel.BasicQosAsync(0, NumberOfSession, false).GetAwaiter().GetResult();
             var consumer = new AsyncEventingBasicConsumer(_channel);
             consumer.ReceivedAsync += async (model, ea) =>
             {
@@ -32,6 +34,12 @@ namespace IntrustCA_Winservice.Process
                 {
                     await ProcessMessage(ea);
                     await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                }
+                catch (SessionRejectedException ex)
+                {
+                    //user tu choi/ko xac nhan kip => bao loi ho so luon, ko retry de tranh hoi lai user
+                    Utilities.logger.ErrorLog(ex, "Create session rejected", "CreateSessionStoreProcess");
+                    await RabbitMQHelper.HandleError(_channel, ea, 1, "CreateSession.retry.q", ex, _coreService.UpdateHS);
                 }
                 catch (Exception ex)
                 {

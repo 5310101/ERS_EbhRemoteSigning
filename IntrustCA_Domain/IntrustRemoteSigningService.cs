@@ -27,7 +27,8 @@ namespace IntrustCA_Domain
         {
             if (_signSessionStore.IsSessionValid == false)
             {
-                throw new Exception("Cannot create valid sign session");
+                //gia han that bai (vd: Phien dang nhap da het han), ben ngoai can xoa store va tao phien moi
+                throw new SessionExpiredException("Cannot create valid sign session: extend session failed");
             }
             var req = new SignRequest
             {
@@ -59,7 +60,8 @@ namespace IntrustCA_Domain
 
             if (_signSessionStore.IsSessionValid == false)
             {
-                throw new Exception("Cannot create valid sign session");
+                //gia han that bai (vd: Phien dang nhap da het han), ben ngoai can xoa store va tao phien moi
+                throw new SessionExpiredException("Cannot create valid sign session: extend session failed");
             }
             var file = new FileToSignDto<FileProperties>
             {

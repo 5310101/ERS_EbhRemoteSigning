@@ -3,6 +3,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace IntrustCA_Domain.CreateAppDomain
 {
@@ -98,7 +100,8 @@ namespace IntrustCA_Domain.CreateAppDomain
 
     internal class ESDKCaller
     {
-        public static string Call(string methodName, string jsonData)
+        /// <param name="timeoutMs">Qua thoi gian nay thi nem TimeoutException, Unload domain se abort thread dang treo trong eSDK</param>
+        public static string Call(string methodName, string jsonData, int timeoutMs = Timeout.Infinite)
         {
             string baseDir = AppDomain.CurrentDomain.BaseDirectory;
             string binPath = Path.Combine(baseDir, "bin");
@@ -123,7 +126,24 @@ namespace IntrustCA_Domain.CreateAppDomain
                 // Đường dẫn eSDK.dll
                 string eSDKPath = Path.Combine(baseDir, "eSDKRuntime");
                 loader.Initialize(eSDKPath);
-                return loader.InvokeSigner(methodName, jsonData);
+                if (timeoutMs == Timeout.Infinite)
+                {
+                    return loader.InvokeSigner(methodName, jsonData);
+                }
+
+                //chay tren thread khac de co the bo cho khi eSDK treo (vd user ko xac nhan tren app)
+                var task = Task.Run(() => loader.InvokeSigner(methodName, jsonData));
+                if (Task.WhenAny(task, Task.Delay(timeoutMs)).GetAwaiter().GetResult() != task)
+                {
+                    //thread bi abort khi Unload domain, doc exception de ko bi UnobservedTaskException
+                    task.ContinueWith(t => { var _ = t.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
+                    throw new TimeoutException($"eSDK '{methodName}' không phản hồi sau {timeoutMs / 1000}s");
+                }
+                return task.GetAwaiter().GetResult();
+            }
+            catch (TimeoutException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -131,7 +151,15 @@ namespace IntrustCA_Domain.CreateAppDomain
             }
             finally
             {
-                AppDomain.Unload(domain);
+                try
+                {
+                    AppDomain.Unload(domain);
+                }
+                catch (CannotUnloadAppDomainException ex)
+                {
+                    //thread dang ket trong unmanaged code thi ko abort duoc, chi log lai
+                    Logger.ErrorLog(ex, "Unload eSDK domain failed", methodName);
+                }
             }
         }
 

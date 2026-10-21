@@ -50,8 +50,8 @@ namespace IntrustCA_Winservice.Process
                 catch (Exception ex)
                 {
                     Utilities.logger.ErrorLog(ex, "Consume message error", "SignHSProcess");
-                    //chua co phien ky hoac phien ky da het han (store da duoc xoa khoi cache trong ProcessMessage) thi chuyen ve createsession
-                    if (ex is SessionNotFoundException || ex.Message.Contains(SessionExpiredMessage))
+                    //chua co phien ky, phien ky da het han hoac ko gia han duoc (store da duoc xoa khoi cache trong ProcessMessage) thi chuyen ve createsession
+                    if (ex is SessionNotFoundException || ex is SessionExpiredException || ex.Message.Contains(SessionExpiredMessage))
                     {
                         var props1 = new BasicProperties
                         {
@@ -88,9 +88,9 @@ namespace IntrustCA_Winservice.Process
             {
                 SignWithStore(hs, store);
             }
-            catch (Exception ex) when (ex.Message.Contains(SessionExpiredMessage))
+            catch (Exception ex) when (ex is SessionExpiredException || ex.Message.Contains(SessionExpiredMessage))
             {
-                //phien ky da bi huy tren app Intrust, chi xoa dung store vua dung
+                //phien ky da bi huy tren app Intrust hoac gia han that bai, chi xoa dung store vua dung
                 SessionCache.RemoveStore(hs.uid, store);
                 throw;
             }

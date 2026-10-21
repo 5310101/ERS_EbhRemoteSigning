@@ -134,6 +134,8 @@
     <Compile Include="IntrustRemoteSigningService.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="IntrustSigningCoreService.cs" />
+    <Compile Include="SessionExpiredException.cs" />
+    <Compile Include="SessionRejectedException.cs" />
     <Compile Include="SignSessionStore.cs" />
   </ItemGroup>
   <ItemGroup>

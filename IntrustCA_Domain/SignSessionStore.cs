@@ -15,6 +15,16 @@ namespace IntrustCA_Domain
         public DateTime ValidUntil { get; private set; }
 
         public int SessionTime => int.Parse(ConfigurationManager.AppSettings["SessionTime"]);
+
+        //nen dat lon hon thoi gian cho xac nhan cua app Intrust mot chut, tranh bo cho truoc khi user kip xac nhan
+        private static int RegisterTimeoutSeconds
+        {
+            get
+            {
+                int seconds;
+                return int.TryParse(ConfigurationManager.AppSettings["SESSION_REGISTER_TIMEOUT"], out seconds) ? seconds : 180;
+            }
+        }
         public ICACertificate Cert { get; }
 
         public bool IsSessionValid
@@ -50,19 +60,33 @@ namespace IntrustCA_Domain
                     auth_data = ""
                 };
 
-                var res = IntrustSigningCoreService.RegisterSession(registerRequest);
+                SessionRegisterResponse res;
+                try
+                {
+                    res = IntrustSigningCoreService.RegisterSession(registerRequest, RegisterTimeoutSeconds * 1000);
+                }
+                catch (TimeoutException ex)
+                {
+                    throw new SessionRejectedException($"Hết thời gian chờ xác nhận phiên ký trên app Intrust ({RegisterTimeoutSeconds}s)", ex);
+                }
+                //Intrust da tra loi ro rang (user tu choi, het han xac nhan, sai thong tin...) => retry ngay chi lam user bi hoi lai
                 if (res.status != "success")
                 {
-                    throw new Exception("Register session failed: " + res.error_desc);
+                    throw new SessionRejectedException($"Không tạo được phiên ký (người dùng từ chối/không xác nhận hoặc thông tin không hợp lệ): [{res.status_code}] {res.error_desc}");
                 }
                 AuthData = res.auth_data;
                 RefreshToken = res.refresh_token;
                 //luon lay truoc khi het han that su cua phien 5 p
                 ValidUntil = DateTime.Now.AddMinutes(SessionTime - 5);
             }
+            catch (SessionRejectedException ex)
+            {
+                Logger.ErrorLog(ex, "Create session rejected", "SignSessionStore");
+                throw;
+            }
             catch (Exception ex)
             {
-                //log kem loi goc de biet ly do (user tu choi, het thoi gian xac nhan, sai credentialID...)
+                //log kem loi goc de biet ly do (loi mang, loi eSDK...)
                 Logger.ErrorLog(ex, "Create session failed", "SignSessionStore");
                 throw new Exception("Create session failed: " + ex.Message, ex);
             }
